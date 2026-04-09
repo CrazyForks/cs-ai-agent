@@ -216,6 +216,7 @@ export type AIAgent = {
   skillIds: number[]
   skills: { id: number; code: string; name: string }[]
   directTools: {
+    toolCode: string
     serverCode: string
     toolName: string
     title: string
@@ -246,6 +247,7 @@ export type CreateAIAgentPayload = {
   knowledgeIds: number[]
   skillIds: number[]
   directTools: {
+    toolCode: string
     serverCode: string
     toolName: string
     title: string
@@ -276,10 +278,9 @@ export type SkillDefinition = {
   code: string
   name: string
   description: string
-  prompt: string
-  executionMode?: string
-  executionModeName?: string
-  executionConfig?: string
+  content: string
+  examples: string[]
+  allowedToolCodes: string[]
   priority: number
   status: number
   statusName: string
@@ -294,9 +295,10 @@ export type CreateSkillDefinitionPayload = {
   code: string
   name: string
   description: string
-  prompt: string
-  executionMode?: string
-  executionConfig?: string
+  content: string
+  examples: string[]
+  allowedToolCodes: string[]
+  priority?: number
   remark: string
 }
 
@@ -321,6 +323,16 @@ export type MCPServerInfo = {
 
 export type MCPToolInfo = {
   name: string
+  title: string
+  description: string
+  inputSchema: unknown
+  outputSchema?: unknown
+}
+
+export type MCPToolCatalogItem = {
+  toolCode: string
+  serverCode: string
+  toolName: string
   title: string
   description: string
   inputSchema: unknown
@@ -876,6 +888,10 @@ export function listMCPTools(serverCode: string) {
     method: "POST",
     body: JSON.stringify({ serverCode }),
   })
+}
+
+export function fetchMCPCatalog() {
+  return request<MCPToolCatalogItem[]>("/api/console/mcp/catalog")
 }
 
 export function callMCPTool(payload: {

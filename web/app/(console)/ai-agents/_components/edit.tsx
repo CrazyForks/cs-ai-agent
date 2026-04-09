@@ -37,14 +37,14 @@ import {
   type AdminAgentTeam,
   type CreateAIAgentPayload,
   type KnowledgeBase,
+  type MCPToolCatalogItem,
   type SkillDefinition,
   fetchAIAgent,
   fetchAIConfigsAll,
   fetchAgentTeamsAll,
+  fetchMCPCatalog,
   fetchKnowledgeBasesAll,
   fetchSkillDefinitionsAll,
-  listMCPServers,
-  listMCPTools,
 } from "@/lib/api/admin";
 import {
   AIAgentFallbackMode,
@@ -243,6 +243,7 @@ function EditDialogBody({
   const [directToolOptions, setDirectToolOptions] = useState<
     { value: string; label: string; meta: CreateAIAgentPayload["directTools"][number] }[]
   >([]);
+  const [toolCatalog, setToolCatalog] = useState<MCPToolCatalogItem[]>([]);
 
   useEffect(() => {
     async function loadDetail() {
@@ -342,25 +343,22 @@ function EditDialogBody({
   useEffect(() => {
     async function loadDirectToolOptions() {
       try {
-        const servers = await listMCPServers();
-        const enabledServers = servers.filter((item) => item.enabled);
-        const toolGroups = await Promise.all(
-          enabledServers.map(async (server) => {
-            const tools = await listMCPTools(server.code);
-            return tools.map((tool) => ({
-              value: `${server.code}/${tool.name}`,
-              label: `${server.code} / ${tool.title || tool.name}`,
-              meta: {
-                serverCode: server.code,
-                toolName: tool.name,
-                title: tool.title || tool.name,
-                description: tool.description || "",
-                arguments: undefined,
-              },
-            }));
-          }),
+        const catalog = await fetchMCPCatalog();
+        setToolCatalog(catalog);
+        setDirectToolOptions(
+          catalog.map((tool) => ({
+            value: tool.toolCode,
+            label: `${tool.title || tool.toolName} · ${tool.toolCode}`,
+            meta: {
+              toolCode: tool.toolCode,
+              serverCode: tool.serverCode,
+              toolName: tool.toolName,
+              title: tool.title || tool.toolName,
+              description: tool.description || "",
+              arguments: undefined,
+            },
+          })),
         );
-        setDirectToolOptions(toolGroups.flat());
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : "加载 Direct Tools 失败",
@@ -449,10 +447,7 @@ function EditDialogBody({
       directToolOptions.filter(
         (option) =>
           option.meta.serverCode === directToolServerCodeToAdd &&
-          !directTools.some(
-            (tool) =>
-              `${tool.serverCode}/${tool.toolName}` === option.value,
-          ),
+          !directTools.some((tool) => tool.toolCode === option.value),
       ),
     [directToolOptions, directToolServerCodeToAdd, directTools],
   );
@@ -583,8 +578,7 @@ function EditDialogBody({
       if (
         prev.some(
           (item) =>
-            item.serverCode === option.meta.serverCode &&
-            item.toolName === option.meta.toolName,
+            item.toolCode === option.meta.toolCode,
         )
       ) {
         return prev;
@@ -596,9 +590,7 @@ function EditDialogBody({
   }
 
   function handleRemoveDirectTool(value: string) {
-    setDirectTools((prev) =>
-      prev.filter((item) => `${item.serverCode}/${item.toolName}` !== value),
-    );
+    setDirectTools((prev) => prev.filter((item) => item.toolCode !== value));
   }
 
   return (
@@ -862,8 +854,7 @@ function EditDialogBody({
               <div className="rounded-xl border bg-muted/10 p-4">
                 <div className="mb-1 text-sm font-medium">Direct MCP Tools</div>
                 <div className="mb-4 text-xs text-muted-foreground">
-                  用于低风险、原子化的实时查询。先选 MCP Server，再选该
-                  Server 下的工具。
+                  用于低风险、原子化的实时查询。工具来自统一的 MCP Tool Catalog。
                 </div>
                 <Field>
                   <FieldContent className="space-y-3">
@@ -919,14 +910,17 @@ function EditDialogBody({
                             </div>
                             <div className="flex flex-wrap gap-2">
                               {tools.map((tool) => {
-                                const value = `${tool.serverCode}/${tool.toolName}`;
+                                const value = tool.toolCode;
+                                const catalogItem = toolCatalog.find(
+                                  (item) => item.toolCode === tool.toolCode,
+                                );
                                 return (
                                   <Badge
                                     key={value}
                                     variant="secondary"
                                     className="gap-1 pr-1"
                                   >
-                                    {tool.title || value}
+                                    {tool.title || catalogItem?.title || value}
                                     <Button
                                       type="button"
                                       variant="ghost"

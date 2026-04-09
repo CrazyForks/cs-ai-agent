@@ -1,10 +1,11 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Resolver, useForm } from "react-hook-form";
 import { z } from "zod/v4";
 
+import { OptionCombobox } from "@/components/option-combobox";
 import { ProjectDialog } from "@/components/project-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,8 +17,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  fetchMCPCatalog,
   fetchSkillDefinition,
   type CreateSkillDefinitionPayload,
+  type MCPToolCatalogItem,
   type SkillDefinition,
 } from "@/lib/api/admin";
  
@@ -34,7 +37,8 @@ const emptyForm: EditForm = {
   code: "",
   name: "",
   description: "",
-  prompt: "",
+  content: "",
+  examplesText: "",
   remark: "",
 };
 
@@ -46,7 +50,8 @@ const skillFormSchema = z.object({
     .regex(/^[a-zA-Z0-9_-]+$/, "Skill 编码仅支持字母、数字、下划线和中划线"),
   name: z.string().trim().min(1, "Skill 名称不能为空"),
   description: z.string().trim(),
-  prompt: z.string().trim().min(1, "Prompt 不能为空"),
+  content: z.string().trim().min(1, "Content 不能为空"),
+  examplesText: z.string().trim(),
   remark: z.string().trim(),
 });
 
@@ -66,17 +71,26 @@ function buildForm(item: SkillDefinition | null): EditForm {
     code: item.code,
     name: item.name,
     description: item.description ?? "",
-    prompt: item.prompt ?? "",
+    content: item.content ?? "",
+    examplesText: (item.examples ?? []).join("\n"),
     remark: item.remark ?? "",
   };
 }
 
-function buildPayload(form: EditForm): CreateSkillDefinitionPayload {
+function buildPayload(
+  form: EditForm,
+  allowedToolCodes: string[],
+): CreateSkillDefinitionPayload {
   return {
     code: form.code.trim(),
     name: form.name.trim(),
     description: form.description.trim(),
-    prompt: form.prompt.trim(),
+    content: form.content.trim(),
+    examples: form.examplesText
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean),
+    allowedToolCodes,
     remark: form.remark.trim(),
   };
 }
@@ -115,6 +129,11 @@ function SkillEditDialogBody({
 }: SkillEditDialogBodyProps) {
   const formId = "skill-definition-edit-form";
   const [loading, setLoading] = useState(false);
+  const [toolCatalog, setToolCatalog] = useState<MCPToolCatalogItem[]>([]);
+  const [selectedAllowedToolCodes, setSelectedAllowedToolCodes] = useState<
+    string[]
+  >([]);
+  const [toolCodeToAdd, setToolCodeToAdd] = useState("");
   const form = useForm<
     z.input<typeof skillFormSchema>,
     undefined,
@@ -135,6 +154,8 @@ function SkillEditDialogBody({
     async function loadDetail() {
       if (!itemId) {
         reset(emptyForm);
+        setSelectedAllowedToolCodes([]);
+        setToolCodeToAdd("");
         return;
       }
 
@@ -142,6 +163,8 @@ function SkillEditDialogBody({
       try {
         const data = await fetchSkillDefinition(itemId);
         reset(buildForm(data));
+        setSelectedAllowedToolCodes(data.allowedToolCodes ?? []);
+        setToolCodeToAdd("");
       } catch (error) {
         console.error("Failed to load skill definition:", error);
       } finally {
@@ -152,8 +175,62 @@ function SkillEditDialogBody({
     void loadDetail();
   }, [itemId, reset]);
 
+  useEffect(() => {
+    async function loadToolCatalog() {
+      try {
+        const data = await fetchMCPCatalog();
+        setToolCatalog(data);
+      } catch (error) {
+        console.error("Failed to load MCP tool catalog:", error);
+      }
+    }
+
+    void loadToolCatalog();
+  }, []);
+
   async function onFormSubmit(values: EditForm) {
-    await onSubmit(buildPayload(values));
+    await onSubmit(buildPayload(values, selectedAllowedToolCodes));
+  }
+
+  const toolOptions = useMemo(
+    () =>
+      toolCatalog.map((item) => ({
+        value: item.toolCode,
+        label: `${item.title || item.toolName} · ${item.toolCode}`,
+      })),
+    [toolCatalog],
+  );
+
+  const addableToolOptions = useMemo(
+    () =>
+      toolOptions.filter(
+        (option) => !selectedAllowedToolCodes.includes(option.value),
+      ),
+    [selectedAllowedToolCodes, toolOptions],
+  );
+
+  const selectedToolOptions = useMemo(
+    () =>
+      selectedAllowedToolCodes
+        .map((toolCode) => toolOptions.find((option) => option.value === toolCode))
+        .filter(
+          (option): option is { value: string; label: string } => !!option,
+        ),
+    [selectedAllowedToolCodes, toolOptions],
+  );
+
+  function handleAddAllowedTool(toolCode: string) {
+    if (!toolCode || selectedAllowedToolCodes.includes(toolCode)) {
+      return;
+    }
+    setSelectedAllowedToolCodes((prev) => [...prev, toolCode]);
+    setToolCodeToAdd("");
+  }
+
+  function handleRemoveAllowedTool(toolCode: string) {
+    setSelectedAllowedToolCodes((prev) =>
+      prev.filter((item) => item !== toolCode),
+    );
   }
 
   return (
@@ -230,17 +307,77 @@ function SkillEditDialogBody({
             </FieldContent>
           </Field>
 
-          <Field data-invalid={!!errors.prompt}>
-            <FieldLabel htmlFor="skill-prompt">Prompt</FieldLabel>
+          <Field data-invalid={!!errors.content}>
+            <FieldLabel htmlFor="skill-content">Content</FieldLabel>
             <FieldContent>
               <Textarea
-                id="skill-prompt"
-                rows={10}
-                placeholder="请输入 Skill 的核心提示词模板"
-                aria-invalid={!!errors.prompt}
-                {...register("prompt")}
+                id="skill-content"
+                rows={12}
+                placeholder="请输入 Skill 文档内容，描述目标、步骤、工具使用规则和边界。"
+                aria-invalid={!!errors.content}
+                {...register("content")}
               />
-              <FieldError errors={[errors.prompt]} />
+              <FieldError errors={[errors.content]} />
+            </FieldContent>
+          </Field>
+
+          <Field data-invalid={!!errors.examplesText}>
+            <FieldLabel htmlFor="skill-examples">Examples</FieldLabel>
+            <FieldContent>
+              <Textarea
+                id="skill-examples"
+                rows={5}
+                placeholder={"每行一个典型用户问法，例如：\n我要申请退款\n帮我查下订单"}
+                aria-invalid={!!errors.examplesText}
+                {...register("examplesText")}
+              />
+              <FieldError errors={[errors.examplesText]} />
+            </FieldContent>
+          </Field>
+
+          <Field>
+            <FieldLabel>Allowed Tools</FieldLabel>
+            <FieldContent className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <OptionCombobox
+                    value={toolCodeToAdd}
+                    options={addableToolOptions}
+                    placeholder="选择允许该 Skill 使用的工具"
+                    searchPlaceholder="搜索 toolCode 或工具名"
+                    emptyText="没有可添加的工具"
+                    onChange={handleAddAllowedTool}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!toolCodeToAdd}
+                  onClick={() => handleAddAllowedTool(toolCodeToAdd)}
+                >
+                  添加
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {selectedToolOptions.length === 0 ? (
+                  <span className="text-sm text-muted-foreground">
+                    不限制时，Skill 会继承 Agent 的可用工具范围。
+                  </span>
+                ) : (
+                  selectedToolOptions.map((option) => (
+                    <Button
+                      key={option.value}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRemoveAllowedTool(option.value)}
+                      className="justify-start"
+                    >
+                      {option.label}
+                    </Button>
+                  ))
+                )}
+              </div>
             </FieldContent>
           </Field>
 
