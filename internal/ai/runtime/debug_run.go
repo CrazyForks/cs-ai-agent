@@ -73,6 +73,7 @@ func buildSkillDebugRunResponse(req request.SkillDebugRunRequest, summary *Summa
 	resp.ReplyText = summary.ReplyText
 	resp.PlanReason = summary.PlanReason
 	resp.SkillRouteTrace = summary.SkillRouteTrace
+	resp.SkillAllowedToolCodes = append([]string(nil), summary.SkillAllowedToolCodes...)
 	resp.ToolCodes = append([]string(nil), summary.ToolCodes...)
 	resp.InvokedToolCodes = append([]string(nil), summary.InvokedToolCodes...)
 	resp.CheckPointID = summary.CheckPointID

@@ -36,23 +36,25 @@ type InterruptContextSummary struct {
 }
 
 type Summary struct {
-	RunID               string
-	Status              string
-	ReplyText           string
-	SelectedSkillCode   string
-	SkillRouteReason    string
-	SkillRouteTrace     string
-	ModelName           string
-	PromptTokens        int
-	CompletionTokens    int
-	HistoryMessageCount int
-	RetrieverCount      int
-	ToolCallCount       int
-	ToolCodes           []string
-	InvokedToolCodes    []string
-	CheckPointID        string
-	Interrupted         bool
-	Interrupts          []InterruptContextSummary
-	TraceData           string
-	ErrorMessage        string
+	RunID                 string
+	Status                string
+	ReplyText             string
+	SelectedSkillCode     string
+	SelectedSkillName     string
+	SkillRouteReason      string
+	SkillRouteTrace       string
+	SkillAllowedToolCodes []string
+	ModelName             string
+	PromptTokens          int
+	CompletionTokens      int
+	HistoryMessageCount   int
+	RetrieverCount        int
+	ToolCallCount         int
+	ToolCodes             []string
+	InvokedToolCodes      []string
+	CheckPointID          string
+	Interrupted           bool
+	Interrupts            []InterruptContextSummary
+	TraceData             string
+	ErrorMessage          string
 }

@@ -95,11 +95,19 @@ func (s *Service) Run(ctx context.Context, req Request) (*Summary, error) {
 	collector.Data.Model.Provider = string(req.AIConfig.Provider)
 	collector.Data.Model.Name = req.AIConfig.ModelName
 	summary.SelectedSkillCode = ""
+	summary.SelectedSkillName = ""
 	summary.SkillRouteReason = strings.TrimSpace(req.SkillRouteReason)
 	summary.SkillRouteTrace = strings.TrimSpace(req.SkillRouteTrace)
 	if req.SelectedSkill != nil {
 		summary.SelectedSkillCode = strings.TrimSpace(req.SelectedSkill.Code)
+		summary.SelectedSkillName = strings.TrimSpace(req.SelectedSkill.Name)
+		summary.SkillAllowedToolCodes = parseJSONArrayList(req.SelectedSkill.AllowedToolCodes)
+		collector.Data.Skill.Code = summary.SelectedSkillCode
+		collector.Data.Skill.Name = summary.SelectedSkillName
+		collector.Data.Skill.AllowedToolCodes = append([]string(nil), summary.SkillAllowedToolCodes...)
 	}
+	collector.Data.Skill.RouteReason = summary.SkillRouteReason
+	collector.Data.Skill.RouteTrace = summary.SkillRouteTrace
 
 	agent, err := s.agentFactory.BuildCustomerServiceAgent(ctx, req.AIAgent, req.AIConfig, req.SelectedSkill, filteredToolDefs, req.ExtraTools, req.ExtraToolCodes, collector)
 	if err != nil {
@@ -291,17 +299,33 @@ func parseJSONArraySet(raw string) map[string]struct{} {
 	if raw == "" {
 		return nil
 	}
+	items := parseJSONArrayList(raw)
+	if len(items) == 0 {
+		return nil
+	}
+	ret := make(map[string]struct{}, len(items))
+	for _, item := range items {
+		ret[item] = struct{}{}
+	}
+	return ret
+}
+
+func parseJSONArrayList(raw string) []string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
 	var items []string
 	if err := json.Unmarshal([]byte(raw), &items); err != nil {
 		return nil
 	}
-	ret := make(map[string]struct{}, len(items))
+	ret := make([]string, 0, len(items))
 	for _, item := range items {
 		item = strings.TrimSpace(item)
 		if item == "" {
 			continue
 		}
-		ret[item] = struct{}{}
+		ret = append(ret, item)
 	}
 	return ret
 }

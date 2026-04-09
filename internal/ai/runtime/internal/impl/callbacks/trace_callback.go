@@ -21,9 +21,10 @@ type RetrieverTraceItem struct {
 }
 
 type RuntimeTraceData struct {
-	Version   string `json:"version"`
-	Status    string `json:"status"`
-	RunID     string `json:"runId,omitempty"`
+	Version   string         `json:"version"`
+	Status    string         `json:"status"`
+	RunID     string         `json:"runId,omitempty"`
+	Skill     SkillTraceData `json:"skill,omitempty"`
 	Interrupt struct {
 		CheckPointID string                  `json:"checkPointId,omitempty"`
 		Items        []InterruptTraceContext `json:"items,omitempty"`
@@ -54,6 +55,14 @@ type RuntimeTraceData struct {
 		Message string `json:"message,omitempty"`
 		Stage   string `json:"stage,omitempty"`
 	} `json:"error"`
+}
+
+type SkillTraceData struct {
+	Code             string   `json:"code,omitempty"`
+	Name             string   `json:"name,omitempty"`
+	RouteReason      string   `json:"routeReason,omitempty"`
+	RouteTrace       string   `json:"routeTrace,omitempty"`
+	AllowedToolCodes []string `json:"allowedToolCodes,omitempty"`
 }
 
 type InterruptTraceContext struct {

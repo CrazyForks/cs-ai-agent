@@ -2,6 +2,7 @@ package skills
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -157,11 +158,38 @@ func buildSkillRoutePrompt(userMessage string, candidates []models.SkillDefiniti
 	lines = append(lines, "")
 	lines = append(lines, "候选 Skills：")
 	for _, item := range candidates {
-		lines = append(lines, fmt.Sprintf("- skillCode=%s; name=%s; description=%s", strings.TrimSpace(item.Code), strings.TrimSpace(item.Name), strings.TrimSpace(item.Description)))
+		line := fmt.Sprintf("- skillCode=%s; name=%s; description=%s", strings.TrimSpace(item.Code), strings.TrimSpace(item.Name), strings.TrimSpace(item.Description))
+		if examples := parseSkillExamples(item.Examples); len(examples) > 0 {
+			line += "; examples=" + strings.Join(examples, " | ")
+		}
+		lines = append(lines, line)
 	}
 	lines = append(lines, "")
 	lines = append(lines, "请只输出一个 skillCode 或 NONE。")
 	return strings.Join(lines, "\n")
+}
+
+func parseSkillExamples(raw string) []string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
+	var items []string
+	if err := json.Unmarshal([]byte(raw), &items); err != nil {
+		return nil
+	}
+	ret := make([]string, 0, len(items))
+	for _, item := range items {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			continue
+		}
+		ret = append(ret, item)
+		if len(ret) >= 3 {
+			break
+		}
+	}
+	return ret
 }
 
 func normalizeRouteDecision(raw string) string {
