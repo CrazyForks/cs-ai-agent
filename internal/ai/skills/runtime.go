@@ -77,7 +77,7 @@ func Execute(ctx context.Context, runtimeCtx RuntimeContext) (*ExecutionResult, 
 	}
 	log := BuildRunLog(runtimeCtx, plan, trace, err)
 	if strings.TrimSpace(replyText) != "" && strings.TrimSpace(log.MatchReason) == "" {
-		log.MatchReason = string(plan.Skill.ExecutionMode)
+		log.MatchReason = "content"
 	}
 	if writeErr := WriteRunLog(log); writeErr != nil && err == nil {
 		err = writeErr

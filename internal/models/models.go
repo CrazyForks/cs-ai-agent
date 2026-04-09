@@ -906,16 +906,16 @@ type KnowledgeFeedback struct {
 
 // SkillDefinition 表示可由后台配置并参与运行时路由的 Skill 定义。
 type SkillDefinition struct {
-	ID              int64                    `gorm:"primaryKey;autoIncrement"`                          // ID 为 Skill 主键。
-	Code            string                   `gorm:"type:varchar(100);not null;default:'';uniqueIndex"` // Code 为 Skill 的稳定唯一编码，供程序内部引用和路由判断使用，例如 refund_skill。
-	Name            string                   `gorm:"type:varchar(100);not null;default:'';index"`       // Name 为 Skill 的展示名称，用于后台列表、配置页和人工选择场景。
-	Description     string                   `gorm:"type:varchar(255);not null;default:''"`             // Description 为 Skill 的简要说明，用于描述该 Skill 的适用场景和职责边界。
-	Prompt          string                   `gorm:"type:longtext"`                                     // Prompt 为 Skill 的核心提示词，在命中后注入模型上下文参与执行。
-	ExecutionMode   enums.SkillExecutionMode `gorm:"type:varchar(30);not null;default:'prompt_only'"`   // ExecutionMode 为 Skill 执行模式。
-	ExecutionConfig string                   `gorm:"type:text"`                                         // ExecutionConfig 为 Skill 执行配置JSON。
-	Priority        int                      `gorm:"type:int;not null;default:0;index"`                 // Priority 为 Skill 命中冲突时的优先级，数值越大优先级越高。
-	Status          enums.Status             `gorm:"type:int;not null;default:0;index"`                 // Status 为 Skill 当前状态，使用全局通用状态：0启用 1禁用 2删除。
-	Remark          string                   `gorm:"type:text"`                                         // Remark 为后台备注，用于记录配置说明、维护信息或内部协作信息。
+	ID               int64        `gorm:"primaryKey;autoIncrement"`                          // ID 为 Skill 主键。
+	Code             string       `gorm:"type:varchar(100);not null;default:'';uniqueIndex"` // Code 为 Skill 的稳定唯一编码，供程序内部引用和路由判断使用，例如 refund_skill。
+	Name             string       `gorm:"type:varchar(100);not null;default:'';index"`       // Name 为 Skill 的展示名称，用于后台列表、配置页和人工选择场景。
+	Description      string       `gorm:"type:varchar(255);not null;default:''"`             // Description 为 Skill 的简要说明，用于描述该 Skill 的适用场景和职责边界。
+	Content          string       `gorm:"type:longtext"`                                     // Content 为 Skill 的主体文档，使用 Markdown 编写，供 Agent 理解任务目标、步骤和工具使用要求。
+	Examples         string       `gorm:"type:text"`                                         // Examples 为示例问法 JSON 数组字符串。
+	AllowedToolCodes string       `gorm:"type:text"`                                         // AllowedToolCodes 为允许使用的工具编码 JSON 数组字符串。
+	Priority         int          `gorm:"type:int;not null;default:0;index"`                 // Priority 为 Skill 命中冲突时的优先级，数值越大优先级越高。
+	Status           enums.Status `gorm:"type:int;not null;default:0;index"`                 // Status 为 Skill 当前状态，使用全局通用状态：0启用 1禁用 2删除。
+	Remark           string       `gorm:"type:text"`                                         // Remark 为后台备注，用于记录配置说明、维护信息或内部协作信息。
 	AuditFields
 }
 

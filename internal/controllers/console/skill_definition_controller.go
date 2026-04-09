@@ -88,16 +88,19 @@ func (c *SkillDefinitionController) PostCreate() *web.JsonResult {
 	}
 
 	item := &models.SkillDefinition{
-		Code:            strings.TrimSpace(req.Code),
-		Name:            strings.TrimSpace(req.Name),
-		Description:     strings.TrimSpace(req.Description),
-		Prompt:          strings.TrimSpace(req.Prompt),
-		ExecutionMode:   normalizeExecutionMode(req.ExecutionMode),
-		ExecutionConfig: normalizeExecutionConfig(req.ExecutionConfig),
-		Priority:        0,
-		Status:          enums.StatusOk,
-		Remark:          strings.TrimSpace(req.Remark),
-		AuditFields:     utils.BuildAuditFields(operator),
+		Code:             strings.TrimSpace(req.Code),
+		Name:             strings.TrimSpace(req.Name),
+		Description:      strings.TrimSpace(req.Description),
+		Content:          strings.TrimSpace(req.Content),
+		Examples:         mustMarshalJSONStringArray(req.Examples),
+		AllowedToolCodes: mustMarshalJSONStringArray(req.AllowedToolCodes),
+		Priority:         normalizeSkillPriority(req.Priority),
+		Status:           enums.StatusOk,
+		Remark:           strings.TrimSpace(req.Remark),
+		AuditFields:      utils.BuildAuditFields(operator),
+	}
+	if item.Priority <= 0 {
+		item.Priority = services.SkillDefinitionService.NextPriority()
 	}
 	if err := services.SkillDefinitionService.Create(item); err != nil {
 		return web.JsonError(err)
@@ -132,16 +135,17 @@ func (c *SkillDefinitionController) PostUpdate() *web.JsonResult {
 	}
 
 	if err := services.SkillDefinitionService.Updates(req.ID, map[string]any{
-		"code":             strings.TrimSpace(req.Code),
-		"name":             strings.TrimSpace(req.Name),
-		"description":      strings.TrimSpace(req.Description),
-		"prompt":           strings.TrimSpace(req.Prompt),
-		"execution_mode":   normalizeExecutionMode(req.ExecutionMode),
-		"execution_config": normalizeExecutionConfig(req.ExecutionConfig),
-		"remark":           strings.TrimSpace(req.Remark),
-		"update_user_id":   operator.UserID,
-		"update_user_name": operator.Username,
-		"updated_at":       time.Now(),
+		"code":               strings.TrimSpace(req.Code),
+		"name":               strings.TrimSpace(req.Name),
+		"description":        strings.TrimSpace(req.Description),
+		"content":            strings.TrimSpace(req.Content),
+		"examples":           mustMarshalJSONStringArray(req.Examples),
+		"allowed_tool_codes": mustMarshalJSONStringArray(req.AllowedToolCodes),
+		"priority":           resolveSkillPriorityForUpdate(req.Priority, item.Priority),
+		"remark":             strings.TrimSpace(req.Remark),
+		"update_user_id":     operator.UserID,
+		"update_user_name":   operator.Username,
+		"updated_at":         time.Now(),
 	}); err != nil {
 		return web.JsonError(err)
 	}
@@ -240,41 +244,65 @@ func (c *SkillDefinitionController) PostDebug_run() *web.JsonResult {
 func validateSkillDefinitionRequest(req request.CreateSkillDefinitionRequest) error {
 	code := strings.TrimSpace(req.Code)
 	name := strings.TrimSpace(req.Name)
-	prompt := strings.TrimSpace(req.Prompt)
+	content := strings.TrimSpace(req.Content)
 	if code == "" {
 		return errorsx.InvalidParam("Skill 编码不能为空")
 	}
 	if name == "" {
 		return errorsx.InvalidParam("Skill 名称不能为空")
 	}
-	mode := normalizeExecutionMode(req.ExecutionMode)
-	if prompt == "" {
-		return errorsx.InvalidParam("Prompt 不能为空")
+	if content == "" {
+		return errorsx.InvalidParam("Content 不能为空")
 	}
-	switch mode {
-	case enums.SkillExecutionModePromptOnly:
-	case enums.SkillExecutionModeMCPTool:
-		configText := strings.TrimSpace(req.ExecutionConfig)
-		if configText == "" {
-			return errorsx.InvalidParam("MCP工具模式必须填写ExecutionConfig")
-		}
-		var payload map[string]any
-		if err := json.Unmarshal([]byte(configText), &payload); err != nil {
-			return errorsx.InvalidParam("ExecutionConfig 必须是合法JSON")
-		}
-	default:
-		return errorsx.InvalidParam("Skill 执行模式不合法")
+	if _, err := normalizeJSONStringArray(req.Examples); err != nil {
+		return err
+	}
+	if _, err := normalizeJSONStringArray(req.AllowedToolCodes); err != nil {
+		return err
 	}
 	return nil
 }
 
-func normalizeExecutionMode(mode enums.SkillExecutionMode) enums.SkillExecutionMode {
-	if mode == "" {
-		return enums.SkillExecutionModePromptOnly
+func normalizeSkillPriority(priority int) int {
+	if priority < 0 {
+		return 0
 	}
-	return mode
+	return priority
 }
 
-func normalizeExecutionConfig(raw string) string {
-	return strings.TrimSpace(raw)
+func resolveSkillPriorityForUpdate(input, current int) int {
+	input = normalizeSkillPriority(input)
+	if input <= 0 {
+		return current
+	}
+	return input
+}
+
+func normalizeJSONStringArray(input []string) ([]string, error) {
+	ret := make([]string, 0, len(input))
+	seen := make(map[string]struct{})
+	for _, item := range input {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			continue
+		}
+		if _, exists := seen[item]; exists {
+			continue
+		}
+		seen[item] = struct{}{}
+		ret = append(ret, item)
+	}
+	return ret, nil
+}
+
+func mustMarshalJSONStringArray(input []string) string {
+	items, _ := normalizeJSONStringArray(input)
+	if len(items) == 0 {
+		return "[]"
+	}
+	buf, err := json.Marshal(items)
+	if err != nil {
+		return "[]"
+	}
+	return string(buf)
 }
