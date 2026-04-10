@@ -333,6 +333,7 @@ func (s *aiReplyService) writeRunLog(startedAt time.Time, message models.Message
 		PlannedSkillName: strings.TrimSpace(summaryPlannedSkillName(summary)),
 		SkillRouteTrace:  strings.TrimSpace(summarySkillRouteTrace(summary)),
 		ToolSearchTrace:  extractToolSearchTrace(summary),
+		GraphToolTrace:   extractGraphToolTrace(summary),
 		PlannedToolCode:  plannedToolCode,
 		PlanReason:       planReason,
 		InterruptType:    firstInterruptType(summary),
@@ -380,9 +381,15 @@ func buildRunLogPlan(summary *Summary) (plannedAction, plannedToolCode, planReas
 		return "interrupt", "", "pending interrupt checkpoint expired"
 	}
 	if summary.Interrupted {
+		if graphToolCode := firstGraphToolCode(summary); graphToolCode != "" {
+			return "graph", graphToolCode, "graph tool interrupted and is waiting for user confirmation"
+		}
 		return "tool", summaryPrimaryToolCode(summary), "agent interrupted and is waiting for user confirmation"
 	}
 	if len(summary.InvokedToolCodes) > 0 {
+		if graphToolCode := firstGraphToolCode(summary); graphToolCode != "" {
+			return "graph", graphToolCode, "agent invoked graph tool"
+		}
 		toolCode := summaryPrimaryToolCode(summary)
 		reason := "agent invoked MCP tool"
 		if toolCode != "" && toolCode != firstInvokedToolCode(summary) {
@@ -405,6 +412,9 @@ func toRunLogFinalAction(summary *Summary) string {
 	}
 	if skillCode := strings.TrimSpace(summaryPlannedSkillCode(summary)); skillCode != "" && strings.TrimSpace(summary.ReplyText) != "" {
 		return "skill"
+	}
+	if graphToolCode := firstGraphToolCode(summary); graphToolCode != "" && strings.TrimSpace(summary.ReplyText) != "" {
+		return "graph"
 	}
 	switch strings.TrimSpace(summary.Status) {
 	case "completed":
@@ -573,6 +583,17 @@ func extractToolSearchTrace(summary *Summary) string {
 	return string(trace.ToolSearch.Raw)
 }
 
+func extractGraphToolTrace(summary *Summary) string {
+	if summary == nil {
+		return ""
+	}
+	trace := parseRuntimeTraceData(summary.TraceData)
+	if len(trace.GraphTools.Items) == 0 || len(trace.GraphTools.Raw) == 0 {
+		return ""
+	}
+	return string(trace.GraphTools.Raw)
+}
+
 func firstToolSearchTargetToolCode(summary *Summary) string {
 	trace := parseRuntimeTraceData(summary.TraceData)
 	for _, item := range trace.ToolSearch.Items {
@@ -590,6 +611,17 @@ func firstToolSearchTargetToolCode(summary *Summary) string {
 	return ""
 }
 
+func firstGraphToolCode(summary *Summary) string {
+	trace := parseRuntimeTraceData(summary.TraceData)
+	for _, item := range trace.GraphTools.Items {
+		toolCode := strings.TrimSpace(item.ToolCode)
+		if toolCode != "" {
+			return toolCode
+		}
+	}
+	return ""
+}
+
 type runtimeTraceProjection struct {
 	ToolSearch struct {
 		Raw   json.RawMessage `json:"-"`
@@ -598,6 +630,12 @@ type runtimeTraceProjection struct {
 			CandidateToolCodes []string `json:"candidateToolCodes"`
 		} `json:"items"`
 	} `json:"toolSearch"`
+	GraphTools struct {
+		Raw   json.RawMessage `json:"-"`
+		Items []struct {
+			ToolCode string `json:"toolCode"`
+		} `json:"items"`
+	} `json:"graphTools"`
 }
 
 func parseRuntimeTraceData(raw string) runtimeTraceProjection {
@@ -613,6 +651,10 @@ func parseRuntimeTraceData(raw string) runtimeTraceProjection {
 	if toolSearchRaw, ok := payload["toolSearch"]; ok && len(toolSearchRaw) > 0 {
 		trace.ToolSearch.Raw = append(json.RawMessage(nil), toolSearchRaw...)
 		_ = json.Unmarshal(toolSearchRaw, &trace.ToolSearch)
+	}
+	if graphToolsRaw, ok := payload["graphTools"]; ok && len(graphToolsRaw) > 0 {
+		trace.GraphTools.Raw = append(json.RawMessage(nil), graphToolsRaw...)
+		_ = json.Unmarshal(graphToolsRaw, &trace.GraphTools)
 	}
 	return trace
 }

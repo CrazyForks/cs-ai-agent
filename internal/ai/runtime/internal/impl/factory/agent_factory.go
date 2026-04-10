@@ -67,6 +67,7 @@ func (f *AgentFactory) BuildCustomerServiceAgent(ctx context.Context, aiAgent *m
 				ToolCode:   item.ToolCode,
 				ServerCode: item.ServerCode,
 				ToolName:   item.ToolName,
+				SourceType: "mcp",
 			}
 		}
 		for modelName, toolCode := range extraToolCodes {
@@ -87,6 +88,7 @@ func (f *AgentFactory) BuildCustomerServiceAgent(ctx context.Context, aiAgent *m
 				ToolCode:   toolCode,
 				ServerCode: serverCode,
 				ToolName:   toolName,
+				SourceType: resolveToolSourceType(toolCode),
 			}
 		}
 		handlers = append(handlers, einocallbacks.NewRuntimeTraceHandler(collector, toolMetadataBy))
@@ -107,6 +109,20 @@ func (f *AgentFactory) BuildCustomerServiceAgent(ctx context.Context, aiAgent *m
 		return nil, err
 	}
 	return &einoagents.CustomerServiceAgent{Inner: inner}, nil
+}
+
+func resolveToolSourceType(toolCode string) string {
+	toolCode = strings.TrimSpace(toolCode)
+	switch {
+	case toolCode == toolx.BuiltinToolSearchToolCode:
+		return toolx.BuiltinToolCatalogServerCode
+	case strings.HasPrefix(toolCode, toolx.GraphToolCatalogServerCode+"/"):
+		return toolx.GraphToolCatalogServerCode
+	case strings.HasPrefix(toolCode, toolx.BuiltinToolCatalogServerCode+"/"):
+		return toolx.BuiltinToolCatalogServerCode
+	default:
+		return "mcp"
+	}
 }
 
 func buildAgentInstruction(aiAgent *models.AIAgent, selectedSkill *models.SkillDefinition, toolDefinitions []einoadapter.MCPToolDefinition, extraToolCodes map[string]string) string {

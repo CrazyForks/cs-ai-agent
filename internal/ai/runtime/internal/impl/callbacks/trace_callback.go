@@ -22,6 +22,16 @@ type ToolSearchTraceItem struct {
 	ErrorMessage       string   `json:"errorMessage,omitempty"`
 }
 
+type GraphToolTraceItem struct {
+	ToolCode      string         `json:"toolCode"`
+	ToolName      string         `json:"toolName"`
+	Arguments     map[string]any `json:"arguments,omitempty"`
+	ResultPreview string         `json:"resultPreview,omitempty"`
+	LatencyMs     int64          `json:"latencyMs,omitempty"`
+	Status        string         `json:"status,omitempty"`
+	ErrorMessage  string         `json:"errorMessage,omitempty"`
+}
+
 type RetrieverTraceItem struct {
 	Query           string  `json:"query,omitempty"`
 	KnowledgeBaseID int64   `json:"knowledgeBaseId,omitempty"`
@@ -62,6 +72,10 @@ type RuntimeTraceData struct {
 		Count int                   `json:"count,omitempty"`
 		Items []ToolSearchTraceItem `json:"items,omitempty"`
 	} `json:"toolSearch"`
+	GraphTools struct {
+		Count int                  `json:"count,omitempty"`
+		Items []GraphToolTraceItem `json:"items,omitempty"`
+	} `json:"graphTools"`
 	Output struct {
 		ReplyText    string `json:"replyText,omitempty"`
 		FinishReason string `json:"finishReason,omitempty"`

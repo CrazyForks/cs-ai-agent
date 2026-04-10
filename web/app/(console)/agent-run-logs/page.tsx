@@ -45,6 +45,7 @@ const actionOptions = [
   { value: "rag", label: "RAG" },
   { value: "skill", label: "Skill" },
   { value: "tool", label: "Tool" },
+  { value: "graph", label: "Graph" },
   { value: "handoff", label: "转人工" },
   { value: "reply", label: "回复" },
   { value: "fallback", label: "兜底" },
@@ -57,6 +58,8 @@ function actionBadgeVariant(action: string) {
     case "skill":
       return "default" as const
     case "tool":
+      return "default" as const
+    case "graph":
       return "default" as const
     case "rag":
       return "secondary" as const
@@ -94,6 +97,10 @@ export default function DashboardAgentRunLogsPage() {
   const activeToolSearchTrace = useMemo(
     () => safeParseJSON(activeLog?.toolSearchTrace ?? ""),
     [activeLog?.toolSearchTrace]
+  )
+  const activeGraphToolTrace = useMemo(
+    () => safeParseJSON(activeLog?.graphToolTrace ?? ""),
+    [activeLog?.graphToolTrace]
   )
 
   const aiAgentOptions = useMemo(
@@ -382,6 +389,14 @@ export default function DashboardAgentRunLogsPage() {
                     activeToolSearchTrace
                       ? JSON.stringify(activeToolSearchTrace, null, 2)
                       : activeLog.toolSearchTrace
+                  }
+                />
+                <TextBlock
+                  title="Graph Tool 调用"
+                  value={
+                    activeGraphToolTrace
+                      ? JSON.stringify(activeGraphToolTrace, null, 2)
+                      : activeLog.graphToolTrace
                   }
                 />
                 <TextBlock
