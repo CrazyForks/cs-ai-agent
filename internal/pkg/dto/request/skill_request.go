@@ -37,3 +37,10 @@ type SkillDebugRunRequest struct {
 	SkillCode      string `json:"skillCode"`
 	UserMessage    string `json:"userMessage"`
 }
+
+type SkillDebugResumeRequest struct {
+	AIAgentID      int64  `json:"aiAgentId"`
+	ConversationID int64  `json:"conversationId"`
+	CheckPointID   string `json:"checkPointId"`
+	UserMessage    string `json:"userMessage"`
+}

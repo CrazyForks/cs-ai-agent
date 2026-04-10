@@ -21,9 +21,11 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import {
+  debugResumeSkillDefinition,
   debugRunSkillDefinition,
   fetchAIAgentsAll,
   type AIAgent,
+  type SkillDebugResumePayload,
   type SkillDebugRunPayload,
   type SkillDebugRunResult,
 } from "@/lib/api/admin"
@@ -54,6 +56,11 @@ const emptyForm: DebugForm = {
   conversationId: "",
   userMessage: "",
 }
+
+const quickResumeActions = [
+  { label: "确认", value: "确认" },
+  { label: "取消", value: "取消" },
+]
 
 function ResultBlock({
   title,
@@ -111,8 +118,11 @@ function DebugDialogBody({
 }: DebugDialogProps) {
   const formId = `skill-debug-form-${skillCode}`
   const [running, setRunning] = useState(false)
+  const [resuming, setResuming] = useState(false)
   const [aiAgents, setAiAgents] = useState<AIAgent[]>([])
   const [result, setResult] = useState<SkillDebugRunResult | null>(null)
+  const [resumeResult, setResumeResult] = useState<SkillDebugRunResult | null>(null)
+  const [resumeMessage, setResumeMessage] = useState("")
   const form = useForm<
     z.input<typeof debugFormSchema>,
     undefined,
@@ -152,6 +162,8 @@ function DebugDialogBody({
     }
     reset(emptyForm)
     setResult(null)
+    setResumeResult(null)
+    setResumeMessage("")
   }, [open, reset])
 
   useEffect(() => {
@@ -190,11 +202,45 @@ function DebugDialogBody({
     try {
       const data = await debugRunSkillDefinition(payload)
       setResult(data)
+      setResumeResult(null)
+      setResumeMessage("")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Skill 调试失败")
       setResult(null)
     } finally {
       setRunning(false)
+    }
+  }
+
+  async function handleResumeDebug(messageText?: string) {
+    const nextMessage = (messageText ?? resumeMessage).trim()
+    if (!result?.checkPointId || !result.interrupted) {
+      return
+    }
+    if (!nextMessage) {
+      toast.error("请输入恢复消息")
+      return
+    }
+    const payload: SkillDebugResumePayload = {
+      aiAgentId: Number(selectedAgentId || result.aiAgentId),
+      checkPointId: result.checkPointId,
+      userMessage: nextMessage,
+    }
+    const conversationId = result.conversationId || Number(watch("conversationId"))
+    if (conversationId > 0) {
+      payload.conversationId = conversationId
+    }
+
+    setResuming(true)
+    try {
+      const data = await debugResumeSkillDefinition(payload)
+      setResumeResult(data)
+      setResumeMessage(nextMessage)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "恢复调试失败")
+      setResumeResult(null)
+    } finally {
+      setResuming(false)
     }
   }
 
@@ -408,6 +454,104 @@ function DebugDialogBody({
           <ResultBlock title="Graph Tool Trace" value={result?.graphToolTrace} />
           <ResultBlock title="Trace Data" value={result?.traceData} />
         </div>
+
+        {result?.interrupted && result.checkPointId ? (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">恢复调试</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-lg bg-muted/50 p-3 text-sm">
+                <div className="text-xs text-muted-foreground">当前 Checkpoint</div>
+                <div className="mt-1 break-all">{result.checkPointId}</div>
+              </div>
+              <Field>
+                <FieldLabel htmlFor="skill-debug-resume-message">恢复消息</FieldLabel>
+                <FieldContent>
+                  <Textarea
+                    id="skill-debug-resume-message"
+                    rows={3}
+                    placeholder="输入确认、取消或其他恢复消息"
+                    value={resumeMessage}
+                    onChange={(event) => setResumeMessage(event.target.value)}
+                  />
+                </FieldContent>
+              </Field>
+              <div className="flex flex-wrap gap-2">
+                {quickResumeActions.map((item) => (
+                  <Button
+                    key={item.value}
+                    type="button"
+                    variant="outline"
+                    disabled={resuming}
+                    onClick={() => void handleResumeDebug(item.value)}
+                  >
+                    {item.label}
+                  </Button>
+                ))}
+                <Button
+                  type="button"
+                  disabled={resuming}
+                  onClick={() => void handleResumeDebug()}
+                >
+                  {resuming ? (
+                    <LoaderCircleIcon className="animate-spin" />
+                  ) : (
+                    <PlayIcon />
+                  )}
+                  {resuming ? "恢复中..." : "恢复调试"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {resumeResult ? (
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">恢复结果</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline">{resumeResult.skillCode || skillCode}</Badge>
+                  {resumeResult.graphToolCode ? (
+                    <Badge variant="secondary">{resumeResult.graphToolCode}</Badge>
+                  ) : null}
+                  {resumeResult.interruptType ? (
+                    <Badge variant="secondary">{resumeResult.interruptType}</Badge>
+                  ) : null}
+                  {resumeResult.interrupted ? (
+                    <Badge>仍在等待确认</Badge>
+                  ) : (
+                    <Badge variant="outline">已恢复完成</Badge>
+                  )}
+                </div>
+                <div className="rounded-lg bg-muted/50 p-3">
+                  <div className="text-xs text-muted-foreground">恢复消息</div>
+                  <div className="mt-1 whitespace-pre-wrap break-words">
+                    {resumeMessage || "暂无"}
+                  </div>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-3">
+                  <div className="text-xs text-muted-foreground">恢复回复</div>
+                  <div className="mt-1 whitespace-pre-wrap break-words">
+                    {resumeResult.replyText || "暂无"}
+                  </div>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-3">
+                  <div className="text-xs text-muted-foreground">恢复 Plan Reason</div>
+                  <div className="mt-1 whitespace-pre-wrap break-words">
+                    {resumeResult.planReason || "暂无"}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <ResultBlock title="恢复 Tool Search Trace" value={resumeResult.toolSearchTrace} />
+            <ResultBlock title="恢复 Graph Tool Trace" value={resumeResult.graphToolTrace} />
+            <ResultBlock title="恢复 Trace Data" value={resumeResult.traceData} />
+          </div>
+        ) : null}
       </div>
     </ProjectDialog>
   )

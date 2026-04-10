@@ -308,6 +308,13 @@ export type SkillDebugRunPayload = {
   userMessage: string
 }
 
+export type SkillDebugResumePayload = {
+  aiAgentId: number
+  conversationId?: number
+  checkPointId: string
+  userMessage: string
+}
+
 export type SkillDebugRunResult = {
   skillCode: string
   skillName: string
@@ -911,6 +918,13 @@ export function updateSkillDefinitionPriority(ids: number[]) {
 
 export function debugRunSkillDefinition(payload: SkillDebugRunPayload) {
   return request<SkillDebugRunResult>("/api/console/skill-definition/debug_run", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+export function debugResumeSkillDefinition(payload: SkillDebugResumePayload) {
+  return request<SkillDebugRunResult>("/api/console/skill-definition/debug_resume", {
     method: "POST",
     body: JSON.stringify(payload),
   })

@@ -186,3 +186,19 @@ func (c *SkillDefinitionController) PostDebug_run() *web.JsonResult {
 	}
 	return web.JsonData(resp)
 }
+
+func (c *SkillDefinitionController) PostDebug_resume() *web.JsonResult {
+	if _, err := services.AuthService.RequirePermission(c.Ctx, constants.PermissionSkillDefinitionView); err != nil {
+		return web.JsonError(err)
+	}
+
+	req := request.SkillDebugResumeRequest{}
+	if err := params.ReadJSON(c.Ctx, &req); err != nil {
+		return web.JsonError(err)
+	}
+	resp, err := services.SkillRuntimeService.DebugResume(context.Background(), req)
+	if err != nil {
+		return web.JsonError(err)
+	}
+	return web.JsonData(resp)
+}
