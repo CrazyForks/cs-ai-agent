@@ -19,7 +19,7 @@ func newService() *service {
 	return &service{
 		runtime: engine.NewService(),
 		registry: registry.NewRegistry(
-			tools.NewCreateTicketConfirmTool(),
+			tools.NewCreateTicketGraphTool(),
 		),
 	}
 }
@@ -219,6 +219,7 @@ func parseSkillAllowedToolCodes(skill *models.SkillDefinition) []string {
 	ret := make([]string, 0, len(items))
 	for _, item := range items {
 		item = strings.TrimSpace(item)
+		item = toolx.NormalizeToolCodeAlias(item)
 		if item == "" {
 			continue
 		}
@@ -238,6 +239,7 @@ func parseAgentAllowedToolCodes(aiAgent *models.AIAgent) []string {
 	ret := make([]string, 0, len(items))
 	for _, item := range items {
 		toolCode := strings.TrimSpace(item.ToolCode)
+		toolCode = toolx.NormalizeToolCodeAlias(toolCode)
 		if toolCode == "" {
 			continue
 		}
@@ -258,6 +260,7 @@ func resolveAllowedToolCodes(aiAgent *models.AIAgent, skill *models.SkillDefinit
 		skillSet := make(map[string]struct{}, len(skillAllowed))
 		for _, item := range skillAllowed {
 			item = strings.TrimSpace(item)
+			item = toolx.NormalizeToolCodeAlias(item)
 			if item == "" {
 				continue
 			}
@@ -266,6 +269,7 @@ func resolveAllowedToolCodes(aiAgent *models.AIAgent, skill *models.SkillDefinit
 		ret := make([]string, 0, len(agentAllowed))
 		for _, item := range agentAllowed {
 			item = strings.TrimSpace(item)
+			item = toolx.NormalizeToolCodeAlias(item)
 			if item == "" {
 				continue
 			}

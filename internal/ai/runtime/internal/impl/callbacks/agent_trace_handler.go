@@ -17,6 +17,7 @@ type ToolMetadata struct {
 	ToolCode   string
 	ServerCode string
 	ToolName   string
+	SourceType string
 }
 
 type RuntimeTraceHandler struct {
@@ -58,6 +59,17 @@ func (h *RuntimeTraceHandler) WrapInvokableToolCall(_ context.Context, endpoint 
 			item.ErrorMessage = err.Error()
 		}
 		h.collector.AddToolItem(item)
+		if metadata, ok := h.resolveToolMetadata(item.ToolName); ok && strings.TrimSpace(metadata.SourceType) == toolx.GraphToolCatalogServerCode {
+			h.collector.AddGraphToolItem(GraphToolTraceItem{
+				ToolCode:      item.ToolCode,
+				ToolName:      item.ToolName,
+				Arguments:     item.Arguments,
+				ResultPreview: item.ResultPreview,
+				LatencyMs:     item.LatencyMs,
+				Status:        item.Status,
+				ErrorMessage:  item.ErrorMessage,
+			})
+		}
 		if metadata, ok := h.resolveToolMetadata(item.ToolName); ok && strings.TrimSpace(metadata.ToolCode) == toolx.BuiltinToolSearchToolCode {
 			h.collector.AddToolSearchItem(h.buildToolSearchTraceItem(argumentsInJSON, result, err))
 		}
@@ -78,6 +90,7 @@ func (h *RuntimeTraceHandler) resolveToolMetadata(modelToolName string) (ToolMet
 			ToolCode:   toolx.BuiltinToolSearchToolCode,
 			ServerCode: toolx.BuiltinToolCatalogServerCode,
 			ToolName:   toolx.BuiltinToolSearchToolName,
+			SourceType: toolx.BuiltinToolCatalogServerCode,
 		}, true
 	}
 	metadata, ok := h.toolMetadataBy[modelToolName]

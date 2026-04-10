@@ -174,6 +174,7 @@ func buildAIAgentResponse(item *models.AIAgent) response.AIAgentResponse {
 				if toolCode == "" {
 					toolCode = toolx.BuildMCPToolCode(tool.ServerCode, tool.ToolName)
 				}
+				toolCode = toolx.NormalizeToolCodeAlias(toolCode)
 				if toolx.IsAutoInjectedToolCode(toolCode) {
 					continue
 				}
@@ -182,9 +183,9 @@ func buildAIAgentResponse(item *models.AIAgent) response.AIAgentResponse {
 				if toolCode == toolx.BuiltinToolSearchToolCode {
 					serverCode = toolx.BuiltinToolCatalogServerCode
 					toolName = toolx.BuiltinToolSearchToolName
-				} else if toolCode == toolx.BuiltinCreateTicketConfirmToolCode {
-					serverCode = toolx.BuiltinToolCatalogServerCode
-					toolName = toolx.BuiltinCreateTicketConfirmToolName
+				} else if toolCode == toolx.GraphCreateTicketConfirmToolCode {
+					serverCode = toolx.GraphToolCatalogServerCode
+					toolName = toolx.GraphCreateTicketConfirmToolName
 				} else if parsedServerCode, parsedToolName := toolx.SplitMCPToolCode(toolCode); parsedServerCode != "" && parsedToolName != "" {
 					serverCode = parsedServerCode
 					toolName = parsedToolName
@@ -194,8 +195,8 @@ func buildAIAgentResponse(item *models.AIAgent) response.AIAgentResponse {
 					switch toolCode {
 					case toolx.BuiltinToolSearchToolCode:
 						title = toolx.BuiltinToolSearchToolTitle
-					case toolx.BuiltinCreateTicketConfirmToolCode:
-						title = toolx.BuiltinCreateTicketConfirmToolTitle
+					case toolx.GraphCreateTicketConfirmToolCode:
+						title = toolx.GraphCreateTicketConfirmToolTitle
 					}
 				}
 				description := strings.TrimSpace(tool.Description)
@@ -203,8 +204,8 @@ func buildAIAgentResponse(item *models.AIAgent) response.AIAgentResponse {
 					switch toolCode {
 					case toolx.BuiltinToolSearchToolCode:
 						description = toolx.BuiltinToolSearchToolDescription
-					case toolx.BuiltinCreateTicketConfirmToolCode:
-						description = toolx.BuiltinCreateTicketConfirmToolDescription
+					case toolx.GraphCreateTicketConfirmToolCode:
+						description = toolx.GraphCreateTicketConfirmToolDescription
 					}
 				}
 				ret.DirectTools = append(ret.DirectTools, response.AIAgentMCPToolResponse{

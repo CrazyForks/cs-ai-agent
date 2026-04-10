@@ -2,18 +2,13 @@ package tools
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"strings"
 
+	"cs-agent/internal/ai/runtime/graphs"
 	"cs-agent/internal/ai/runtime/registry"
 	"cs-agent/internal/models"
-	"cs-agent/internal/pkg/dto"
-	"cs-agent/internal/pkg/dto/request"
 	"cs-agent/internal/pkg/toolx"
-	"cs-agent/internal/services"
 
-	componenttool "github.com/cloudwego/eino/components/tool"
 	einotool "github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"
 	einojsonschema "github.com/eino-contrib/jsonschema"
@@ -21,59 +16,45 @@ import (
 )
 
 const (
-	CreateTicketConfirmToolCode = toolx.BuiltinCreateTicketConfirmToolCode
-	CreateTicketConfirmToolName = toolx.BuiltinCreateTicketConfirmToolName
+	CreateTicketConfirmToolCode = toolx.GraphCreateTicketConfirmToolCode
+	CreateTicketConfirmToolName = toolx.GraphCreateTicketConfirmToolName
 )
 
-type CreateTicketConfirmState struct {
-	Request request.CreateTicketFromConversationRequest
-}
-
-type CreateTicketConfirmInterruptInfo struct {
-	Type    string `json:"type"`
-	Message string `json:"message"`
-}
-
-func init() {
-	schema.RegisterName[CreateTicketConfirmState]("cs_agent_create_ticket_confirm_state")
-	schema.RegisterName[CreateTicketConfirmInterruptInfo]("cs_agent_create_ticket_confirm_interrupt_info")
-}
-
-type CreateTicketConfirmTool struct {
+type CreateTicketGraphTool struct {
 	conversation *models.Conversation
 	aiAgent      *models.AIAgent
 }
 
-func NewCreateTicketConfirmTool() *CreateTicketConfirmTool {
-	return &CreateTicketConfirmTool{}
+func NewCreateTicketGraphTool() *CreateTicketGraphTool {
+	return &CreateTicketGraphTool{}
 }
 
-func (t *CreateTicketConfirmTool) Name() string {
+func (t *CreateTicketGraphTool) Name() string {
 	return CreateTicketConfirmToolName
 }
 
-func (t *CreateTicketConfirmTool) Code() string {
+func (t *CreateTicketGraphTool) Code() string {
 	return CreateTicketConfirmToolCode
 }
 
-func (t *CreateTicketConfirmTool) Enabled(ctx registry.Context) bool {
+func (t *CreateTicketGraphTool) Enabled(ctx registry.Context) bool {
 	return ctx.Conversation != nil && ctx.AIAgent != nil
 }
 
-func (t *CreateTicketConfirmTool) Build(ctx registry.Context) (einotool.BaseTool, error) {
+func (t *CreateTicketGraphTool) Build(ctx registry.Context) (einotool.BaseTool, error) {
 	if !t.Enabled(ctx) {
 		return nil, nil
 	}
-	return &CreateTicketConfirmTool{
+	return &CreateTicketGraphTool{
 		conversation: ctx.Conversation,
 		aiAgent:      ctx.AIAgent,
 	}, nil
 }
 
-func (t *CreateTicketConfirmTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
+func (t *CreateTicketGraphTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 	return &schema.ToolInfo{
 		Name: CreateTicketConfirmToolName,
-		Desc: "当用户明确希望创建工单、投诉单、报障单，且你已经整理出工单标题和描述后，调用此工具。该工具不会立即创建工单，而是会先向用户发起确认；只有用户确认后才真正创建。不要在信息不足时调用。",
+		Desc: "Graph Tool。用于封装建单参数整理、用户确认、真正创建工单和结果返回的确定性流程。仅在用户明确要求建单且标题、描述已整理清楚后调用。",
 		ParamsOneOf: schema.NewParamsOneOfByJSONSchema(&einojsonschema.Schema{
 			Version: einojsonschema.Version,
 			Type:    "object",
@@ -113,104 +94,15 @@ func (t *CreateTicketConfirmTool) Info(ctx context.Context) (*schema.ToolInfo, e
 			)),
 		}),
 		Extra: map[string]any{
-			"toolCode": CreateTicketConfirmToolCode,
+			"toolCode":   CreateTicketConfirmToolCode,
+			"sourceType": "graph",
 		},
 	}, nil
 }
 
-func (t *CreateTicketConfirmTool) InvokableRun(ctx context.Context, argumentsInJSON string, opts ...einotool.Option) (string, error) {
+func (t *CreateTicketGraphTool) InvokableRun(ctx context.Context, argumentsInJSON string, opts ...einotool.Option) (string, error) {
 	if t == nil || t.conversation == nil || t.aiAgent == nil {
-		return "", fmt.Errorf("ticket confirmation tool not initialized")
+		return "", fmt.Errorf("create ticket graph tool not initialized")
 	}
-	wasInterrupted, hasState, state := componenttool.GetInterruptState[CreateTicketConfirmState](ctx)
-	if !wasInterrupted {
-		req, err := t.buildCreateRequest(argumentsInJSON)
-		if err != nil {
-			return "", err
-		}
-		info := CreateTicketConfirmInterruptInfo{
-			Type:    "ticket_creation_confirmation",
-			Message: t.buildConfirmationPrompt(req),
-		}
-		return "", componenttool.StatefulInterrupt(ctx, info, CreateTicketConfirmState{Request: req})
-	}
-	if !hasState {
-		return "", fmt.Errorf("ticket confirmation state missing")
-	}
-	isResumeTarget, hasData, resumeText := componenttool.GetResumeContext[string](ctx)
-	if !isResumeTarget {
-		info := CreateTicketConfirmInterruptInfo{
-			Type:    "ticket_creation_confirmation",
-			Message: t.buildConfirmationPrompt(state.Request),
-		}
-		return "", componenttool.StatefulInterrupt(ctx, info, state)
-	}
-	if !hasData {
-		info := CreateTicketConfirmInterruptInfo{
-			Type:    "ticket_creation_confirmation",
-			Message: "请回复“确认”或“取消”。",
-		}
-		return "", componenttool.StatefulInterrupt(ctx, info, state)
-	}
-	decision := ParseConfirmationDecision(resumeText)
-	switch decision {
-	case DecisionConfirm:
-		item, err := services.TicketService.CreateFromConversation(state.Request, t.buildAIPrincipal())
-		if err != nil {
-			return "", err
-		}
-		return fmt.Sprintf("工单已创建，工单号：%s，标题：%s。", strings.TrimSpace(item.TicketNo), strings.TrimSpace(item.Title)), nil
-	case DecisionCancel:
-		return "已取消本次工单创建。", nil
-	default:
-		info := CreateTicketConfirmInterruptInfo{
-			Type:    "ticket_creation_confirmation",
-			Message: "我需要你的明确确认，请直接回复“确认”或“取消”。",
-		}
-		return "", componenttool.StatefulInterrupt(ctx, info, state)
-	}
-}
-
-func (t *CreateTicketConfirmTool) buildCreateRequest(argumentsInJSON string) (request.CreateTicketFromConversationRequest, error) {
-	req := request.CreateTicketFromConversationRequest{
-		ConversationID:     t.conversation.ID,
-		SyncToConversation: true,
-	}
-	raw := make(map[string]any)
-	if strings.TrimSpace(argumentsInJSON) != "" {
-		if err := json.Unmarshal([]byte(argumentsInJSON), &raw); err != nil {
-			return req, fmt.Errorf("invalid create ticket arguments: %w", err)
-		}
-	}
-	req.Title = strings.TrimSpace(getStringValue(raw, "title"))
-	req.Description = strings.TrimSpace(getStringValue(raw, "description"))
-	req.Priority = getInt64Value(raw, "priority")
-	req.Severity = int(getInt64Value(raw, "severity"))
-	if req.Title == "" {
-		req.Title = strings.TrimSpace(t.conversation.Subject)
-	}
-	if req.Description == "" {
-		req.Description = strings.TrimSpace(t.conversation.LastMessageSummary)
-	}
-	if strings.TrimSpace(req.Title) == "" {
-		return req, fmt.Errorf("ticket title is required")
-	}
-	return req, nil
-}
-
-func (t *CreateTicketConfirmTool) buildConfirmationPrompt(req request.CreateTicketFromConversationRequest) string {
-	return fmt.Sprintf("我准备为你创建工单。\n标题：%s\n描述：%s\n请直接回复“确认”或“取消”。",
-		strings.TrimSpace(req.Title), strings.TrimSpace(req.Description))
-}
-
-func (t *CreateTicketConfirmTool) buildAIPrincipal() *dto.AuthPrincipal {
-	username := "AI"
-	if strings.TrimSpace(t.aiAgent.Name) != "" {
-		username = strings.TrimSpace(t.aiAgent.Name)
-	}
-	return &dto.AuthPrincipal{
-		UserID:   0,
-		Username: username,
-		Nickname: username,
-	}
+	return graphs.NewCreateTicketGraph(t.conversation, t.aiAgent).Run(ctx, argumentsInJSON)
 }

@@ -35,13 +35,13 @@ func (s *toolCatalogService) ListMCPTools(ctx context.Context) ([]MCPToolCatalog
 	cfg := config.Current()
 	ret := make([]MCPToolCatalogItem, 0, 2)
 	ret = append(ret, MCPToolCatalogItem{
-		ToolCode:     toolx.BuiltinCreateTicketConfirmToolCode,
-		ServerCode:   toolx.BuiltinToolCatalogServerCode,
-		ToolName:     toolx.BuiltinCreateTicketConfirmToolName,
-		SourceType:   toolx.BuiltinToolCatalogServerCode,
+		ToolCode:     toolx.GraphCreateTicketConfirmToolCode,
+		ServerCode:   toolx.GraphToolCatalogServerCode,
+		ToolName:     toolx.GraphCreateTicketConfirmToolName,
+		SourceType:   toolx.GraphToolCatalogServerCode,
 		AutoInjected: false,
-		Title:        toolx.BuiltinCreateTicketConfirmToolTitle,
-		Description:  toolx.BuiltinCreateTicketConfirmToolDescription,
+		Title:        toolx.GraphCreateTicketConfirmToolTitle,
+		Description:  toolx.GraphCreateTicketConfirmToolDescription,
 	})
 	if !cfg.MCP.Enabled {
 		return ret, nil
@@ -96,7 +96,7 @@ func (s *toolCatalogService) ValidateToolCode(toolCode string) error {
 		return errorsx.InvalidParam("toolCode不能为空")
 	}
 	switch toolCode {
-	case toolx.BuiltinToolSearchToolCode, toolx.BuiltinCreateTicketConfirmToolCode:
+	case toolx.BuiltinToolSearchToolCode, toolx.BuiltinCreateTicketConfirmToolCode, toolx.GraphCreateTicketConfirmToolCode:
 		return nil
 	}
 	serverCode, toolName := toolx.SplitMCPToolCode(toolCode)

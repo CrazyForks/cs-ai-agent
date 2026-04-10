@@ -31,6 +31,7 @@ func SplitMCPToolCode(toolCode string) (string, string) {
 
 func NormalizeMCPToolRequest(item request.AIAgentMCPToolRequest) (request.AIAgentMCPToolRequest, error) {
 	toolCode := strings.TrimSpace(item.ToolCode)
+	toolCode = NormalizeToolCodeAlias(toolCode)
 	serverCode := strings.TrimSpace(item.ServerCode)
 	toolName := strings.TrimSpace(item.ToolName)
 	if toolCode != "" {

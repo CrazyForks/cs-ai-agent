@@ -10,6 +10,7 @@ import (
 	"cs-agent/internal/pkg/dto/request"
 	"cs-agent/internal/pkg/enums"
 	"cs-agent/internal/pkg/errorsx"
+	"cs-agent/internal/pkg/toolx"
 	"cs-agent/internal/pkg/utils"
 	"cs-agent/internal/repositories"
 
@@ -210,6 +211,7 @@ func normalizeSkillStringArray(input []string) ([]string, error) {
 	seen := make(map[string]struct{}, len(ret))
 	for _, item := range ret {
 		item = strings.TrimSpace(item)
+		item = toolx.NormalizeToolCodeAlias(item)
 		if item == "" {
 			continue
 		}

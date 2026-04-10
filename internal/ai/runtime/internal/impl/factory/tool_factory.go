@@ -29,6 +29,7 @@ func (f *ToolFactory) BuildMCPTools(aiAgent *models.AIAgent) ([]impladapter.MCPT
 	ret := make([]impladapter.MCPToolDefinition, 0, len(raw))
 	for _, item := range raw {
 		toolCode := strings.TrimSpace(item.ToolCode)
+		toolCode = toolx.NormalizeToolCodeAlias(toolCode)
 		if toolCode == "" {
 			toolCode = toolx.BuildMCPToolCode(item.ServerCode, item.ToolName)
 		}
