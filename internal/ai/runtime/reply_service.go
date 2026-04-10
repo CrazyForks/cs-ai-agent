@@ -11,6 +11,7 @@ import (
 	"cs-agent/internal/models"
 	"cs-agent/internal/pkg/dto"
 	"cs-agent/internal/pkg/enums"
+	"cs-agent/internal/pkg/toolx"
 	"cs-agent/internal/repositories"
 	svc "cs-agent/internal/services"
 
@@ -331,6 +332,7 @@ func (s *aiReplyService) writeRunLog(startedAt time.Time, message models.Message
 		PlannedSkillCode: strings.TrimSpace(summaryPlannedSkillCode(summary)),
 		PlannedSkillName: strings.TrimSpace(summaryPlannedSkillName(summary)),
 		SkillRouteTrace:  strings.TrimSpace(summarySkillRouteTrace(summary)),
+		ToolSearchTrace:  extractToolSearchTrace(summary),
 		PlannedToolCode:  plannedToolCode,
 		PlanReason:       planReason,
 		InterruptType:    firstInterruptType(summary),
@@ -378,10 +380,15 @@ func buildRunLogPlan(summary *Summary) (plannedAction, plannedToolCode, planReas
 		return "interrupt", "", "pending interrupt checkpoint expired"
 	}
 	if summary.Interrupted {
-		return "tool", firstInvokedToolCode(summary), "agent interrupted and is waiting for user confirmation"
+		return "tool", summaryPrimaryToolCode(summary), "agent interrupted and is waiting for user confirmation"
 	}
 	if len(summary.InvokedToolCodes) > 0 {
-		return "tool", strings.TrimSpace(summary.InvokedToolCodes[0]), "agent invoked MCP tool"
+		toolCode := summaryPrimaryToolCode(summary)
+		reason := "agent invoked MCP tool"
+		if toolCode != "" && toolCode != firstInvokedToolCode(summary) {
+			reason = "agent invoked dynamic tool via tool_search"
+		}
+		return "tool", toolCode, reason
 	}
 	if strings.TrimSpace(summary.ReplyText) != "" {
 		return "reply", "", "agent replied directly"
@@ -539,6 +546,68 @@ func firstInvokedToolCode(summary *Summary) string {
 		return strings.TrimSpace(summary.InvokedToolCodes[0])
 	}
 	return ""
+}
+
+func summaryPrimaryToolCode(summary *Summary) string {
+	if summary == nil {
+		return ""
+	}
+	toolCode := firstInvokedToolCode(summary)
+	if toolCode != toolx.BuiltinToolSearchToolCode {
+		return toolCode
+	}
+	if targetToolCode := firstToolSearchTargetToolCode(summary); targetToolCode != "" {
+		return targetToolCode
+	}
+	return toolCode
+}
+
+func extractToolSearchTrace(summary *Summary) string {
+	if summary == nil {
+		return ""
+	}
+	trace := parseRuntimeTraceData(summary.TraceData)
+	if len(trace.ToolSearch.Items) == 0 || len(trace.ToolSearch.Raw) == 0 {
+		return ""
+	}
+	return string(trace.ToolSearch.Raw)
+}
+
+func firstToolSearchTargetToolCode(summary *Summary) string {
+	trace := parseRuntimeTraceData(summary.TraceData)
+	for _, item := range trace.ToolSearch.Items {
+		toolCode := strings.TrimSpace(item.TargetToolCode)
+		if toolCode != "" {
+			return toolCode
+		}
+	}
+	return ""
+}
+
+type runtimeTraceProjection struct {
+	ToolSearch struct {
+		Raw   json.RawMessage `json:"-"`
+		Items []struct {
+			TargetToolCode string `json:"targetToolCode"`
+		} `json:"items"`
+	} `json:"toolSearch"`
+}
+
+func parseRuntimeTraceData(raw string) runtimeTraceProjection {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return runtimeTraceProjection{}
+	}
+	var payload map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
+		return runtimeTraceProjection{}
+	}
+	var trace runtimeTraceProjection
+	if toolSearchRaw, ok := payload["toolSearch"]; ok && len(toolSearchRaw) > 0 {
+		trace.ToolSearch.Raw = append(json.RawMessage(nil), toolSearchRaw...)
+		_ = json.Unmarshal(toolSearchRaw, &trace.ToolSearch)
+	}
+	return trace
 }
 
 func isCancellationReply(replyText string) bool {

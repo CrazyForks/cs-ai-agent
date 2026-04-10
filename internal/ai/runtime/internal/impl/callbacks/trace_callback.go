@@ -11,6 +11,17 @@ type ToolTraceItem struct {
 	ErrorMessage  string         `json:"errorMessage,omitempty"`
 }
 
+type ToolSearchTraceItem struct {
+	Action             string   `json:"action,omitempty"`
+	Query              string   `json:"query,omitempty"`
+	TargetToolCode     string   `json:"targetToolCode,omitempty"`
+	TargetServerCode   string   `json:"targetServerCode,omitempty"`
+	TargetToolName     string   `json:"targetToolName,omitempty"`
+	CandidateToolCodes []string `json:"candidateToolCodes,omitempty"`
+	Status             string   `json:"status,omitempty"`
+	ErrorMessage       string   `json:"errorMessage,omitempty"`
+}
+
 type RetrieverTraceItem struct {
 	Query           string  `json:"query,omitempty"`
 	KnowledgeBaseID int64   `json:"knowledgeBaseId,omitempty"`
@@ -47,6 +58,10 @@ type RuntimeTraceData struct {
 		Count int             `json:"count,omitempty"`
 		Items []ToolTraceItem `json:"items,omitempty"`
 	} `json:"tools"`
+	ToolSearch struct {
+		Count int                   `json:"count,omitempty"`
+		Items []ToolSearchTraceItem `json:"items,omitempty"`
+	} `json:"toolSearch"`
 	Output struct {
 		ReplyText    string `json:"replyText,omitempty"`
 		FinishReason string `json:"finishReason,omitempty"`

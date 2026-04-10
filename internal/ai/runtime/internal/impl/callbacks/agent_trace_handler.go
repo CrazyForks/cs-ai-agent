@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"cs-agent/internal/pkg/toolx"
+
 	einotool "github.com/cloudwego/eino/components/tool"
 
 	"github.com/cloudwego/eino/adk"
@@ -56,8 +58,23 @@ func (h *RuntimeTraceHandler) WrapInvokableToolCall(_ context.Context, endpoint 
 			item.ErrorMessage = err.Error()
 		}
 		h.collector.AddToolItem(item)
+		if metadata, ok := h.resolveToolMetadata(item.ToolName); ok && strings.TrimSpace(metadata.ToolCode) == toolx.BuiltinToolSearchToolCode {
+			h.collector.AddToolSearchItem(buildToolSearchTraceItem(argumentsInJSON, result, err))
+		}
 		return result, err
 	}, nil
+}
+
+func (h *RuntimeTraceHandler) resolveToolMetadata(modelToolName string) (ToolMetadata, bool) {
+	if h == nil || h.toolMetadataBy == nil {
+		return ToolMetadata{}, false
+	}
+	modelToolName = strings.TrimSpace(modelToolName)
+	if modelToolName == "" {
+		return ToolMetadata{}, false
+	}
+	metadata, ok := h.toolMetadataBy[modelToolName]
+	return metadata, ok
 }
 
 func parseToolArguments(argumentsInJSON string) map[string]any {
@@ -82,4 +99,63 @@ func previewToolText(text string, limit int) string {
 		return text
 	}
 	return string(runes[:limit]) + "..."
+}
+
+func buildToolSearchTraceItem(argumentsInJSON string, result string, runErr error) ToolSearchTraceItem {
+	item := ToolSearchTraceItem{
+		Status: "ok",
+	}
+	args := parseToolArguments(argumentsInJSON)
+	item.Query = strings.TrimSpace(readToolSearchString(args, "query"))
+	item.TargetToolCode = strings.TrimSpace(readToolSearchString(args, "toolCode"))
+	if item.TargetToolCode != "" {
+		item.Action = "invoke"
+		item.TargetServerCode, item.TargetToolName = toolx.SplitMCPToolCode(item.TargetToolCode)
+	} else {
+		item.Action = "search"
+	}
+	if runErr != nil {
+		item.Status = "error"
+		item.ErrorMessage = runErr.Error()
+		return item
+	}
+	payload := make(map[string]any)
+	if err := json.Unmarshal([]byte(strings.TrimSpace(result)), &payload); err != nil {
+		return item
+	}
+	candidateItems, _ := payload["candidates"].([]any)
+	item.CandidateToolCodes = extractCandidateToolCodes(candidateItems)
+	return item
+}
+
+func readToolSearchString(data map[string]any, key string) string {
+	if len(data) == 0 {
+		return ""
+	}
+	value, ok := data[key]
+	if !ok {
+		return ""
+	}
+	text, _ := value.(string)
+	return text
+}
+
+func extractCandidateToolCodes(items []any) []string {
+	if len(items) == 0 {
+		return nil
+	}
+	ret := make([]string, 0, len(items))
+	for _, item := range items {
+		payload, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		toolCode, _ := payload["toolCode"].(string)
+		toolCode = strings.TrimSpace(toolCode)
+		if toolCode == "" {
+			continue
+		}
+		ret = append(ret, toolCode)
+	}
+	return ret
 }

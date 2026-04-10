@@ -48,6 +48,7 @@ type AgentRunLogResponse struct {
 	PlannedSkillCode string `json:"plannedSkillCode"`
 	PlannedSkillName string `json:"plannedSkillName"`
 	SkillRouteTrace  string `json:"skillRouteTrace"`
+	ToolSearchTrace  string `json:"toolSearchTrace"`
 	PlannedToolCode  string `json:"plannedToolCode"`
 	PlanReason       string `json:"planReason"`
 	InterruptType    string `json:"interruptType"`

@@ -365,6 +365,7 @@ export type AgentRunLog = {
   plannedSkillCode: string
   plannedSkillName: string
   skillRouteTrace: string
+  toolSearchTrace: string
   plannedToolCode: string
   planReason: string
   interruptType: string

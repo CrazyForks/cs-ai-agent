@@ -39,3 +39,13 @@ func (c *RuntimeTraceCollector) AddToolItem(item ToolTraceItem) {
 	c.Data.Tools.Count++
 	c.Data.Tools.Items = append(c.Data.Tools.Items, item)
 }
+
+func (c *RuntimeTraceCollector) AddToolSearchItem(item ToolSearchTraceItem) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.Data.ToolSearch.Count++
+	c.Data.ToolSearch.Items = append(c.Data.ToolSearch.Items, item)
+}

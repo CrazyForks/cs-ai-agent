@@ -20,6 +20,7 @@ func BuildAgentRunLog(item *models.AgentRunLog) response.AgentRunLogResponse {
 		PlannedSkillCode: item.PlannedSkillCode,
 		PlannedSkillName: item.PlannedSkillName,
 		SkillRouteTrace:  item.SkillRouteTrace,
+		ToolSearchTrace:  item.ToolSearchTrace,
 		PlannedToolCode:  item.PlannedToolCode,
 		PlanReason:       item.PlanReason,
 		InterruptType:    item.InterruptType,

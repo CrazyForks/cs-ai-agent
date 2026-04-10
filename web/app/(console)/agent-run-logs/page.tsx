@@ -91,6 +91,10 @@ export default function DashboardAgentRunLogsPage() {
     () => safeParseJSON(activeLog?.traceData ?? ""),
     [activeLog?.traceData]
   )
+  const activeToolSearchTrace = useMemo(
+    () => safeParseJSON(activeLog?.toolSearchTrace ?? ""),
+    [activeLog?.toolSearchTrace]
+  )
 
   const aiAgentOptions = useMemo(
     () => [
@@ -372,6 +376,14 @@ export default function DashboardAgentRunLogsPage() {
                   ]}
                 />
 
+                <TextBlock
+                  title="动态工具选择"
+                  value={
+                    activeToolSearchTrace
+                      ? JSON.stringify(activeToolSearchTrace, null, 2)
+                      : activeLog.toolSearchTrace
+                  }
+                />
                 <TextBlock
                   icon={<BotMessageSquareIcon className="size-4" />}
                   title="用户问题"
