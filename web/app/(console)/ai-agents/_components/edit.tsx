@@ -47,8 +47,6 @@ import {
   fetchSkillDefinitionsAll,
 } from "@/lib/api/admin";
 import {
-  AIAgentFallbackMode,
-  AIAgentFallbackModeLabels,
   AIAgentHandoffMode,
   AIAgentHandoffModeLabels,
   AIModelType,
@@ -89,10 +87,6 @@ const schema = z.object({
     .number()
     .min(0, "回复超时秒数必须是大于等于 0 的整数"),
   handoffMode: z.string().trim().min(1, "请选择转人工模式"),
-  maxAiReplyRounds: z
-    .number()
-    .min(0, "AI 最大回复次数必须是大于等于 0 的整数"),
-  fallbackMode: z.string().trim().min(1, "请选择兜底模式"),
   fallbackMessage: z.string().trim(),
   remark: z.string().trim(),
 });
@@ -119,13 +113,6 @@ const handoffModeOptions = getEnumOptions(AIAgentHandoffModeLabels).map(
   }),
 );
 
-const fallbackModeOptions = getEnumOptions(AIAgentFallbackModeLabels).map(
-  (option) => ({
-    value: String(option.value),
-    label: option.label,
-  }),
-).filter((option) => option.value !== String(AIAgentFallbackMode.Handoff));
-
 function buildForm(item: AIAgent | null): EditForm {
   if (!item) {
     return {
@@ -137,8 +124,6 @@ function buildForm(item: AIAgent | null): EditForm {
       welcomeMessage: "",
       replyTimeoutSeconds: 180,
       handoffMode: String(AIAgentHandoffMode.WaitPool),
-      maxAiReplyRounds: 2,
-      fallbackMode: String(AIAgentFallbackMode.GuideRephrase),
       fallbackMessage:
         "我暂时没有找到足够准确的信息。你可以补充订单号、产品名或更具体的问题，我再继续帮你查。",
       remark: "",
@@ -153,8 +138,6 @@ function buildForm(item: AIAgent | null): EditForm {
     welcomeMessage: item.welcomeMessage || "",
     replyTimeoutSeconds: item.replyTimeoutSeconds ?? 180,
     handoffMode: String(item.handoffMode),
-    maxAiReplyRounds: item.maxAiReplyRounds ?? 2,
-    fallbackMode: String(item.fallbackMode),
     fallbackMessage: item.fallbackMessage || "",
     remark: item.remark || "",
   };
@@ -177,8 +160,6 @@ function buildPayload(
     replyTimeoutSeconds: Number(form.replyTimeoutSeconds),
     teamIds,
     handoffMode: Number(form.handoffMode),
-    maxAiReplyRounds: Number(form.maxAiReplyRounds),
-    fallbackMode: Number(form.fallbackMode),
     fallbackMessage: form.fallbackMessage.trim(),
     knowledgeIds,
     skillIds,
@@ -1029,61 +1010,6 @@ function EditDialogBody({
                     {...register("replyTimeoutSeconds", { valueAsNumber: true })}
                   />
                   <FieldError errors={[errors.replyTimeoutSeconds]} />
-                </FieldContent>
-              </Field>
-              <Field data-invalid={!!errors.maxAiReplyRounds}>
-                <FieldLabel
-                  htmlFor="ai-agent-max-rounds"
-                  className="flex items-center gap-1"
-                >
-                  AI 最大回复次数
-                  <Popover>
-                    <PopoverTrigger
-                      render={
-                        <button
-                          type="button"
-                          className="inline-flex items-center justify-center text-muted-foreground hover:text-foreground"
-                        >
-                          <InfoIcon className="size-4" />
-                        </button>
-                      }
-                    />
-                    <PopoverContent side="top" align="start" className="max-w-xs">
-                      <PopoverDescription>
-                        该字段不再触发系统自动转人工，当前仅保留为兼容配置。转人工统一通过 AI 的 handoff_to_human Graph Tool 执行。
-                      </PopoverDescription>
-                    </PopoverContent>
-                  </Popover>
-                </FieldLabel>
-                <FieldContent>
-                  <Input
-                    id="ai-agent-max-rounds"
-                    type="number"
-                    min={0}
-                    step={1}
-                    {...register("maxAiReplyRounds", { valueAsNumber: true })}
-                  />
-                  <FieldError errors={[errors.maxAiReplyRounds]} />
-                </FieldContent>
-              </Field>
-              <Field data-invalid={!!errors.fallbackMode}>
-                <FieldLabel>兜底模式</FieldLabel>
-                <FieldContent>
-                  <Controller
-                    control={control}
-                    name="fallbackMode"
-                    render={({ field }) => (
-                      <OptionCombobox
-                        value={field.value}
-                        options={fallbackModeOptions}
-                        placeholder="请选择兜底模式"
-                        searchPlaceholder="搜索兜底模式"
-                        emptyText="未找到兜底模式"
-                        onChange={field.onChange}
-                      />
-                    )}
-                  />
-                  <FieldError errors={[errors.fallbackMode]} />
                 </FieldContent>
               </Field>
             </div>

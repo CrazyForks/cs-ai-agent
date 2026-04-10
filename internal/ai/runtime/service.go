@@ -95,7 +95,7 @@ func (s *service) prepareToolsForRun(req *Request) error {
 		AIAgent:          req.AIAgent,
 		AIConfig:         req.AIConfig,
 		UserMessage:      req.UserMessage,
-		AllowedToolCodes: ensureCoreGraphToolCodes(resolveAllowedToolCodes(req.AIAgent, req.SelectedSkill)),
+		AllowedToolCodes: resolveAllowedToolCodes(req.AIAgent, req.SelectedSkill),
 	})
 	if err != nil {
 		return err
@@ -113,7 +113,7 @@ func (s *service) prepareToolsForResume(req *ResumeRequest) error {
 		Conversation:     req.Conversation,
 		AIAgent:          req.AIAgent,
 		AIConfig:         req.AIConfig,
-		AllowedToolCodes: ensureCoreGraphToolCodes(parseAgentAllowedToolCodes(req.AIAgent)),
+		AllowedToolCodes: parseAgentAllowedToolCodes(req.AIAgent),
 	})
 	if err != nil {
 		return err
@@ -280,19 +280,4 @@ func resolveAllowedToolCodes(aiAgent *models.AIAgent, skill *models.SkillDefinit
 		}
 		return ret
 	}
-}
-
-func ensureCoreGraphToolCodes(toolCodes []string) []string {
-	if len(toolCodes) == 0 {
-		return nil
-	}
-	ret := make([]string, 0, len(toolCodes)+1)
-	ret = append(ret, toolCodes...)
-	for _, item := range ret {
-		if strings.TrimSpace(item) == toolx.GraphHandoffConversationToolCode {
-			return ret
-		}
-	}
-	ret = append(ret, toolx.GraphHandoffConversationToolCode)
-	return ret
 }

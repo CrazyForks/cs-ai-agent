@@ -212,30 +212,6 @@ func GetAIAgentHandoffModeLabel(mode AIAgentHandoffMode) string {
 	return aiAgentHandoffModeLabelMap[mode]
 }
 
-type AIAgentFallbackMode int
-
-const (
-	AIAgentFallbackModeNoAnswer      AIAgentFallbackMode = 1
-	AIAgentFallbackModeGuideRephrase AIAgentFallbackMode = 2
-	AIAgentFallbackModeHandoff       AIAgentFallbackMode = 3
-)
-
-var AIAgentFallbackModeValues = []AIAgentFallbackMode{
-	AIAgentFallbackModeNoAnswer,
-	AIAgentFallbackModeGuideRephrase,
-	AIAgentFallbackModeHandoff,
-}
-
-var aiAgentFallbackModeLabelMap = map[AIAgentFallbackMode]string{
-	AIAgentFallbackModeNoAnswer:      "直接声明无答案",
-	AIAgentFallbackModeGuideRephrase: "引导补充信息或换个问法",
-	AIAgentFallbackModeHandoff:       "直接转人工",
-}
-
-func GetAIAgentFallbackModeLabel(mode AIAgentFallbackMode) string {
-	return aiAgentFallbackModeLabelMap[mode]
-}
-
 const (
 	IMRealtimeEventConnected               = "connected"
 	IMRealtimeEventPong                    = "pong"

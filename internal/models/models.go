@@ -510,8 +510,6 @@ type AIAgent struct {
 	ReplyTimeoutSeconds int                             `gorm:"type:int;not null;default:180"`               // ReplyTimeoutSeconds 为异步自动回复超时秒数。
 	TeamIDs             string                          `gorm:"type:varchar(500);not null;default:''"`       // TeamIDs 为转人工时可路由的客服组ID列表，多个之间使用逗号分隔。
 	HandoffMode         enums.AIAgentHandoffMode        `gorm:"type:int;not null;default:1"`                 // HandoffMode 为转人工模式，如进入待接入池、进入默认客服组待接入池。
-	MaxAIReplyRounds    int                             `gorm:"type:int;not null;default:2"`                 // MaxAIReplyRounds 为单个会话允许的 AI 最大成功回复次数，超过后强制转人工。
-	FallbackMode        enums.AIAgentFallbackMode       `gorm:"type:int;not null;default:2"`                 // FallbackMode 为无答案或低置信度时的兜底模式。
 	FallbackMessage     string                          `gorm:"type:text"`                                   // FallbackMessage 为兜底回复文案。
 	KnowledgeIDs        string                          `gorm:"type:varchar(500);not null;default:''"`       // KnowledgeIDs 为绑定的知识库ID列表，按顺序表示优先级。
 	SkillIDs            string                          `gorm:"type:varchar(500);not null;default:''"`       // SkillIDs 为绑定的技能ID列表，按顺序表示允许路由的范围。

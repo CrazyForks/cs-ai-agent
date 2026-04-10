@@ -83,9 +83,6 @@ type AIAgentResponse struct {
 	Teams               []AIAgentTeamResponse           `json:"teams"`
 	HandoffMode         enums.AIAgentHandoffMode        `json:"handoffMode"`
 	HandoffModeName     string                          `json:"handoffModeName"`
-	MaxAIReplyRounds    int                             `json:"maxAiReplyRounds"`
-	FallbackMode        enums.AIAgentFallbackMode       `json:"fallbackMode"`
-	FallbackModeName    string                          `json:"fallbackModeName"`
 	FallbackMessage     string                          `json:"fallbackMessage"`
 	KnowledgeIDs        []int64                         `json:"knowledgeIds"`
 	KnowledgeBaseNames  []string                        `json:"knowledgeBaseNames"`

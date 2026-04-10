@@ -207,9 +207,6 @@ export type AIAgent = {
   teams: { id: number; name: string }[]
   handoffMode: number
   handoffModeName: string
-  maxAiReplyRounds: number
-  fallbackMode: number
-  fallbackModeName: string
   fallbackMessage: string
   knowledgeIds: number[]
   knowledgeBaseNames: string[]
@@ -241,8 +238,6 @@ export type CreateAIAgentPayload = {
   replyTimeoutSeconds: number
   teamIds: number[]
   handoffMode: number
-  maxAiReplyRounds: number
-  fallbackMode: number
   fallbackMessage: string
   knowledgeIds: number[]
   skillIds: number[]

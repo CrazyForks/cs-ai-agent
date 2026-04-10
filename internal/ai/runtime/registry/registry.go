@@ -3,6 +3,8 @@ package registry
 import (
 	"strings"
 
+	"cs-agent/internal/pkg/toolx"
+
 	einotool "github.com/cloudwego/eino/components/tool"
 )
 
@@ -28,7 +30,7 @@ func (r *Registry) Resolve(ctx Context) (*ToolSet, error) {
 		}
 		toolCode := strings.TrimSpace(toolDef.Code())
 		if len(allowedToolCodes) > 0 {
-			if _, ok := allowedToolCodes[toolCode]; !ok {
+			if _, ok := allowedToolCodes[toolCode]; !ok && !isAlwaysAllowedToolCode(toolCode) {
 				continue
 			}
 		}
@@ -62,4 +64,8 @@ func makeAllowedToolCodeSet(input []string) map[string]struct{} {
 		ret[item] = struct{}{}
 	}
 	return ret
+}
+
+func isAlwaysAllowedToolCode(toolCode string) bool {
+	return strings.TrimSpace(toolCode) == toolx.GraphHandoffConversationToolCode
 }

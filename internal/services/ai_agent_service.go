@@ -101,8 +101,6 @@ func (s *aIAgentService) UpdateAIAgent(req request.UpdateAIAgentRequest, operato
 		"reply_timeout_seconds": item.ReplyTimeoutSeconds,
 		"team_ids":              item.TeamIDs,
 		"handoff_mode":          item.HandoffMode,
-		"max_ai_reply_rounds":   item.MaxAIReplyRounds,
-		"fallback_mode":         item.FallbackMode,
 		"fallback_message":      item.FallbackMessage,
 		"knowledge_ids":         item.KnowledgeIDs,
 		"skill_ids":             item.SkillIDs,
@@ -162,10 +160,6 @@ func (s *aIAgentService) buildAIAgentModel(id int64, req request.CreateAIAgentRe
 	if enums.AIAgentHandoffMode(req.HandoffMode) == enums.AIAgentHandoffModeDefaultTeamPool && len(teamIDs) == 0 {
 		return nil, errorsx.InvalidParam("默认客服组待接入池模式必须至少选择一个客服组")
 	}
-
-	if !slices.Contains(enums.AIAgentFallbackModeValues, enums.AIAgentFallbackMode(req.FallbackMode)) {
-		return nil, errorsx.InvalidParam("兜底模式不合法")
-	}
 	if req.ReplyTimeoutSeconds < 0 {
 		return nil, errorsx.InvalidParam("回复超时秒数不能小于 0")
 	}
@@ -203,8 +197,6 @@ func (s *aIAgentService) buildAIAgentModel(id int64, req request.CreateAIAgentRe
 		ReplyTimeoutSeconds: req.ReplyTimeoutSeconds,
 		TeamIDs:             utils.JoinInt64s(teamIDs),
 		HandoffMode:         req.HandoffMode,
-		MaxAIReplyRounds:    req.MaxAIReplyRounds,
-		FallbackMode:        req.FallbackMode,
 		FallbackMessage:     strings.TrimSpace(req.FallbackMessage),
 		KnowledgeIDs:        utils.JoinInt64s(knowledgeIDs),
 		SkillIDs:            utils.JoinInt64s(skillIDs),
