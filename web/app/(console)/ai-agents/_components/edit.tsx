@@ -124,7 +124,7 @@ const fallbackModeOptions = getEnumOptions(AIAgentFallbackModeLabels).map(
     value: String(option.value),
     label: option.label,
   }),
-);
+).filter((option) => option.value !== String(AIAgentFallbackMode.Handoff));
 
 function buildForm(item: AIAgent | null): EditForm {
   if (!item) {
@@ -973,7 +973,7 @@ function EditDialogBody({
 
           <SectionCard
             title="服务策略"
-            description="控制转人工规则、兜底策略和自动回复行为边界。"
+            description="控制 Graph Tool 转人工配置、兜底策略和自动回复边界。"
           >
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
               <Field data-invalid={!!errors.handoffMode}>
@@ -1050,7 +1050,7 @@ function EditDialogBody({
                     />
                     <PopoverContent side="top" align="start" className="max-w-xs">
                       <PopoverDescription>
-                        单个会话内 AI 成功回复达到该次数后，下一条客户消息会自动转人工。填 0 表示不限制。
+                        该字段不再触发系统自动转人工，当前仅保留为兼容配置。转人工统一通过 AI 的 handoff_to_human Graph Tool 执行。
                       </PopoverDescription>
                     </PopoverContent>
                   </Popover>
@@ -1163,7 +1163,7 @@ function EditDialogBody({
                 </FieldLabel>
                 <FieldContent>
                   <div className="text-xs text-muted-foreground mb-1">
-                    仅在兜底模式为“直接声明无答案”或“引导补充信息”时使用；如果兜底模式配置为转人工，这里的文案不会生效。
+                    仅在兜底模式为“直接声明无答案”或“引导补充信息”时使用。转人工已统一改为 AI Graph Tool，不再通过兜底模式直接触发。
                   </div>
                   <Textarea
                     id="ai-agent-fallback-message"

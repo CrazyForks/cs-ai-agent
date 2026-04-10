@@ -103,14 +103,6 @@ func (s *aiReplyService) TriggerReply(ctx context.Context, conversation models.C
 	if pendingInterrupt := svc.ConversationInterruptService.FindLatestPendingByConversationID(conversation.ID); pendingInterrupt != nil {
 		return s.resumePendingInterrupt(ctx, conversation, message, aiAgent, pendingInterrupt, trace, &summary)
 	}
-	if s.shouldHandoffByQuestion(message.Content, aiAgent) {
-		return s.handoffConversation(conversation, aiAgent, "用户主动要求人工")
-	}
-	if aiAgent.ServiceMode != enums.IMConversationServiceModeAIOnly &&
-		aiAgent.MaxAIReplyRounds > 0 &&
-		conversation.AIReplyRounds >= aiAgent.MaxAIReplyRounds {
-		return s.handoffConversation(conversation, aiAgent, "达到AI最大回复轮次")
-	}
 	aiConfig := svc.AIConfigService.Get(aiAgent.AIConfigID)
 	if aiConfig == nil {
 		return fmt.Errorf("ai config is nil")
@@ -293,23 +285,6 @@ func (s *aiReplyService) sendAIReply(conversation models.Conversation, message m
 		}
 	}
 	return replyMessage, err
-}
-
-func (s *aiReplyService) shouldHandoffByQuestion(question string, aiAgent models.AIAgent) bool {
-	if aiAgent.ServiceMode == enums.IMConversationServiceModeAIOnly {
-		return false
-	}
-	normalized := strings.ReplaceAll(strings.ToLower(strings.TrimSpace(question)), " ", "")
-	if normalized == "" {
-		return false
-	}
-	keywords := []string{"转人工", "人工客服"}
-	for _, keyword := range keywords {
-		if strings.Contains(normalized, keyword) {
-			return true
-		}
-	}
-	return false
 }
 
 func (s *aiReplyService) writeRunLog(startedAt time.Time, message models.Message, conversation models.Conversation, aiAgent models.AIAgent,
@@ -661,7 +636,7 @@ func parseRuntimeTraceData(raw string) runtimeTraceProjection {
 
 func isCancellationReply(replyText string) bool {
 	replyText = strings.TrimSpace(replyText)
-	return strings.Contains(replyText, "已取消本次工单创建")
+	return strings.Contains(replyText, "已取消本次工单创建") || strings.Contains(replyText, "已取消本次转人工")
 }
 
 func isCheckpointMissingError(err error) bool {
@@ -670,16 +645,6 @@ func isCheckpointMissingError(err error) bool {
 	}
 	message := strings.ToLower(strings.TrimSpace(err.Error()))
 	return strings.Contains(message, "failed to load from checkpoint") && strings.Contains(message, "not exist")
-}
-
-func (s *aiReplyService) handoffConversation(conversation models.Conversation, aiAgent models.AIAgent, reason string) error {
-	if err := svc.ConversationService.HandoffByAI(conversation.ID, &aiAgent, reason); err != nil {
-		return err
-	}
-	if _, err := svc.MessageService.SendAIMessage(conversation.ID, aiAgent.ID, fmt.Sprintf("ai_handoff_%d", conversation.LastMessageID), enums.IMMessageTypeText, "已为你转接人工客服，请稍候。", "", s.buildAIPrincipal(aiAgent)); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (s *aiReplyService) buildAIPrincipal(aiAgent models.AIAgent) *dto.AuthPrincipal {
