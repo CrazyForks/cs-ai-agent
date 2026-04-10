@@ -35,22 +35,31 @@ func NormalizeMCPToolRequest(item request.AIAgentMCPToolRequest) (request.AIAgen
 	toolName := strings.TrimSpace(item.ToolName)
 	if toolCode != "" {
 		parsedServerCode, parsedToolName := SplitMCPToolCode(toolCode)
-		if parsedServerCode == "" || parsedToolName == "" {
-			return request.AIAgentMCPToolRequest{}, errorsx.InvalidParam("Direct Tool 的 toolCode 格式不合法")
+		if parsedServerCode != "" && parsedToolName != "" {
+			if serverCode != "" && !strings.EqualFold(serverCode, parsedServerCode) {
+				return request.AIAgentMCPToolRequest{}, errorsx.InvalidParam("Direct Tool 的 toolCode 与 serverCode 不一致")
+			}
+			if toolName != "" && !strings.EqualFold(toolName, parsedToolName) {
+				return request.AIAgentMCPToolRequest{}, errorsx.InvalidParam("Direct Tool 的 toolCode 与 toolName 不一致")
+			}
+			serverCode = parsedServerCode
+			toolName = parsedToolName
+		} else {
+			serverCode = ""
+			toolName = ""
 		}
-		if serverCode != "" && !strings.EqualFold(serverCode, parsedServerCode) {
-			return request.AIAgentMCPToolRequest{}, errorsx.InvalidParam("Direct Tool 的 toolCode 与 serverCode 不一致")
-		}
-		if toolName != "" && !strings.EqualFold(toolName, parsedToolName) {
-			return request.AIAgentMCPToolRequest{}, errorsx.InvalidParam("Direct Tool 的 toolCode 与 toolName 不一致")
-		}
-		serverCode = parsedServerCode
-		toolName = parsedToolName
 	} else {
 		toolCode = BuildMCPToolCode(serverCode, toolName)
 	}
-	if toolCode == "" || serverCode == "" || toolName == "" {
+	if toolCode == "" {
 		return request.AIAgentMCPToolRequest{}, errorsx.InvalidParam("Direct Tool 的 toolCode、serverCode 和 toolName 不能为空")
+	}
+	if parsedServerCode, parsedToolName := SplitMCPToolCode(toolCode); parsedServerCode != "" && parsedToolName != "" {
+		serverCode = parsedServerCode
+		toolName = parsedToolName
+	}
+	if serverCode == "" && toolName == "" && strings.Contains(toolCode, "/") && !strings.HasPrefix(toolCode, "builtin/") {
+		return request.AIAgentMCPToolRequest{}, errorsx.InvalidParam("Direct Tool 的 toolCode 格式不合法")
 	}
 	ret := request.AIAgentMCPToolRequest{
 		ToolCode:    toolCode,

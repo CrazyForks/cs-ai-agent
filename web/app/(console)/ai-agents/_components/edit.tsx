@@ -59,6 +59,16 @@ import {
 import { getEnumOptions } from "@/lib/enums";
 import { FieldDescription } from "@base-ui/react";
 
+type DirectToolItem = CreateAIAgentPayload["directTools"][number];
+
+type DirectToolOption = {
+  value: string;
+  label: string;
+  meta: DirectToolItem;
+  sourceType: string;
+  groupLabel: string;
+};
+
 type EditDialogProps = {
   open: boolean;
   saving: boolean;
@@ -231,18 +241,16 @@ function EditDialogBody({
   const [knowledgeToAdd, setKnowledgeToAdd] = useState("");
   const [teamToAdd, setTeamToAdd] = useState("");
   const [skillToAdd, setSkillToAdd] = useState("");
-  const [directToolServerCodeToAdd, setDirectToolServerCodeToAdd] = useState("");
+  const [directToolGroupToAdd, setDirectToolGroupToAdd] = useState("");
   const [directToolToAdd, setDirectToolToAdd] = useState("");
   const [aiConfigs, setAIConfigs] = useState<AIConfig[]>([]);
   const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([]);
   const [agentTeams, setAgentTeams] = useState<AdminAgentTeam[]>([]);
   const [skills, setSkills] = useState<SkillDefinition[]>([]);
-  const [directTools, setDirectTools] = useState<
-    CreateAIAgentPayload["directTools"]
-  >([]);
-  const [directToolOptions, setDirectToolOptions] = useState<
-    { value: string; label: string; meta: CreateAIAgentPayload["directTools"][number] }[]
-  >([]);
+  const [directTools, setDirectTools] = useState<DirectToolItem[]>([]);
+  const [directToolOptions, setDirectToolOptions] = useState<DirectToolOption[]>(
+    [],
+  );
   const [toolCatalog, setToolCatalog] = useState<MCPToolCatalogItem[]>([]);
 
   useEffect(() => {
@@ -256,7 +264,7 @@ function EditDialogBody({
         setKnowledgeToAdd("");
         setTeamToAdd("");
         setSkillToAdd("");
-        setDirectToolServerCodeToAdd("");
+        setDirectToolGroupToAdd("");
         setDirectToolToAdd("");
         return;
       }
@@ -271,7 +279,7 @@ function EditDialogBody({
         setKnowledgeToAdd("");
         setTeamToAdd("");
         setSkillToAdd("");
-        setDirectToolServerCodeToAdd("");
+        setDirectToolGroupToAdd("");
         setDirectToolToAdd("");
       } catch (error) {
         toast.error(
@@ -349,6 +357,11 @@ function EditDialogBody({
           catalog.map((tool) => ({
             value: tool.toolCode,
             label: `${tool.title || tool.toolName} · ${tool.toolCode}`,
+            sourceType: tool.sourceType,
+            groupLabel:
+              tool.sourceType === "builtin"
+                ? "内置工具"
+                : tool.serverCode,
             meta: {
               toolCode: tool.toolCode,
               serverCode: tool.serverCode,
@@ -446,21 +459,21 @@ function EditDialogBody({
     () =>
       directToolOptions.filter(
         (option) =>
-          option.meta.serverCode === directToolServerCodeToAdd &&
+          option.groupLabel === directToolGroupToAdd &&
           !directTools.some((tool) => tool.toolCode === option.value),
       ),
-    [directToolOptions, directToolServerCodeToAdd, directTools],
+    [directToolOptions, directToolGroupToAdd, directTools],
   );
 
-  const directToolServerOptions = useMemo(
+  const directToolGroupOptions = useMemo(
     () =>
       Array.from(
         new Map(
           directToolOptions.map((option) => [
-            option.meta.serverCode,
+            option.groupLabel,
             {
-              value: option.meta.serverCode,
-              label: option.meta.serverCode,
+              value: option.groupLabel,
+              label: option.groupLabel,
             },
           ]),
         ).values(),
@@ -468,15 +481,16 @@ function EditDialogBody({
     [directToolOptions],
   );
 
-  const directToolsGroupedByServer = useMemo(() => {
-    const groups = new Map<
-      string,
-      CreateAIAgentPayload["directTools"]
-    >();
+  const directToolsGrouped = useMemo(() => {
+    const groups = new Map<string, DirectToolItem[]>();
     for (const tool of directTools) {
-      const current = groups.get(tool.serverCode) ?? [];
+      const groupLabel =
+        tool.serverCode === "builtin" || tool.toolCode.startsWith("builtin/")
+          ? "内置工具"
+          : tool.serverCode || "未分组";
+      const current = groups.get(groupLabel) ?? [];
       current.push(tool);
-      groups.set(tool.serverCode, current);
+      groups.set(groupLabel, current);
     }
     return Array.from(groups.entries());
   }, [directTools]);
@@ -585,7 +599,7 @@ function EditDialogBody({
       }
       return [...prev, option.meta];
     });
-    setDirectToolServerCodeToAdd(option.meta.serverCode);
+    setDirectToolGroupToAdd(option.groupLabel);
     setDirectToolToAdd("");
   }
 
@@ -852,22 +866,22 @@ function EditDialogBody({
               </div>
 
               <div className="rounded-xl border bg-muted/10 p-4">
-                <div className="mb-1 text-sm font-medium">Direct MCP Tools</div>
+                <div className="mb-1 text-sm font-medium">Direct Tools</div>
                 <div className="mb-4 text-xs text-muted-foreground">
-                  用于低风险、原子化的实时查询。工具来自统一的 MCP Tool Catalog。
+                  用于低风险、原子化的实时查询。可选择 MCP 工具，也可选择系统内置工具。
                 </div>
                 <Field>
                   <FieldContent className="space-y-3">
                     <div className="flex items-center gap-2">
                       <div className="w-52">
                         <OptionCombobox
-                          value={directToolServerCodeToAdd}
-                          options={directToolServerOptions}
-                          placeholder="选择 MCP Server"
-                          searchPlaceholder="搜索 MCP Server"
-                          emptyText="没有可用的 MCP Server"
+                          value={directToolGroupToAdd}
+                          options={directToolGroupOptions}
+                          placeholder="选择工具分组"
+                          searchPlaceholder="搜索工具分组"
+                          emptyText="没有可用的工具分组"
                           onChange={(value) => {
-                            setDirectToolServerCodeToAdd(value);
+                            setDirectToolGroupToAdd(value);
                             setDirectToolToAdd("");
                           }}
                         />
@@ -876,7 +890,7 @@ function EditDialogBody({
                         <OptionCombobox
                           value={directToolToAdd}
                           options={addableDirectToolOptions}
-                          placeholder="选择该 Server 下的 Direct Tool"
+                          placeholder="选择 Direct Tool"
                           searchPlaceholder="搜索 Direct Tool"
                           emptyText="没有可添加的 Direct Tool"
                           onChange={handleAddDirectTool}
@@ -886,7 +900,7 @@ function EditDialogBody({
                         type="button"
                         variant="outline"
                         disabled={
-                          !directToolServerCodeToAdd || !directToolToAdd
+                          !directToolGroupToAdd || !directToolToAdd
                         }
                         onClick={() => handleAddDirectTool(directToolToAdd)}
                       >
@@ -897,16 +911,16 @@ function EditDialogBody({
                     <div className="space-y-3">
                       {directTools.length === 0 ? (
                         <span className="text-sm text-muted-foreground">
-                          不配置 Direct Tool 时，Agent 不会直接访问 MCP，只能通过 Skill 间接调用。
+                          不配置 Direct Tool 时，Agent 不会直接调用外部或内置工具，只会依赖知识库、Skill 和普通回复。
                         </span>
                       ) : (
-                        directToolsGroupedByServer.map(([serverCode, tools]) => (
+                        directToolsGrouped.map(([groupLabel, tools]) => (
                           <div
-                            key={serverCode}
+                            key={groupLabel}
                             className="rounded-md border p-3"
                           >
                             <div className="mb-2 text-xs font-medium text-muted-foreground">
-                              {serverCode}
+                              {groupLabel}
                             </div>
                             <div className="flex flex-wrap gap-2">
                               {tools.map((tool) => {
@@ -921,6 +935,11 @@ function EditDialogBody({
                                     className="gap-1 pr-1"
                                   >
                                     {tool.title || catalogItem?.title || value}
+                                    <span className="text-[10px] text-muted-foreground/80">
+                                      {catalogItem?.sourceType === "builtin"
+                                        ? "内置"
+                                        : tool.serverCode || "MCP"}
+                                    </span>
                                     <Button
                                       type="button"
                                       variant="ghost"

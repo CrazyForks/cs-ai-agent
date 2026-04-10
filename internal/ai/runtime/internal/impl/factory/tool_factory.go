@@ -32,10 +32,14 @@ func (f *ToolFactory) BuildMCPTools(aiAgent *models.AIAgent) ([]impladapter.MCPT
 		if toolCode == "" {
 			toolCode = toolx.BuildMCPToolCode(item.ServerCode, item.ToolName)
 		}
+		serverCode, toolName := toolx.SplitMCPToolCode(toolCode)
+		if serverCode == "" || toolName == "" {
+			continue
+		}
 		definition := impladapter.MCPToolDefinition{
 			ToolCode:    toolCode,
-			ServerCode:  strings.TrimSpace(item.ServerCode),
-			ToolName:    strings.TrimSpace(item.ToolName),
+			ServerCode:  serverCode,
+			ToolName:    toolName,
 			Title:       strings.TrimSpace(item.Title),
 			Description: strings.TrimSpace(item.Description),
 			FixedArgs:   cloneStringMap(item.Arguments),

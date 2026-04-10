@@ -10,6 +10,7 @@ import (
 	"cs-agent/internal/models"
 	"cs-agent/internal/pkg/dto"
 	"cs-agent/internal/pkg/dto/request"
+	"cs-agent/internal/pkg/toolx"
 	"cs-agent/internal/services"
 
 	componenttool "github.com/cloudwego/eino/components/tool"
@@ -20,8 +21,8 @@ import (
 )
 
 const (
-	CreateTicketConfirmToolCode = "builtin/create_ticket_with_confirmation"
-	CreateTicketConfirmToolName = "create_ticket_with_confirmation"
+	CreateTicketConfirmToolCode = toolx.BuiltinCreateTicketConfirmToolCode
+	CreateTicketConfirmToolName = toolx.BuiltinCreateTicketConfirmToolName
 )
 
 type CreateTicketConfirmState struct {

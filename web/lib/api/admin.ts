@@ -333,6 +333,7 @@ export type MCPToolCatalogItem = {
   toolCode: string
   serverCode: string
   toolName: string
+  sourceType: string
   title: string
   description: string
   inputSchema: unknown
@@ -362,9 +363,14 @@ export type AgentRunLog = {
   userMessage: string
   plannedAction: string
   plannedSkillCode: string
+  plannedSkillName: string
+  skillRouteTrace: string
   plannedToolCode: string
   planReason: string
+  interruptType: string
+  resumeSource: string
   finalAction: string
+  finalStatus: string
   replyText: string
   errorMessage: string
   latencyMs: number

@@ -2,18 +2,13 @@ package console
 
 import (
 	"context"
-	"encoding/json"
-	"strings"
 	"time"
 
 	"cs-agent/internal/builders"
-	"cs-agent/internal/models"
 	"cs-agent/internal/pkg/constants"
 	"cs-agent/internal/pkg/dto/request"
 	"cs-agent/internal/pkg/dto/response"
 	"cs-agent/internal/pkg/enums"
-	"cs-agent/internal/pkg/errorsx"
-	"cs-agent/internal/pkg/utils"
 	"cs-agent/internal/services"
 
 	"github.com/kataras/iris/v12"
@@ -80,29 +75,8 @@ func (c *SkillDefinitionController) PostCreate() *web.JsonResult {
 	if err := params.ReadJSON(c.Ctx, &req); err != nil {
 		return web.JsonError(err)
 	}
-	if err := validateSkillDefinitionRequest(req); err != nil {
-		return web.JsonError(err)
-	}
-	if services.SkillDefinitionService.Take("code = ?", strings.TrimSpace(req.Code)) != nil {
-		return web.JsonErrorMsg("Skill 编码已存在")
-	}
-
-	item := &models.SkillDefinition{
-		Code:             strings.TrimSpace(req.Code),
-		Name:             strings.TrimSpace(req.Name),
-		Description:      strings.TrimSpace(req.Description),
-		Content:          strings.TrimSpace(req.Content),
-		Examples:         mustMarshalJSONStringArray(req.Examples),
-		AllowedToolCodes: mustMarshalJSONStringArray(req.AllowedToolCodes),
-		Priority:         normalizeSkillPriority(req.Priority),
-		Status:           enums.StatusOk,
-		Remark:           strings.TrimSpace(req.Remark),
-		AuditFields:      utils.BuildAuditFields(operator),
-	}
-	if item.Priority <= 0 {
-		item.Priority = services.SkillDefinitionService.NextPriority()
-	}
-	if err := services.SkillDefinitionService.Create(item); err != nil {
+	item, err := services.SkillDefinitionService.CreateSkillDefinition(req, operator)
+	if err != nil {
 		return web.JsonError(err)
 	}
 	return web.JsonData(builders.BuildSkillDefinitionResponse(item))
@@ -118,35 +92,7 @@ func (c *SkillDefinitionController) PostUpdate() *web.JsonResult {
 	if err := params.ReadJSON(c.Ctx, &req); err != nil {
 		return web.JsonError(err)
 	}
-	if req.ID <= 0 {
-		return web.JsonErrorMsg("Skill ID 不合法")
-	}
-	if err := validateSkillDefinitionRequest(req.CreateSkillDefinitionRequest); err != nil {
-		return web.JsonError(err)
-	}
-
-	item := services.SkillDefinitionService.Get(req.ID)
-	if item == nil {
-		return web.JsonErrorMsg("Skill 不存在")
-	}
-	exists := services.SkillDefinitionService.Take("code = ? AND id <> ?", strings.TrimSpace(req.Code), req.ID)
-	if exists != nil {
-		return web.JsonErrorMsg("Skill 编码已存在")
-	}
-
-	if err := services.SkillDefinitionService.Updates(req.ID, map[string]any{
-		"code":               strings.TrimSpace(req.Code),
-		"name":               strings.TrimSpace(req.Name),
-		"description":        strings.TrimSpace(req.Description),
-		"content":            strings.TrimSpace(req.Content),
-		"examples":           mustMarshalJSONStringArray(req.Examples),
-		"allowed_tool_codes": mustMarshalJSONStringArray(req.AllowedToolCodes),
-		"priority":           resolveSkillPriorityForUpdate(req.Priority, item.Priority),
-		"remark":             strings.TrimSpace(req.Remark),
-		"update_user_id":     operator.UserID,
-		"update_user_name":   operator.Username,
-		"updated_at":         time.Now(),
-	}); err != nil {
+	if err := services.SkillDefinitionService.UpdateSkillDefinition(req, operator); err != nil {
 		return web.JsonError(err)
 	}
 	return web.JsonSuccess()
@@ -239,76 +185,4 @@ func (c *SkillDefinitionController) PostDebug_run() *web.JsonResult {
 		return web.JsonError(err)
 	}
 	return web.JsonData(resp)
-}
-
-func validateSkillDefinitionRequest(req request.CreateSkillDefinitionRequest) error {
-	code := strings.TrimSpace(req.Code)
-	name := strings.TrimSpace(req.Name)
-	content := strings.TrimSpace(req.Content)
-	if code == "" {
-		return errorsx.InvalidParam("Skill 编码不能为空")
-	}
-	if name == "" {
-		return errorsx.InvalidParam("Skill 名称不能为空")
-	}
-	if content == "" {
-		return errorsx.InvalidParam("Content 不能为空")
-	}
-	if _, err := normalizeJSONStringArray(req.Examples); err != nil {
-		return err
-	}
-	allowedToolCodes, err := normalizeJSONStringArray(req.AllowedToolCodes)
-	if err != nil {
-		return err
-	}
-	for _, toolCode := range allowedToolCodes {
-		if err := services.ToolCatalogService.ValidateMCPToolCode(toolCode); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func normalizeSkillPriority(priority int) int {
-	if priority < 0 {
-		return 0
-	}
-	return priority
-}
-
-func resolveSkillPriorityForUpdate(input, current int) int {
-	input = normalizeSkillPriority(input)
-	if input <= 0 {
-		return current
-	}
-	return input
-}
-
-func normalizeJSONStringArray(input []string) ([]string, error) {
-	ret := make([]string, 0, len(input))
-	seen := make(map[string]struct{})
-	for _, item := range input {
-		item = strings.TrimSpace(item)
-		if item == "" {
-			continue
-		}
-		if _, exists := seen[item]; exists {
-			continue
-		}
-		seen[item] = struct{}{}
-		ret = append(ret, item)
-	}
-	return ret, nil
-}
-
-func mustMarshalJSONStringArray(input []string) string {
-	items, _ := normalizeJSONStringArray(input)
-	if len(items) == 0 {
-		return "[]"
-	}
-	buf, err := json.Marshal(items)
-	if err != nil {
-		return "[]"
-	}
-	return string(buf)
 }

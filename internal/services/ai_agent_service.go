@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"cs-agent/internal/models"
-	"cs-agent/internal/pkg/config"
 	"cs-agent/internal/pkg/dto"
 	"cs-agent/internal/pkg/dto/request"
 	"cs-agent/internal/pkg/enums"
@@ -288,10 +287,6 @@ func (s *aIAgentService) normalizeDirectTools(input []request.AIAgentMCPToolRequ
 	if len(input) == 0 {
 		return nil, nil
 	}
-	cfg := config.Current()
-	if !cfg.MCP.Enabled {
-		return nil, errorsx.InvalidParam("系统未启用 MCP，不能配置 Direct Tool")
-	}
 	ret := make([]request.AIAgentMCPToolRequest, 0, len(input))
 	seen := make(map[string]struct{})
 	for _, item := range input {
@@ -299,10 +294,8 @@ func (s *aIAgentService) normalizeDirectTools(input []request.AIAgentMCPToolRequ
 		if err != nil {
 			return nil, err
 		}
-		serverCode := strings.TrimSpace(normalized.ServerCode)
-		server, ok := cfg.MCP.Servers[serverCode]
-		if !ok || !server.Enabled {
-			return nil, errorsx.InvalidParam("Direct Tool 绑定的 MCP 服务不存在或未启用")
+		if err := ToolCatalogService.ValidateToolCode(normalized.ToolCode); err != nil {
+			return nil, err
 		}
 		key := strings.TrimSpace(normalized.ToolCode)
 		if _, exists := seen[key]; exists {

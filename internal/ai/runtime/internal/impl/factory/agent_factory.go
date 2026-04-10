@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	einoadapter "cs-agent/internal/ai/runtime/internal/impl/adapter"
@@ -17,14 +18,16 @@ import (
 )
 
 type AgentFactory struct {
-	chatModelFactory *ChatModelFactory
-	toolFactory      *ToolFactory
+	chatModelFactory     *ChatModelFactory
+	toolFactory          *ToolFactory
+	instructionAssembler *InstructionAssembler
 }
 
 func NewAgentFactory() *AgentFactory {
 	return &AgentFactory{
-		chatModelFactory: NewChatModelFactory(),
-		toolFactory:      NewToolFactory(),
+		chatModelFactory:     NewChatModelFactory(),
+		toolFactory:          NewToolFactory(),
+		instructionAssembler: NewInstructionAssembler(),
 	}
 }
 
@@ -94,13 +97,35 @@ func buildAgentInstruction(aiAgent *models.AIAgent, selectedSkill *models.SkillD
 5. 如果用户只是咨询、抱怨或泛泛表达不满，但没有明确要求建单，优先继续澄清，不要主动创建工单。
 `))
 	}
-	if len(appendixParts) == 0 {
-		return baseInstruction
+	projectRoot, _ := os.Getwd()
+	return NewInstructionAssembler().Build(InstructionAssemblerInput{
+		ProjectRoot:      projectRoot,
+		AgentInstruction: baseInstruction,
+		SkillInstruction: firstAppendixPart(appendixParts),
+		ToolAppendices:   remainingAppendixParts(appendixParts),
+	})
+}
+
+func firstAppendixPart(parts []string) string {
+	if len(parts) == 0 {
+		return ""
 	}
-	if baseInstruction == "" {
-		return strings.Join(appendixParts, "\n\n")
+	return strings.TrimSpace(parts[0])
+}
+
+func remainingAppendixParts(parts []string) []string {
+	if len(parts) <= 1 {
+		return nil
 	}
-	return baseInstruction + "\n\n" + strings.Join(appendixParts, "\n\n")
+	ret := make([]string, 0, len(parts)-1)
+	for _, item := range parts[1:] {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			continue
+		}
+		ret = append(ret, item)
+	}
+	return ret
 }
 
 func buildSelectedSkillInstruction(skill *models.SkillDefinition, toolDefinitions []einoadapter.MCPToolDefinition) string {

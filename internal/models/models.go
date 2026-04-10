@@ -950,9 +950,14 @@ type AgentRunLog struct {
 	UserMessage      string    `gorm:"type:longtext"`
 	PlannedAction    string    `gorm:"type:varchar(30);not null;default:'';index"`
 	PlannedSkillCode string    `gorm:"type:varchar(100);not null;default:'';index"`
+	PlannedSkillName string    `gorm:"type:varchar(100);not null;default:''"`
+	SkillRouteTrace  string    `gorm:"type:text"`
 	PlannedToolCode  string    `gorm:"type:varchar(200);not null;default:'';index"`
 	PlanReason       string    `gorm:"type:varchar(500);not null;default:''"`
+	InterruptType    string    `gorm:"type:varchar(50);not null;default:'';index"`
+	ResumeSource     string    `gorm:"type:varchar(50);not null;default:'';index"`
 	FinalAction      string    `gorm:"type:varchar(30);not null;default:'';index"`
+	FinalStatus      string    `gorm:"type:varchar(30);not null;default:'';index"`
 	ReplyText        string    `gorm:"type:longtext"`
 	ErrorMessage     string    `gorm:"type:text"`
 	LatencyMs        int64     `gorm:"type:bigint;not null;default:0"`

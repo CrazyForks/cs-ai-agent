@@ -7,10 +7,11 @@ import (
 )
 
 type Context struct {
-	Conversation *models.Conversation
-	AIAgent      *models.AIAgent
-	AIConfig     *models.AIConfig
-	UserMessage  *models.Message
+	Conversation     *models.Conversation
+	AIAgent          *models.AIAgent
+	AIConfig         *models.AIConfig
+	UserMessage      *models.Message
+	AllowedToolCodes []string
 }
 
 type ToolSet struct {

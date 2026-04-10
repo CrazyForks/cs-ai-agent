@@ -36,6 +36,7 @@ type aiReplyTraceData struct {
 	RecheckMs        int64           `json:"recheckMs,omitempty"`
 	CommitMs         int64           `json:"commitMs,omitempty"`
 	FinalAction      string          `json:"finalAction,omitempty"`
+	ResumeSource     string          `json:"resumeSource,omitempty"`
 	ReplySent        bool            `json:"replySent,omitempty"`
 	ReplyMessageID   int64           `json:"replyMessageId,omitempty"`
 	Runtime          json.RawMessage `json:"runtime,omitempty"`
@@ -162,6 +163,7 @@ func (s *aiReplyService) resumePendingInterrupt(ctx context.Context, conversatio
 		return fmt.Errorf("ai config is nil")
 	}
 	runtimeStartedAt := time.Now()
+	trace.ResumeSource = "pending_interrupt"
 	summary, err := Service.Resume(ctx, ResumeRequest{
 		Conversation: &conversation,
 		AIAgent:      &aiAgent,
@@ -327,9 +329,14 @@ func (s *aiReplyService) writeRunLog(startedAt time.Time, message models.Message
 		UserMessage:      strings.TrimSpace(question),
 		PlannedAction:    plannedAction,
 		PlannedSkillCode: strings.TrimSpace(summaryPlannedSkillCode(summary)),
+		PlannedSkillName: strings.TrimSpace(summaryPlannedSkillName(summary)),
+		SkillRouteTrace:  strings.TrimSpace(summarySkillRouteTrace(summary)),
 		PlannedToolCode:  plannedToolCode,
 		PlanReason:       planReason,
+		InterruptType:    firstInterruptType(summary),
+		ResumeSource:     runLogResumeSource(trace),
 		FinalAction:      toRunLogFinalAction(summary),
+		FinalStatus:      runLogFinalStatus(summary),
 		ReplyText:        buildRunLogReplyText(summary),
 		ErrorMessage:     errorMessage,
 		LatencyMs:        time.Since(startedAt).Milliseconds(),
@@ -420,6 +427,34 @@ func summaryPlannedSkillCode(summary *Summary) string {
 		return ""
 	}
 	return strings.TrimSpace(summary.PlannedSkillCode)
+}
+
+func summaryPlannedSkillName(summary *Summary) string {
+	if summary == nil {
+		return ""
+	}
+	return strings.TrimSpace(summary.PlannedSkillName)
+}
+
+func summarySkillRouteTrace(summary *Summary) string {
+	if summary == nil {
+		return ""
+	}
+	return strings.TrimSpace(summary.SkillRouteTrace)
+}
+
+func runLogResumeSource(trace *aiReplyTraceData) string {
+	if trace == nil {
+		return ""
+	}
+	return strings.TrimSpace(trace.ResumeSource)
+}
+
+func runLogFinalStatus(summary *Summary) string {
+	if summary == nil {
+		return ""
+	}
+	return strings.TrimSpace(summary.Status)
 }
 
 func (s *aiReplyService) incrementAIReplyRounds(conversationID int64, nextRounds int, aiAgentName string) error {

@@ -229,8 +229,8 @@ export default function DashboardAgentRunLogsPage() {
                 <TableHead className="w-[180px]">时间</TableHead>
                 <TableHead>用户问题</TableHead>
                 <TableHead className="w-[120px]">规划动作</TableHead>
-                <TableHead className="w-[180px]">Skill / Tool</TableHead>
-                <TableHead className="w-[120px]">最终动作</TableHead>
+                <TableHead className="w-[220px]">Skill / Tool</TableHead>
+                <TableHead className="w-[140px]">最终状态</TableHead>
                 <TableHead className="w-[110px] text-right">耗时</TableHead>
                 <TableHead className="w-[96px] text-right">操作</TableHead>
               </TableRow>
@@ -265,17 +265,29 @@ export default function DashboardAgentRunLogsPage() {
                   </TableCell>
                   <TableCell className="text-sm">
                     {item.plannedSkillCode || item.plannedToolCode ? (
-                      <Badge variant="outline">
-                        {item.plannedSkillCode || item.plannedToolCode}
-                      </Badge>
+                      <div className="space-y-1">
+                        <Badge variant="outline">
+                          {item.plannedSkillCode || item.plannedToolCode}
+                        </Badge>
+                        {item.plannedSkillName ? (
+                          <div className="line-clamp-1 text-xs text-muted-foreground">
+                            {item.plannedSkillName}
+                          </div>
+                        ) : null}
+                      </div>
                     ) : (
                       "-"
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={actionBadgeVariant(item.finalAction)}>
-                      {item.finalAction || "-"}
-                    </Badge>
+                    <div className="space-y-1">
+                      <Badge variant={actionBadgeVariant(item.finalAction)}>
+                        {item.finalAction || "-"}
+                      </Badge>
+                      <div className="text-xs text-muted-foreground">
+                        {item.finalStatus || "-"}
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell className="text-right text-sm text-muted-foreground">
                     {item.latencyMs} ms
@@ -342,14 +354,19 @@ export default function DashboardAgentRunLogsPage() {
                   lines={[
                     `plannedAction: ${activeLog.plannedAction || "-"}`,
                     `plannedSkillCode: ${activeLog.plannedSkillCode || "-"}`,
+                    `plannedSkillName: ${activeLog.plannedSkillName || "-"}`,
                     `plannedToolCode: ${activeLog.plannedToolCode || "-"}`,
                     `planReason: ${activeLog.planReason || "-"}`,
+                    `skillRouteTrace: ${activeLog.skillRouteTrace || "-"}`,
                   ]}
                 />
                 <InfoBlock
                   title="执行结果"
                   lines={[
                     `finalAction: ${activeLog.finalAction || "-"}`,
+                    `finalStatus: ${activeLog.finalStatus || "-"}`,
+                    `interruptType: ${activeLog.interruptType || "-"}`,
+                    `resumeSource: ${activeLog.resumeSource || "-"}`,
                     `latencyMs: ${activeLog.latencyMs} ms`,
                     `createdAt: ${formatDateTime(activeLog.createdAt)}`,
                   ]}

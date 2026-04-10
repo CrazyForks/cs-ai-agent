@@ -23,6 +23,7 @@ type MCPToolCatalogItem struct {
 	ToolCode     string
 	ServerCode   string
 	ToolName     string
+	SourceType   string
 	Title        string
 	Description  string
 	InputSchema  any
@@ -46,6 +47,14 @@ func (s *toolCatalogService) ListMCPTools(ctx context.Context) ([]MCPToolCatalog
 	}
 	slices.Sort(serverCodes)
 	ret := make([]MCPToolCatalogItem, 0)
+	ret = append(ret, MCPToolCatalogItem{
+		ToolCode:    toolx.BuiltinCreateTicketConfirmToolCode,
+		ServerCode:  toolx.BuiltinToolCatalogServerCode,
+		ToolName:    toolx.BuiltinCreateTicketConfirmToolName,
+		SourceType:  toolx.BuiltinToolCatalogServerCode,
+		Title:       toolx.BuiltinCreateTicketConfirmToolTitle,
+		Description: toolx.BuiltinCreateTicketConfirmToolDescription,
+	})
 	for _, serverCode := range serverCodes {
 		tools, err := mcps.Runtime.ListTools(ctx, serverCode)
 		if err != nil {
@@ -56,6 +65,7 @@ func (s *toolCatalogService) ListMCPTools(ctx context.Context) ([]MCPToolCatalog
 				ToolCode:     toolx.BuildMCPToolCode(serverCode, item.Name),
 				ServerCode:   serverCode,
 				ToolName:     strings.TrimSpace(item.Name),
+				SourceType:   "mcp",
 				Title:        strings.TrimSpace(item.Title),
 				Description:  strings.TrimSpace(item.Description),
 				InputSchema:  item.InputSchema,
@@ -67,13 +77,24 @@ func (s *toolCatalogService) ListMCPTools(ctx context.Context) ([]MCPToolCatalog
 }
 
 func (s *toolCatalogService) ValidateMCPToolCode(toolCode string) error {
+	return s.ValidateToolCode(toolCode)
+}
+
+func (s *toolCatalogService) ValidateToolCode(toolCode string) error {
 	cfg := config.Current()
-	if !cfg.MCP.Enabled {
-		return errorsx.InvalidParam("MCP未启用")
+	toolCode = strings.TrimSpace(toolCode)
+	if toolCode == "" {
+		return errorsx.InvalidParam("toolCode不能为空")
+	}
+	if toolCode == toolx.BuiltinCreateTicketConfirmToolCode {
+		return nil
 	}
 	serverCode, toolName := toolx.SplitMCPToolCode(toolCode)
 	if serverCode == "" || toolName == "" {
 		return errorsx.InvalidParam("toolCode格式不合法")
+	}
+	if !cfg.MCP.Enabled {
+		return errorsx.InvalidParam("MCP未启用")
 	}
 	server, ok := cfg.MCP.Servers[serverCode]
 	if !ok || !server.Enabled {

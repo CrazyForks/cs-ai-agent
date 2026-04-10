@@ -174,12 +174,29 @@ func buildAIAgentResponse(item *models.AIAgent) response.AIAgentResponse {
 				if toolCode == "" {
 					toolCode = toolx.BuildMCPToolCode(tool.ServerCode, tool.ToolName)
 				}
+				serverCode := strings.TrimSpace(tool.ServerCode)
+				toolName := strings.TrimSpace(tool.ToolName)
+				if toolCode == toolx.BuiltinCreateTicketConfirmToolCode {
+					serverCode = toolx.BuiltinToolCatalogServerCode
+					toolName = toolx.BuiltinCreateTicketConfirmToolName
+				} else if parsedServerCode, parsedToolName := toolx.SplitMCPToolCode(toolCode); parsedServerCode != "" && parsedToolName != "" {
+					serverCode = parsedServerCode
+					toolName = parsedToolName
+				}
+				title := strings.TrimSpace(tool.Title)
+				if title == "" && toolCode == toolx.BuiltinCreateTicketConfirmToolCode {
+					title = toolx.BuiltinCreateTicketConfirmToolTitle
+				}
+				description := strings.TrimSpace(tool.Description)
+				if description == "" && toolCode == toolx.BuiltinCreateTicketConfirmToolCode {
+					description = toolx.BuiltinCreateTicketConfirmToolDescription
+				}
 				ret.DirectTools = append(ret.DirectTools, response.AIAgentMCPToolResponse{
 					ToolCode:    toolCode,
-					ServerCode:  strings.TrimSpace(tool.ServerCode),
-					ToolName:    strings.TrimSpace(tool.ToolName),
-					Title:       strings.TrimSpace(tool.Title),
-					Description: strings.TrimSpace(tool.Description),
+					ServerCode:  serverCode,
+					ToolName:    toolName,
+					Title:       title,
+					Description: description,
 					Arguments:   tool.Arguments,
 				})
 			}
