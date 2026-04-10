@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"cs-agent/internal/ai/runtime/graphs"
 	"cs-agent/internal/models"
 	"cs-agent/internal/pkg/dto"
 	"cs-agent/internal/pkg/enums"
@@ -172,7 +173,7 @@ func (s *aiReplyService) resumePendingInterrupt(ctx context.Context, conversatio
 		if isCheckpointMissingError(err) {
 			summary = &Summary{
 				Status:    "expired",
-				ReplyText: "本次确认已失效，请重新发起。",
+				ReplyText: graphs.ConfirmationExpiredReply,
 			}
 			*summaryRef = summary
 			trace.Status = "interrupt_expired"
@@ -220,7 +221,7 @@ func (s *aiReplyService) resumePendingInterrupt(ctx context.Context, conversatio
 		if replyMessage != nil {
 			replyMessageID = replyMessage.ID
 		}
-		if isCancellationReply(summary.ReplyText) {
+		if graphs.IsCancellationReply(summary.ReplyText) {
 			return svc.ConversationInterruptService.MarkCancelled(pendingInterrupt.ID, replyMessageID)
 		}
 		return svc.ConversationInterruptService.MarkResolved(pendingInterrupt.ID, replyMessageID)
@@ -650,11 +651,6 @@ func parseRuntimeTraceData(raw string) runtimeTraceProjection {
 		_ = json.Unmarshal(graphToolsRaw, &trace.GraphTools)
 	}
 	return trace
-}
-
-func isCancellationReply(replyText string) bool {
-	replyText = strings.TrimSpace(replyText)
-	return strings.Contains(replyText, "已取消本次工单创建") || strings.Contains(replyText, "已取消本次转人工")
 }
 
 func isCheckpointMissingError(err error) bool {

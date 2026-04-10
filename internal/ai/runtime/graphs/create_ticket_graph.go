@@ -34,13 +34,6 @@ type CreateTicketGraph struct {
 	aiAgent      *models.AIAgent
 }
 
-type Decision string
-
-const (
-	DecisionConfirm Decision = "confirm"
-	DecisionCancel  Decision = "cancel"
-)
-
 func NewCreateTicketGraph(conversation *models.Conversation, aiAgent *models.AIAgent) *CreateTicketGraph {
 	return &CreateTicketGraph{
 		conversation: conversation,
@@ -59,7 +52,7 @@ func (g *CreateTicketGraph) Run(ctx context.Context, argumentsInJSON string) (st
 			return "", err
 		}
 		info := CreateTicketGraphInterruptInfo{
-			Type:    "ticket_creation_confirmation",
+			Type:    InterruptTypeTicketCreationConfirmation,
 			Message: g.buildConfirmationPrompt(req),
 		}
 		return "", componenttool.StatefulInterrupt(ctx, info, CreateTicketGraphState{Request: req})
@@ -70,32 +63,32 @@ func (g *CreateTicketGraph) Run(ctx context.Context, argumentsInJSON string) (st
 	isResumeTarget, hasData, resumeText := componenttool.GetResumeContext[string](ctx)
 	if !isResumeTarget {
 		info := CreateTicketGraphInterruptInfo{
-			Type:    "ticket_creation_confirmation",
+			Type:    InterruptTypeTicketCreationConfirmation,
 			Message: g.buildConfirmationPrompt(state.Request),
 		}
 		return "", componenttool.StatefulInterrupt(ctx, info, state)
 	}
 	if !hasData {
 		info := CreateTicketGraphInterruptInfo{
-			Type:    "ticket_creation_confirmation",
-			Message: "请回复“确认”或“取消”。",
+			Type:    InterruptTypeTicketCreationConfirmation,
+			Message: ConfirmOrCancelPrompt,
 		}
 		return "", componenttool.StatefulInterrupt(ctx, info, state)
 	}
 	decision := ParseConfirmationDecision(resumeText)
 	switch decision {
-	case DecisionConfirm:
+	case ConfirmationDecisionConfirm:
 		item, err := services.TicketService.CreateFromConversation(state.Request, g.buildAIPrincipal())
 		if err != nil {
 			return "", err
 		}
 		return fmt.Sprintf("工单已创建，工单号：%s，标题：%s。", strings.TrimSpace(item.TicketNo), strings.TrimSpace(item.Title)), nil
-	case DecisionCancel:
-		return "已取消本次工单创建。", nil
+	case ConfirmationDecisionCancel:
+		return CancelCreateTicketReply, nil
 	default:
 		info := CreateTicketGraphInterruptInfo{
-			Type:    "ticket_creation_confirmation",
-			Message: "我需要你的明确确认，请直接回复“确认”或“取消”。",
+			Type:    InterruptTypeTicketCreationConfirmation,
+			Message: NeedExplicitConfirmationPrompt,
 		}
 		return "", componenttool.StatefulInterrupt(ctx, info, state)
 	}
@@ -175,24 +168,4 @@ func getInt64Value(data map[string]any, key string) int64 {
 	default:
 		return 0
 	}
-}
-
-func ParseConfirmationDecision(value string) Decision {
-	value = strings.ToLower(strings.TrimSpace(value))
-	if value == "" {
-		return ""
-	}
-	confirmWords := []string{"确认", "是", "好的", "可以", "ok", "yes", "继续", "同意"}
-	for _, item := range confirmWords {
-		if strings.Contains(value, item) {
-			return DecisionConfirm
-		}
-	}
-	cancelWords := []string{"取消", "不用", "不需要", "算了", "no"}
-	for _, item := range cancelWords {
-		if strings.Contains(value, item) {
-			return DecisionCancel
-		}
-	}
-	return ""
 }

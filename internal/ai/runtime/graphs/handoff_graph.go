@@ -50,7 +50,7 @@ func (g *HandoffGraph) Run(ctx context.Context, argumentsInJSON string) (string,
 			return "", err
 		}
 		info := HandoffGraphInterruptInfo{
-			Type:    "handoff_confirmation",
+			Type:    InterruptTypeHandoffConfirmation,
 			Message: g.buildConfirmationPrompt(reason),
 		}
 		return "", componenttool.StatefulInterrupt(ctx, info, HandoffGraphState{Reason: reason})
@@ -61,30 +61,30 @@ func (g *HandoffGraph) Run(ctx context.Context, argumentsInJSON string) (string,
 	isResumeTarget, hasData, resumeText := componenttool.GetResumeContext[string](ctx)
 	if !isResumeTarget {
 		info := HandoffGraphInterruptInfo{
-			Type:    "handoff_confirmation",
+			Type:    InterruptTypeHandoffConfirmation,
 			Message: g.buildConfirmationPrompt(state.Reason),
 		}
 		return "", componenttool.StatefulInterrupt(ctx, info, state)
 	}
 	if !hasData {
 		info := HandoffGraphInterruptInfo{
-			Type:    "handoff_confirmation",
-			Message: "请回复“确认”或“取消”。",
+			Type:    InterruptTypeHandoffConfirmation,
+			Message: ConfirmOrCancelPrompt,
 		}
 		return "", componenttool.StatefulInterrupt(ctx, info, state)
 	}
 	switch parseHandoffDecision(resumeText) {
-	case graphDecisionConfirm:
+	case ConfirmationDecisionConfirm:
 		if err := services.ConversationService.HandoffByAI(g.conversation.ID, g.aiAgent, state.Reason); err != nil {
 			return "", err
 		}
 		return "已为你转接人工客服，请稍候。", nil
-	case graphDecisionCancel:
-		return "已取消本次转人工。", nil
+	case ConfirmationDecisionCancel:
+		return CancelHandoffReply, nil
 	default:
 		info := HandoffGraphInterruptInfo{
-			Type:    "handoff_confirmation",
-			Message: "我需要你的明确确认，请直接回复“确认”或“取消”。",
+			Type:    InterruptTypeHandoffConfirmation,
+			Message: NeedExplicitConfirmationPrompt,
 		}
 		return "", componenttool.StatefulInterrupt(ctx, info, state)
 	}
@@ -108,31 +108,8 @@ func (g *HandoffGraph) buildConfirmationPrompt(reason string) string {
 	return fmt.Sprintf("我准备为你转接人工客服。\n原因：%s\n请直接回复“确认”或“取消”。", strings.TrimSpace(reason))
 }
 
-type graphDecision string
-
-const (
-	graphDecisionConfirm graphDecision = "confirm"
-	graphDecisionCancel  graphDecision = "cancel"
-)
-
-func parseHandoffDecision(value string) graphDecision {
-	value = strings.ToLower(strings.TrimSpace(value))
-	if value == "" {
-		return ""
-	}
-	confirmWords := []string{"确认", "是", "好的", "可以", "ok", "yes", "继续", "同意"}
-	for _, item := range confirmWords {
-		if strings.Contains(value, item) {
-			return graphDecisionConfirm
-		}
-	}
-	cancelWords := []string{"取消", "不用", "不需要", "算了", "no"}
-	for _, item := range cancelWords {
-		if strings.Contains(value, item) {
-			return graphDecisionCancel
-		}
-	}
-	return ""
+func parseHandoffDecision(value string) ConfirmationDecision {
+	return ParseConfirmationDecision(value)
 }
 
 func graphGetStringValue(data map[string]any, key string) string {
