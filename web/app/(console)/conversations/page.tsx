@@ -280,7 +280,7 @@ export default function ConversationsPage() {
   );
 
   return (
-    <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden">
+    <div className="flex h-[calc(100dvh-var(--header-height))] min-h-0 w-full min-w-0 flex-col overflow-hidden lg:h-full">
       {/* H5 无左侧导航：顶栏 h-12、left-0；lg 起有 w-14 侧栏，与 layout 一致 */}
       {mobileMenuOpen && (
         <button
