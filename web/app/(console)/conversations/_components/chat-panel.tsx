@@ -386,24 +386,18 @@ export function ChatPanel() {
   );
 
   const bottomPanel = (
-    <div
-      className={
-        showMessageEditor
-          ? "h-full overflow-auto border-t border-border bg-background"
-          : "shrink-0 overflow-auto border-t border-border bg-background"
-      }
-    >
+    <div className="h-full overflow-auto border-t border-border bg-background">
       {isClosedConversation ? (
-        <div className="bg-amber-500/10 px-4 py-3 text-sm text-amber-950 dark:bg-amber-500/15 dark:text-amber-100">
+        <div className="bg-amber-500/10 px-4 py-3 text-sm text-amber-950 dark:bg-amber-500/15 dark:text-amber-100 h-full flex justify-center items-center">
           当前会话已关闭
         </div>
       ) : conversation?.status === 1 ? (
-        <div className="bg-violet-500/10 px-4 py-3 text-sm text-violet-950 dark:bg-violet-500/15 dark:text-violet-100">
+        <div className="bg-violet-500/10 px-4 py-3 text-sm text-violet-950 dark:bg-violet-500/15 dark:text-violet-100 h-full flex justify-center items-center">
           当前会话由 AI 接待中，转人工后才能由客服发送消息
         </div>
       ) : isPendingConversation ? (
-        <div className="bg-blue-500/10 px-4 py-3 dark:bg-blue-500/15">
-          <div className="flex items-center gap-2">
+        <div className="bg-blue-500/10 px-4 py-3 dark:bg-blue-500/15 h-full">
+          <div className="flex items-center gap-2 h-full">
             <Button
               onClick={() => setClaimDialogOpen(true)}
               disabled={claiming}
@@ -444,31 +438,35 @@ export function ChatPanel() {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-      {showMessageEditor ? (
-        isLgUp ? (
-          <ResizablePanelGroup
-            orientation="vertical"
-            className="flex min-h-0 flex-1 flex-col"
+      {isLgUp ? (
+        <ResizablePanelGroup
+          orientation="vertical"
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <ResizablePanel
+            defaultSize={showMessageEditor ? "72%" : "82%"}
+            minSize="35%"
+            className="min-h-0"
           >
-            <ResizablePanel defaultSize="72%" minSize="35%" className="min-h-0">
-              {messagesScroll}
-            </ResizablePanel>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize="28%" minSize="18%" maxSize="55%" className="min-h-0">
-              {bottomPanel}
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        ) : (
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <div className="min-h-0 flex-1">{messagesScroll}</div>
-            <div className="shrink-0 pb-[env(safe-area-inset-bottom)]">{bottomPanel}</div>
-          </div>
-        )
+            {messagesScroll}
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel
+            defaultSize={showMessageEditor ? "28%" : "18%"}
+            minSize={showMessageEditor ? "18%" : "12%"}
+            maxSize={showMessageEditor ? "55%" : "30%"}
+            className="min-h-0"
+          >
+            {bottomPanel}
+          </ResizablePanel>
+        </ResizablePanelGroup>
       ) : (
-        <>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <div className="min-h-0 flex-1">{messagesScroll}</div>
-          <div className="shrink-0 pb-[env(safe-area-inset-bottom)] lg:pb-0">{bottomPanel}</div>
-        </>
+          <div className="shrink-0 pb-[env(safe-area-inset-bottom)] lg:pb-0">
+            {bottomPanel}
+          </div>
+        </div>
       )}
       <Dialog
         open={claimDialogOpen}
