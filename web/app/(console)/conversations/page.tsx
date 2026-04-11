@@ -4,6 +4,7 @@ import {
   ArrowRightLeftIcon,
   ChevronLeft,
   ChevronRight,
+  ChevronsUpDown,
   CircleUserRoundIcon,
   CircleXIcon,
   FilePlus2Icon,
@@ -23,6 +24,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -69,6 +72,38 @@ export default function ConversationsPage() {
   const [createTicketOpen, setCreateTicketOpen] = useState(false);
   const sidebarPanelRef = useRef<PanelImperativeHandle | null>(null);
   const infoPanelRef = useRef<PanelImperativeHandle | null>(null);
+  const filterContainerRef = useRef<HTMLDivElement | null>(null);
+  const filterMeasureRef = useRef<HTMLDivElement | null>(null);
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+
+  useEffect(() => {
+    const container = filterContainerRef.current;
+    const measure = filterMeasureRef.current;
+    if (!container || !measure) {
+      return;
+    }
+
+    const updateFilterMode = () => {
+      setShowFilterDropdown(measure.scrollWidth > container.clientWidth);
+    };
+
+    updateFilterMode();
+
+    const observer = new ResizeObserver(() => {
+      updateFilterMode();
+    });
+
+    observer.observe(container);
+    observer.observe(measure);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  const currentFilterOption =
+    agentConversationFilterOptions.find((opt) => opt.value === conversationFilter) ??
+    agentConversationFilterOptions[0];
   useEffect(() => {
     void loadConversations().catch((error) => {
       toast.error(error instanceof Error ? error.message : "加载会话列表失败");
@@ -122,27 +157,75 @@ export default function ConversationsPage() {
   const renderConversationSidebar = (opts?: { onListAfterSelect?: () => void }) => (
     <div className="flex h-full min-h-0 flex-1 flex-col bg-inherit">
       <div className="flex h-12.5 shrink-0 items-start justify-between gap-2 border-b border-border p-2">
-        <Tabs
-          value={conversationFilter}
-          onValueChange={(value) =>
-            setConversationFilter(value as AgentConversationFilterKey)
-          }
-          className="min-w-0 flex-1 gap-0"
-        >
-          <TabsList
-            className="w-full min-w-0 justify-start "
-          >
-            {agentConversationFilterOptions.map((opt) => (
-              <TabsTrigger
-                key={opt.value}
-                value={opt.value}
-                className="shrink-0 px-2.5 text-xs sm:text-sm"
+        <div ref={filterContainerRef} className="relative min-w-0 flex-1">
+          {showFilterDropdown ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    className="h-8.5 w-full min-w-0 justify-between gap-2 px-3 text-xs sm:text-sm"
+                  />
+                }
               >
-                {opt.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+                <span className="truncate">{currentFilterOption?.label ?? "筛选状态"}</span>
+                <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-44 min-w-44">
+                <DropdownMenuRadioGroup
+                  value={conversationFilter}
+                  onValueChange={(value) =>
+                    setConversationFilter(value as AgentConversationFilterKey)
+                  }
+                >
+                  {agentConversationFilterOptions.map((opt) => (
+                    <DropdownMenuRadioItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Tabs
+              value={conversationFilter}
+              onValueChange={(value) =>
+                setConversationFilter(value as AgentConversationFilterKey)
+              }
+              className="min-w-0 flex-1 gap-0"
+            >
+              <TabsList
+                className="w-full min-w-0 justify-start"
+              >
+                {agentConversationFilterOptions.map((opt) => (
+                  <TabsTrigger
+                    key={opt.value}
+                    value={opt.value}
+                    className="shrink-0 px-2.5 text-xs sm:text-sm"
+                  >
+                    {opt.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          )}
+          <div
+            ref={filterMeasureRef}
+            className="pointer-events-none absolute whitespace-nowrap opacity-0"
+            aria-hidden="true"
+          >
+            <div className="inline-flex">
+              {agentConversationFilterOptions.map((opt) => (
+                <span
+                  key={opt.value}
+                  className="shrink-0 px-2.5 text-xs sm:text-sm"
+                >
+                  {opt.label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
         <Button
           variant="ghost"
           size="icon"
