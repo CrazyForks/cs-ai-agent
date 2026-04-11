@@ -19,9 +19,9 @@ import { generateUUID } from "@/lib/utils"
 
 export const agentConversationFilterOptions = [
   // { value: "mine", label: "我的" },
-  { value: "ai_serving", label: "AI接待中" },
   { value: "active", label: "处理中" },
   { value: "pending", label: "待接入" },
+  { value: "ai_serving", label: "AI接待中" },
   { value: "closed", label: "已关闭" },
 ] as const
 
