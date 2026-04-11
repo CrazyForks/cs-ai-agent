@@ -11,10 +11,12 @@ import (
 	"cs-agent/internal/ai/runtime/internal/impl/callbacks"
 	"cs-agent/internal/ai/runtime/internal/impl/factory"
 	"cs-agent/internal/ai/runtime/internal/impl/retrievers"
+	"cs-agent/internal/ai/runtime/registry"
 	"cs-agent/internal/models"
 	"cs-agent/internal/pkg/utils"
 
 	"github.com/cloudwego/eino/adk"
+	einotool "github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"
 	"github.com/google/uuid"
 )
@@ -85,7 +87,7 @@ func (s *Service) Run(ctx context.Context, req Request) (*Summary, error) {
 		summary.ToolCodes = appendIfMissing(summary.ToolCodes, "builtin/tool_search")
 		toolDefsByModelName["tool_search"] = "builtin/tool_search"
 	}
-	for modelName, toolCode := range req.ExtraToolCodes {
+	for modelName, toolCode := range toolSetStaticToolCodes(req.ToolSet) {
 		toolCode = strings.TrimSpace(toolCode)
 		modelName = strings.TrimSpace(modelName)
 		if toolCode == "" || modelName == "" {
@@ -119,8 +121,8 @@ func (s *Service) Run(ctx context.Context, req Request) (*Summary, error) {
 		SelectedSkill:              req.SelectedSkill,
 		InstructionToolDefinitions: filteredToolDefs,
 		DynamicMCPToolDefinitions:  filteredToolDefs,
-		StaticTools:                req.ExtraTools,
-		StaticToolCodes:            req.ExtraToolCodes,
+		StaticTools:                toolSetStaticTools(req.ToolSet),
+		StaticToolCodes:            toolSetStaticToolCodes(req.ToolSet),
 		Collector:                  collector,
 	})
 	if err != nil {
@@ -238,7 +240,7 @@ func (s *Service) Resume(ctx context.Context, req ResumeRequest) (*Summary, erro
 		summary.ToolCodes = appendIfMissing(summary.ToolCodes, "builtin/tool_search")
 		toolDefsByModelName["tool_search"] = "builtin/tool_search"
 	}
-	for modelName, toolCode := range req.ExtraToolCodes {
+	for modelName, toolCode := range toolSetStaticToolCodes(req.ToolSet) {
 		toolCode = strings.TrimSpace(toolCode)
 		modelName = strings.TrimSpace(modelName)
 		if toolCode == "" || modelName == "" {
@@ -255,8 +257,8 @@ func (s *Service) Resume(ctx context.Context, req ResumeRequest) (*Summary, erro
 		AIConfig:                   req.AIConfig,
 		InstructionToolDefinitions: toolDefs,
 		DynamicMCPToolDefinitions:  toolDefs,
-		StaticTools:                req.ExtraTools,
-		StaticToolCodes:            req.ExtraToolCodes,
+		StaticTools:                toolSetStaticTools(req.ToolSet),
+		StaticToolCodes:            toolSetStaticToolCodes(req.ToolSet),
 		Collector:                  collector,
 	})
 	if err != nil {
@@ -542,4 +544,18 @@ func buildKnowledgeContext(items []rag.RetrieveResult) string {
 		builder.WriteString("\n")
 	}
 	return strings.TrimSpace(builder.String())
+}
+
+func toolSetStaticTools(toolSet *registry.ToolSet) []einotool.BaseTool {
+	if toolSet == nil {
+		return nil
+	}
+	return toolSet.StaticTools
+}
+
+func toolSetStaticToolCodes(toolSet *registry.ToolSet) map[string]string {
+	if toolSet == nil {
+		return nil
+	}
+	return toolSet.StaticToolCodes
 }

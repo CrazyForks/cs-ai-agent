@@ -1,9 +1,8 @@
 package runtime
 
 import (
+	"cs-agent/internal/ai/runtime/registry"
 	"cs-agent/internal/models"
-
-	einotool "github.com/cloudwego/eino/components/tool"
 )
 
 type Request struct {
@@ -16,18 +15,16 @@ type Request struct {
 	SkillRouteReason string
 	SkillRouteTrace  string
 	CheckPointID     string
-	ExtraTools       []einotool.BaseTool
-	ExtraToolCodes   map[string]string
+	ToolSet          *registry.ToolSet
 }
 
 type ResumeRequest struct {
-	Conversation   *models.Conversation
-	AIAgent        *models.AIAgent
-	AIConfig       *models.AIConfig
-	CheckPointID   string
-	ResumeData     map[string]any
-	ExtraTools     []einotool.BaseTool
-	ExtraToolCodes map[string]string
+	Conversation *models.Conversation
+	AIAgent      *models.AIAgent
+	AIConfig     *models.AIConfig
+	CheckPointID string
+	ResumeData   map[string]any
+	ToolSet      *registry.ToolSet
 }
 
 type InterruptContextSummary struct {

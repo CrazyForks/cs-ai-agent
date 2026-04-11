@@ -20,8 +20,8 @@ func NewRegistry(tools ...Tool) *Registry {
 
 func (r *Registry) Resolve(ctx Context) (*ToolSet, error) {
 	ret := &ToolSet{
-		Tools:     make([]einotool.BaseTool, 0, len(r.tools)),
-		ToolCodes: make(map[string]string),
+		StaticTools:     make([]einotool.BaseTool, 0, len(r.tools)),
+		StaticToolCodes: make(map[string]string),
 	}
 	allowedToolCodes := makeAllowedToolCodeSet(ctx.AllowedToolCodes)
 	for _, toolDef := range r.tools {
@@ -45,8 +45,8 @@ func (r *Registry) Resolve(ctx Context) (*ToolSet, error) {
 		if toolName == "" || toolCode == "" {
 			continue
 		}
-		ret.Tools = append(ret.Tools, tool)
-		ret.ToolCodes[toolName] = toolCode
+		ret.StaticTools = append(ret.StaticTools, tool)
+		ret.StaticToolCodes[toolName] = toolCode
 	}
 	return ret, nil
 }

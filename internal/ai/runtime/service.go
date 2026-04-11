@@ -50,8 +50,7 @@ func (s *service) Run(ctx context.Context, req Request) (*Summary, error) {
 		SkillRouteReason: req.SkillRouteReason,
 		SkillRouteTrace:  req.SkillRouteTrace,
 		CheckPointID:     req.CheckPointID,
-		ExtraTools:       req.ExtraTools,
-		ExtraToolCodes:   req.ExtraToolCodes,
+		ToolSet:          req.ToolSet,
 	})
 	if err != nil {
 		ret := toSummary(summary)
@@ -72,13 +71,12 @@ func (s *service) Resume(ctx context.Context, req ResumeRequest) (*Summary, erro
 		return nil, err
 	}
 	summary, err := s.runtime.Resume(ctx, engine.ResumeRequest{
-		Conversation:   req.Conversation,
-		AIAgent:        req.AIAgent,
-		AIConfig:       req.AIConfig,
-		CheckPointID:   req.CheckPointID,
-		ResumeData:     req.ResumeData,
-		ExtraTools:     req.ExtraTools,
-		ExtraToolCodes: req.ExtraToolCodes,
+		Conversation: req.Conversation,
+		AIAgent:      req.AIAgent,
+		AIConfig:     req.AIConfig,
+		CheckPointID: req.CheckPointID,
+		ResumeData:   req.ResumeData,
+		ToolSet:      req.ToolSet,
 	})
 	if err != nil {
 		return toSummary(summary), err
@@ -87,7 +85,7 @@ func (s *service) Resume(ctx context.Context, req ResumeRequest) (*Summary, erro
 }
 
 func (s *service) prepareToolsForRun(req *Request) error {
-	if req == nil || len(req.ExtraTools) > 0 || len(req.ExtraToolCodes) > 0 || s.registry == nil {
+	if req == nil || req.ToolSet != nil || s.registry == nil {
 		return nil
 	}
 	toolSet, err := s.registry.Resolve(registry.Context{
@@ -100,13 +98,12 @@ func (s *service) prepareToolsForRun(req *Request) error {
 	if err != nil {
 		return err
 	}
-	req.ExtraTools = toolSet.Tools
-	req.ExtraToolCodes = toolSet.ToolCodes
+	req.ToolSet = toolSet
 	return nil
 }
 
 func (s *service) prepareToolsForResume(req *ResumeRequest) error {
-	if req == nil || len(req.ExtraTools) > 0 || len(req.ExtraToolCodes) > 0 || s.registry == nil {
+	if req == nil || req.ToolSet != nil || s.registry == nil {
 		return nil
 	}
 	toolSet, err := s.registry.Resolve(registry.Context{
@@ -118,8 +115,7 @@ func (s *service) prepareToolsForResume(req *ResumeRequest) error {
 	if err != nil {
 		return err
 	}
-	req.ExtraTools = toolSet.Tools
-	req.ExtraToolCodes = toolSet.ToolCodes
+	req.ToolSet = toolSet
 	return nil
 }
 

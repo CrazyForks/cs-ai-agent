@@ -14,9 +14,14 @@ type Context struct {
 	AllowedToolCodes []string
 }
 
+// ToolSet 描述当前运行时可直接挂载到 ToolsNode 上的固定工具集合。
+//
+// 这里不承载通过 tool_search 动态暴露的 MCP 工具；动态工具仍由 engine 层单独装配。
 type ToolSet struct {
-	Tools     []einotool.BaseTool
-	ToolCodes map[string]string
+	// StaticTools 为固定可见工具实例，例如 Graph Tool。
+	StaticTools []einotool.BaseTool
+	// StaticToolCodes 为固定工具的 modelName -> toolCode 映射，用于 trace 和运行日志归因。
+	StaticToolCodes map[string]string
 }
 
 type Tool interface {
