@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 
 	einoadapter "cs-agent/internal/ai/runtime/internal/impl/adapter"
@@ -201,9 +200,7 @@ func assembleAgentInstruction(aiAgent *models.AIAgent, selectedSkill *models.Ski
 5. 如果问题仍可由当前对话继续解决，优先继续解答，不要过早转人工。
 `))
 	}
-	projectRoot, _ := os.Getwd()
 	return NewInstructionAssembler().Assemble(InstructionAssemblerInput{
-		ProjectRoot:      projectRoot,
 		AgentInstruction: baseInstruction,
 		SkillInstruction: firstAppendixPart(appendixParts),
 		ToolAppendices:   remainingAppendixParts(appendixParts),

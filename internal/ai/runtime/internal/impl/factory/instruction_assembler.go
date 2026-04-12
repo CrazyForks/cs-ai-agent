@@ -1,11 +1,6 @@
 package factory
 
-import (
-	"os"
-	"path/filepath"
-	"strings"
-	"sync"
-)
+import "strings"
 
 type InstructionAssembler struct {
 	governanceInstruction string
@@ -15,7 +10,6 @@ type InstructionAssemblerInput struct {
 	AgentInstruction   string
 	SkillInstruction   string
 	ToolAppendices     []string
-	ProjectRoot        string
 	ProjectInstruction string
 }
 
@@ -34,11 +28,6 @@ type InstructionAssemblyResult struct {
 	Text    string
 	Summary InstructionAssemblySummary
 }
-
-var (
-	projectInstructionOnce sync.Once
-	projectInstructionText string
-)
 
 func NewInstructionAssembler() *InstructionAssembler {
 	return &InstructionAssembler{
@@ -60,7 +49,7 @@ func (a *InstructionAssembler) Assemble(input InstructionAssemblerInput) Instruc
 	summary := InstructionAssemblySummary{SectionTitles: make([]string, 0, 5)}
 	projectInstruction := strings.TrimSpace(input.ProjectInstruction)
 	if projectInstruction == "" {
-		projectInstruction = loadProjectInstruction(input.ProjectRoot)
+		projectInstruction = strings.TrimSpace(DefaultProjectInstruction)
 	}
 	if projectInstruction != "" {
 		parts = append(parts, buildInstructionSection("项目级规则", projectInstruction))
@@ -118,32 +107,4 @@ func buildToolAppendix(input []string) string {
 		parts = append(parts, item)
 	}
 	return strings.TrimSpace(strings.Join(parts, "\n\n"))
-}
-
-func loadProjectInstruction(projectRoot string) string {
-	// TODO 这里还要读取工程目录中的AGENTS.md吗？
-	projectInstructionOnce.Do(func() {
-		candidates := []string{
-			"AGENTS.md",
-		}
-		projectRoot = strings.TrimSpace(projectRoot)
-		if projectRoot != "" {
-			candidates = append([]string{filepath.Join(projectRoot, "AGENTS.md")}, candidates...)
-		}
-		for _, candidate := range candidates {
-			candidate = strings.TrimSpace(candidate)
-			if candidate == "" {
-				continue
-			}
-			data, err := os.ReadFile(candidate)
-			if err != nil {
-				continue
-			}
-			projectInstructionText = strings.TrimSpace(string(data))
-			if projectInstructionText != "" {
-				return
-			}
-		}
-	})
-	return projectInstructionText
 }
