@@ -65,17 +65,21 @@ func (h *RuntimeTraceHandler) WrapInvokableToolCall(_ context.Context, endpoint 
 		}
 		h.collector.AddToolItem(item)
 		if metadata, ok := h.resolveToolMetadata(item.ToolName); ok && strings.TrimSpace(metadata.SourceType) == toolx.GraphToolCatalogServerCode {
+			recommendedAction, riskLevel, ticketDraftReady := parseGraphToolOutcome(item.ToolCode, result)
 			h.collector.AddGraphToolItem(GraphToolTraceItem{
-				ToolCode:      item.ToolCode,
-				ToolName:      item.ToolName,
-				Arguments:     item.Arguments,
-				ResultPreview: item.ResultPreview,
-				ResultReduced: item.ResultReduced,
-				OriginalChars: item.OriginalChars,
-				KeptChars:     item.KeptChars,
-				LatencyMs:     item.LatencyMs,
-				Status:        item.Status,
-				ErrorMessage:  item.ErrorMessage,
+				ToolCode:          item.ToolCode,
+				ToolName:          item.ToolName,
+				Arguments:         item.Arguments,
+				ResultPreview:     item.ResultPreview,
+				ResultReduced:     item.ResultReduced,
+				OriginalChars:     item.OriginalChars,
+				KeptChars:         item.KeptChars,
+				LatencyMs:         item.LatencyMs,
+				Status:            item.Status,
+				ErrorMessage:      item.ErrorMessage,
+				RecommendedAction: recommendedAction,
+				RiskLevel:         riskLevel,
+				TicketDraftReady:  ticketDraftReady,
 			})
 		}
 		if metadata, ok := h.resolveToolMetadata(item.ToolName); ok && strings.TrimSpace(metadata.ToolCode) == toolx.BuiltinToolSearchToolCode {
@@ -83,6 +87,33 @@ func (h *RuntimeTraceHandler) WrapInvokableToolCall(_ context.Context, endpoint 
 		}
 		return result, err
 	}, nil
+}
+
+func parseGraphToolOutcome(toolCode string, result string) (recommendedAction, riskLevel string, ticketDraftReady bool) {
+	toolCode = strings.TrimSpace(toolCode)
+	if toolCode == "" || strings.TrimSpace(result) == "" {
+		return "", "", false
+	}
+	payload := make(map[string]any)
+	if err := json.Unmarshal([]byte(strings.TrimSpace(result)), &payload); err != nil {
+		return "", "", false
+	}
+	switch toolCode {
+	case toolx.GraphAnalyzeConversationToolCode:
+		return strings.TrimSpace(readToolSearchString(payload, "recommendedNextAction")), strings.TrimSpace(readToolSearchString(payload, "riskLevel")), false
+	case toolx.GraphTriageServiceRequestToolCode:
+		recommendedAction = strings.TrimSpace(readToolSearchString(payload, "recommendedAction"))
+		if analysis, ok := payload["analysis"].(map[string]any); ok {
+			riskLevel = strings.TrimSpace(readToolSearchString(analysis, "riskLevel"))
+		}
+		if ticketDraft, ok := payload["ticketDraft"].(map[string]any); ok {
+			ready, _ := ticketDraft["ready"].(bool)
+			ticketDraftReady = ready
+		}
+		return recommendedAction, riskLevel, ticketDraftReady
+	default:
+		return "", "", false
+	}
 }
 
 func (h *RuntimeTraceHandler) resolveToolMetadata(modelToolName string) (ToolMetadata, bool) {

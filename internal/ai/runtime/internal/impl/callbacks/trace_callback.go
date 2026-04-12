@@ -26,16 +26,19 @@ type ToolSearchTraceItem struct {
 }
 
 type GraphToolTraceItem struct {
-	ToolCode      string         `json:"toolCode"`
-	ToolName      string         `json:"toolName"`
-	Arguments     map[string]any `json:"arguments,omitempty"`
-	ResultPreview string         `json:"resultPreview,omitempty"`
-	ResultReduced bool           `json:"resultReduced,omitempty"`
-	OriginalChars int            `json:"originalChars,omitempty"`
-	KeptChars     int            `json:"keptChars,omitempty"`
-	LatencyMs     int64          `json:"latencyMs,omitempty"`
-	Status        string         `json:"status,omitempty"`
-	ErrorMessage  string         `json:"errorMessage,omitempty"`
+	ToolCode          string         `json:"toolCode"`
+	ToolName          string         `json:"toolName"`
+	Arguments         map[string]any `json:"arguments,omitempty"`
+	ResultPreview     string         `json:"resultPreview,omitempty"`
+	ResultReduced     bool           `json:"resultReduced,omitempty"`
+	OriginalChars     int            `json:"originalChars,omitempty"`
+	KeptChars         int            `json:"keptChars,omitempty"`
+	LatencyMs         int64          `json:"latencyMs,omitempty"`
+	Status            string         `json:"status,omitempty"`
+	ErrorMessage      string         `json:"errorMessage,omitempty"`
+	RecommendedAction string         `json:"recommendedAction,omitempty"`
+	RiskLevel         string         `json:"riskLevel,omitempty"`
+	TicketDraftReady  bool           `json:"ticketDraftReady,omitempty"`
 }
 
 type RetrieverTraceItem struct {

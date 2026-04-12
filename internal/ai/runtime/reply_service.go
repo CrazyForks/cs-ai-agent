@@ -360,13 +360,21 @@ func buildRunLogPlan(summary *Summary) (plannedAction, plannedToolCode, planReas
 	}
 	if summary.Interrupted {
 		if graphToolCode := firstGraphToolCode(summary); graphToolCode != "" {
-			return "graph", graphToolCode, "graph tool interrupted and is waiting for user confirmation"
+			reason := graphPlanReason(summary)
+			if reason == "" {
+				reason = "graph tool interrupted and is waiting for user confirmation"
+			}
+			return "graph", graphToolCode, reason
 		}
 		return "tool", summaryPrimaryToolCode(summary), "agent interrupted and is waiting for user confirmation"
 	}
 	if len(summary.InvokedToolCodes) > 0 {
 		if graphToolCode := firstGraphToolCode(summary); graphToolCode != "" {
-			return "graph", graphToolCode, "agent invoked graph tool"
+			reason := graphPlanReason(summary)
+			if reason == "" {
+				reason = "agent invoked graph tool"
+			}
+			return "graph", graphToolCode, reason
 		}
 		toolCode := summaryPrimaryToolCode(summary)
 		reason := "agent invoked MCP tool"
@@ -615,6 +623,38 @@ func extractHandoffReason(summary *Summary) string {
 	return ""
 }
 
+func graphPlanReason(summary *Summary) string {
+	trace := parseRuntimeTraceData(summary.TraceData)
+	for _, item := range trace.GraphTools.Items {
+		toolCode := strings.TrimSpace(item.ToolCode)
+		switch toolCode {
+		case toolx.GraphTriageServiceRequestToolCode:
+			recommendedAction := strings.TrimSpace(item.RecommendedAction)
+			if recommendedAction == "" {
+				return "graph tool triaged service request"
+			}
+			if item.TicketDraftReady {
+				return "graph tool triaged service request: " + recommendedAction + " with ready ticket draft"
+			}
+			return "graph tool triaged service request: " + recommendedAction
+		case toolx.GraphAnalyzeConversationToolCode:
+			recommendedAction := strings.TrimSpace(item.RecommendedAction)
+			riskLevel := strings.TrimSpace(item.RiskLevel)
+			switch {
+			case recommendedAction != "" && riskLevel != "":
+				return "graph tool analyzed conversation: " + recommendedAction + " (" + riskLevel + " risk)"
+			case recommendedAction != "":
+				return "graph tool analyzed conversation: " + recommendedAction
+			case riskLevel != "":
+				return "graph tool analyzed conversation (" + riskLevel + " risk)"
+			default:
+				return "graph tool analyzed conversation"
+			}
+		}
+	}
+	return ""
+}
+
 type runtimeTraceProjection struct {
 	ToolSearch struct {
 		Raw   json.RawMessage `json:"-"`
@@ -626,8 +666,11 @@ type runtimeTraceProjection struct {
 	GraphTools struct {
 		Raw   json.RawMessage `json:"-"`
 		Items []struct {
-			ToolCode  string         `json:"toolCode"`
-			Arguments map[string]any `json:"arguments"`
+			ToolCode          string         `json:"toolCode"`
+			Arguments         map[string]any `json:"arguments"`
+			RecommendedAction string         `json:"recommendedAction"`
+			RiskLevel         string         `json:"riskLevel"`
+			TicketDraftReady  bool           `json:"ticketDraftReady"`
 		} `json:"items"`
 	} `json:"graphTools"`
 }
