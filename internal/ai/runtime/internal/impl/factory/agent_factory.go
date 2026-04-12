@@ -178,62 +178,7 @@ func assembleAgentInstruction(aiAgent *models.AIAgent, selectedSkill *models.Ski
 	if skillInstruction := buildSelectedSkillActivationInstruction(selectedSkill); skillInstruction != "" {
 		appendixParts = append(appendixParts, skillInstruction)
 	}
-	if len(toolDefinitions) > 0 {
-		appendixParts = append(appendixParts, strings.TrimSpace(`
-当你需要使用长尾 MCP 能力时，优先使用 tool_search 工具，并遵守以下规则：
-1. 先调用 tool_search 搜索需要的动态工具，再继续使用已选中的真实工具。
-2. 不要假设所有长尾工具一开始就可见；只有被 tool_search 选中的工具，后续模型调用才会暴露出来。
-3. 如果当前已有固定内置工具可以完成任务，优先使用固定工具，不要滥用 tool_search。
-`))
-	}
-	if hasToolCode(extraToolCodes, toolx.GraphTriageServiceRequest.Code) {
-		appendixParts = append(appendixParts, strings.TrimSpace(`
-当你需要判断“继续解答 / 建单 / 转人工”这类复杂升级路径时，优先先调用 triage_service_request 这个 Graph Tool，并遵守以下规则：
-1. 该工具会综合当前对话输出 recommendedAction，并在需要建单时附带 ticketDraft。
-2. 如果 recommendedAction=continue_answering，则优先继续澄清或解答，不要直接升级。
-3. 如果 recommendedAction=prepare_ticket，则优先使用 ticketDraft 或继续补充缺失字段，再调用 create_ticket_with_confirmation。
-4. 如果 recommendedAction=handoff_to_human，则确认理由充分后再调用 handoff_to_human。
-5. 当升级路径不明确时，优先使用该工具，而不是直接凭主 prompt 做复杂分流判断。
-`))
-	}
-	if hasToolCode(extraToolCodes, toolx.GraphPrepareTicketDraft.Code) {
-		appendixParts = append(appendixParts, strings.TrimSpace(`
-当用户已经表达了建单、投诉、报障、售后处理等诉求，但工单标题、描述或问题整理还比较散乱时，优先调用 prepare_ticket_draft 这个 Graph Tool，并遵守以下规则：
-1. 该工具用于整理工单草稿，会返回建议标题、建议描述、缺失字段和追问建议。
-2. 如果工具返回 ready=false，优先根据 missingFields 和 followUpQuestions 继续追问，不要直接创建工单。
-3. 如果工具返回 ready=true，再结合结果考虑调用 create_ticket_with_confirmation。
-4. 该工具用于“整理草稿”，不代表已经创建工单。
-`))
-	}
-	if hasToolCode(extraToolCodes, toolx.GraphAnalyzeConversation.Code) {
-		appendixParts = append(appendixParts, strings.TrimSpace(`
-当对话可能涉及投诉升级、退款赔偿、明显负面情绪、是否要建单、是否要转人工等复杂判断时，优先调用 analyze_conversation 这个 Graph Tool，并遵守以下规则：
-1. 该工具用于输出结构化摘要、风险信号和下一步建议，不代表实际已经建单或转人工。
-2. 如果工具建议为 handoff_to_human，应先确认是否满足转人工条件，再考虑调用 handoff_to_human。
-3. 如果工具建议为 prepare_ticket，应优先调用 prepare_ticket_draft 或继续补充信息，而不是直接建单。
-4. 如果工具建议为 continue_answering，优先继续澄清和解答，不要过早升级动作。
-`))
-	}
-	if hasToolCode(extraToolCodes, toolx.GraphCreateTicketConfirm.Code) {
-		appendixParts = append(appendixParts, strings.TrimSpace(`
-你可以在确认信息充分后调用 create_ticket_with_confirmation 这个 Graph Tool 来创建工单，但必须遵守以下规则：
-1. 只有在用户明确表达希望提交工单、投诉、报障、售后处理等诉求时，才考虑调用该工具。
-2. 调用前你必须已经整理出清晰的工单标题和问题描述；如果信息还比较散乱，优先先调用 prepare_ticket_draft 或继续追问，不要过早调用。
-3. 一旦准备创建工单，必须调用 create_ticket_with_confirmation 工具，禁止直接口头宣称“已经创建工单”。
-4. 该 Graph Tool 会先向用户发起确认。用户确认后才会真正创建工单；用户取消则结束本次建单流程。
-5. 如果用户只是咨询、抱怨或泛泛表达不满，但没有明确要求建单，优先继续澄清，不要主动创建工单。
-`))
-	}
-	if hasToolCode(extraToolCodes, toolx.GraphHandoffConversation.Code) {
-		appendixParts = append(appendixParts, strings.TrimSpace(`
-你可以在确认需要人工介入后调用 handoff_to_human 这个 Graph Tool 来转人工，但必须遵守以下规则：
-1. 只有在用户明确要求人工客服，或你已经判断该问题必须由人工继续处理时，才调用该工具。
-2. 调用前先尽量整理清楚转人工原因；如果理由含糊，先追问或澄清，不要直接转人工。
-3. 一旦决定转人工，必须调用 handoff_to_human 工具，禁止只在回复里口头说“我帮你转人工了”。
-4. 该 Graph Tool 会先向用户发起确认。用户确认后才会真正转人工；用户取消则结束本次转人工流程。
-5. 如果问题仍可由当前对话继续解决，优先继续解答，不要过早转人工。
-`))
-	}
+	appendixParts = append(appendixParts, toolx.BuildToolAppendices(len(toolDefinitions) > 0, extraToolCodes)...)
 	return NewInstructionAssembler().Assemble(InstructionAssemblerInput{
 		AgentInstruction: baseInstruction,
 		SkillInstruction: firstAppendixPart(appendixParts),
@@ -315,19 +260,6 @@ func buildSelectedSkillDocument(skill *models.SkillDefinition, toolDefinitions [
 	}
 	lines = append(lines, "", "执行要求：", "- 优先遵循该技能说明完成任务。", "- 如果关键信息不足，先向用户追问。", "- 不得调用当前技能未授权的工具。")
 	return strings.TrimSpace(strings.Join(lines, "\n"))
-}
-
-func hasToolCode(toolCodes map[string]string, target string) bool {
-	target = strings.TrimSpace(target)
-	if target == "" {
-		return false
-	}
-	for _, toolCode := range toolCodes {
-		if strings.TrimSpace(toolCode) == target {
-			return true
-		}
-	}
-	return false
 }
 
 func parseJSONStringArray(raw string) []string {
