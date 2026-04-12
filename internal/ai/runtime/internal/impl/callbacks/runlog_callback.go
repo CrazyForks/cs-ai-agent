@@ -65,6 +65,22 @@ func (c *RuntimeTraceCollector) SetSkillMiddleware(enabled bool, toolName string
 	c.Data.Skill.MiddlewareToolName = toolName
 }
 
+func (c *RuntimeTraceCollector) SetRetrieverSummary(summary RetrieverTraceSummary) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.Data.Retriever.TopK = summary.TopK
+	c.Data.Retriever.ScoreThreshold = summary.ScoreThreshold
+	c.Data.Retriever.ContextMaxTokens = summary.ContextMaxTokens
+	c.Data.Retriever.Count = summary.HitCount
+	c.Data.Retriever.ContextCount = summary.ContextCount
+	c.Data.Retriever.EmbeddingMs = summary.EmbeddingMs
+	c.Data.Retriever.VectorSearchMs = summary.VectorSearchMs
+	c.Data.Retriever.HydrateMs = summary.HydrateMs
+}
+
 func (c *RuntimeTraceCollector) AddToolItem(item ToolTraceItem) {
 	if c == nil {
 		return

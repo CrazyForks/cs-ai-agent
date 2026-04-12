@@ -26,11 +26,13 @@ type KnowledgeRetrieveOptions struct {
 type KnowledgeRetrieveResult struct {
 	KnowledgeBaseIDs []int64
 	Query            string
+	Options          KnowledgeRetrieveOptions
 	Hits             []rag.RetrieveResult
 	ContextResults   []rag.RetrieveResult
 	ContextText      string
 	Trace            *rag.RetrieveTrace
 	TraceItems       []callbacks.RetrieverTraceItem
+	TraceSummary     callbacks.RetrieverTraceSummary
 }
 
 func NewKnowledgeRetriever(aiAgent *models.AIAgent) *KnowledgeRetriever {
@@ -76,6 +78,12 @@ func (r *KnowledgeRetriever) RetrieveContextByOptions(ctx context.Context, opts 
 	ret := &KnowledgeRetrieveResult{
 		KnowledgeBaseIDs: append([]int64(nil), knowledgeBaseIDs...),
 		Query:            query,
+		Options: KnowledgeRetrieveOptions{
+			ContextMaxTokens: contextMaxTokens,
+			TopK:             opts.TopK,
+			ScoreThreshold:   opts.ScoreThreshold,
+			QueryPreview:     queryPreview,
+		},
 	}
 	if query == "" || len(knowledgeBaseIDs) == 0 {
 		return ret, nil
@@ -89,6 +97,7 @@ func (r *KnowledgeRetriever) RetrieveContextByOptions(ctx context.Context, opts 
 	ret.ContextResults = rag.Retrieve.SelectContextResults(results, contextMaxTokens)
 	ret.ContextText = strings.TrimSpace(rag.Retrieve.BuildContext(ctx, results, contextMaxTokens))
 	ret.TraceItems = buildRetrieverTraceItems(queryPreview, results, trace)
+	ret.TraceSummary = buildRetrieverTraceSummary(ret.Options, ret.ContextResults, results, trace)
 	return ret, nil
 }
 
@@ -110,6 +119,22 @@ func buildRetrieverTraceItems(queryPreview string, results []rag.RetrieveResult,
 			Score:           float64(item.Score),
 			LatencyMs:       latencyMs,
 		})
+	}
+	return ret
+}
+
+func buildRetrieverTraceSummary(opts KnowledgeRetrieveOptions, contextResults []rag.RetrieveResult, results []rag.RetrieveResult, trace *rag.RetrieveTrace) callbacks.RetrieverTraceSummary {
+	ret := callbacks.RetrieverTraceSummary{
+		TopK:             opts.TopK,
+		ScoreThreshold:   opts.ScoreThreshold,
+		ContextMaxTokens: opts.ContextMaxTokens,
+		HitCount:         len(results),
+		ContextCount:     len(contextResults),
+	}
+	if trace != nil {
+		ret.EmbeddingMs = trace.EmbeddingMs
+		ret.VectorSearchMs = trace.VectorSearchMs
+		ret.HydrateMs = trace.HydrateMs
 	}
 	return ret
 }

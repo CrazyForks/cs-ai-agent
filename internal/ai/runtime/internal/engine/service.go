@@ -163,7 +163,7 @@ func (s *Service) Run(ctx context.Context, req Request) (*Summary, error) {
 		QueryPreview: preview(req.UserMessage.Content, 120),
 	}, strings.TrimSpace(req.UserMessage.Content)); retrieveErr == nil && retrieveResult != nil {
 		summary.RetrieverCount = len(retrieveResult.Hits)
-		collector.Data.Retriever.Count = len(retrieveResult.Hits)
+		collector.SetRetrieverSummary(retrieveResult.TraceSummary)
 		collector.Data.Retriever.Items = append(collector.Data.Retriever.Items, retrieveResult.TraceItems...)
 		if strings.TrimSpace(retrieveResult.ContextText) != "" {
 			messages = append(messages, schema.SystemMessage(retrieveResult.ContextText))

@@ -41,6 +41,17 @@ type RetrieverTraceItem struct {
 	LatencyMs       int64   `json:"latencyMs,omitempty"`
 }
 
+type RetrieverTraceSummary struct {
+	TopK             int
+	ScoreThreshold   float64
+	ContextMaxTokens int
+	HitCount         int
+	ContextCount     int
+	EmbeddingMs      int64
+	VectorSearchMs   int64
+	HydrateMs        int64
+}
+
 type InstructionTraceSummary struct {
 	SectionTitles     []string
 	HasProjectRule    bool
@@ -81,8 +92,15 @@ type RuntimeTraceData struct {
 		CurrentUserMessagePreview string   `json:"currentUserMessagePreview,omitempty"`
 	} `json:"input"`
 	Retriever struct {
-		Count int                  `json:"count,omitempty"`
-		Items []RetrieverTraceItem `json:"items,omitempty"`
+		Count            int                  `json:"count,omitempty"`
+		TopK             int                  `json:"topK,omitempty"`
+		ScoreThreshold   float64              `json:"scoreThreshold,omitempty"`
+		ContextMaxTokens int                  `json:"contextMaxTokens,omitempty"`
+		ContextCount     int                  `json:"contextCount,omitempty"`
+		EmbeddingMs      int64                `json:"embeddingMs,omitempty"`
+		VectorSearchMs   int64                `json:"vectorSearchMs,omitempty"`
+		HydrateMs        int64                `json:"hydrateMs,omitempty"`
+		Items            []RetrieverTraceItem `json:"items,omitempty"`
 	} `json:"retriever"`
 	Tools struct {
 		Count int             `json:"count,omitempty"`
