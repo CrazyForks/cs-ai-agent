@@ -113,6 +113,9 @@ func (f *AgentFactory) BuildCustomerServiceAgent(ctx context.Context, input Buil
 			case toolx.BuiltinToolSearchToolCode:
 				serverCode = toolx.BuiltinToolCatalogServerCode
 				toolName = toolx.BuiltinToolSearchToolName
+			case toolx.GraphTriageServiceRequestToolCode:
+				serverCode = toolx.GraphToolCatalogServerCode
+				toolName = toolx.GraphTriageServiceRequestToolName
 			case toolx.GraphAnalyzeConversationToolCode:
 				serverCode = toolx.GraphToolCatalogServerCode
 				toolName = toolx.GraphAnalyzeConversationToolName
@@ -217,6 +220,16 @@ func assembleAgentInstruction(aiAgent *models.AIAgent, selectedSkill *models.Ski
 1. 先调用 tool_search 搜索需要的动态工具，再继续使用已选中的真实工具。
 2. 不要假设所有长尾工具一开始就可见；只有被 tool_search 选中的工具，后续模型调用才会暴露出来。
 3. 如果当前已有固定内置工具可以完成任务，优先使用固定工具，不要滥用 tool_search。
+`))
+	}
+	if hasToolCode(extraToolCodes, toolx.GraphTriageServiceRequestToolCode) {
+		appendixParts = append(appendixParts, strings.TrimSpace(`
+当你需要判断“继续解答 / 建单 / 转人工”这类复杂升级路径时，优先先调用 triage_service_request 这个 Graph Tool，并遵守以下规则：
+1. 该工具会综合当前对话输出 recommendedAction，并在需要建单时附带 ticketDraft。
+2. 如果 recommendedAction=continue_answering，则优先继续澄清或解答，不要直接升级。
+3. 如果 recommendedAction=prepare_ticket，则优先使用 ticketDraft 或继续补充缺失字段，再调用 create_ticket_with_confirmation。
+4. 如果 recommendedAction=handoff_to_human，则确认理由充分后再调用 handoff_to_human。
+5. 当升级路径不明确时，优先使用该工具，而不是直接凭主 prompt 做复杂分流判断。
 `))
 	}
 	if hasToolCode(extraToolCodes, toolx.GraphPrepareTicketDraftToolCode) {
