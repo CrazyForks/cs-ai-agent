@@ -29,10 +29,8 @@ func (r *Registry) Resolve(ctx Context) (*ToolSet, error) {
 			continue
 		}
 		toolCode := strings.TrimSpace(toolDef.Code())
-		if len(allowedToolCodes) > 0 {
-			if _, ok := allowedToolCodes[toolCode]; !ok && !isAlwaysAllowedToolCode(toolCode) {
-				continue
-			}
+		if len(allowedToolCodes) > 0 && !isAllowedToolCode(toolCode, allowedToolCodes) {
+			continue
 		}
 		tool, err := toolDef.Build(ctx)
 		if err != nil {
@@ -49,6 +47,23 @@ func (r *Registry) Resolve(ctx Context) (*ToolSet, error) {
 		ret.StaticToolCodes[toolName] = toolCode
 	}
 	return ret, nil
+}
+
+func isAllowedToolCode(toolCode string, allowedToolCodes map[string]struct{}) bool {
+	if len(allowedToolCodes) == 0 {
+		return true
+	}
+	if _, ok := allowedToolCodes[toolCode]; ok {
+		return true
+	}
+	if isAlwaysAllowedToolCode(toolCode) {
+		return true
+	}
+	if strings.TrimSpace(toolCode) == toolx.GraphPrepareTicketDraftToolCode {
+		_, ok := allowedToolCodes[toolx.GraphCreateTicketConfirmToolCode]
+		return ok
+	}
+	return false
 }
 
 func makeAllowedToolCodeSet(input []string) map[string]struct{} {

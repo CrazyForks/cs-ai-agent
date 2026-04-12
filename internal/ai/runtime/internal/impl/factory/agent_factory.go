@@ -112,6 +112,9 @@ func (f *AgentFactory) BuildCustomerServiceAgent(ctx context.Context, input Buil
 			if toolCode == toolx.BuiltinToolSearchToolCode {
 				serverCode = toolx.BuiltinToolCatalogServerCode
 				toolName = toolx.BuiltinToolSearchToolName
+			} else if toolCode == toolx.GraphPrepareTicketDraftToolCode {
+				serverCode = toolx.GraphToolCatalogServerCode
+				toolName = toolx.GraphPrepareTicketDraftToolName
 			} else if toolCode == toolx.GraphCreateTicketConfirmToolCode {
 				serverCode = toolx.GraphToolCatalogServerCode
 				toolName = toolx.GraphCreateTicketConfirmToolName
@@ -212,11 +215,20 @@ func assembleAgentInstruction(aiAgent *models.AIAgent, selectedSkill *models.Ski
 3. 如果当前已有固定内置工具可以完成任务，优先使用固定工具，不要滥用 tool_search。
 `))
 	}
+	if hasToolCode(extraToolCodes, toolx.GraphPrepareTicketDraftToolCode) {
+		appendixParts = append(appendixParts, strings.TrimSpace(`
+当用户已经表达了建单、投诉、报障、售后处理等诉求，但工单标题、描述或问题整理还比较散乱时，优先调用 prepare_ticket_draft 这个 Graph Tool，并遵守以下规则：
+1. 该工具用于整理工单草稿，会返回建议标题、建议描述、缺失字段和追问建议。
+2. 如果工具返回 ready=false，优先根据 missingFields 和 followUpQuestions 继续追问，不要直接创建工单。
+3. 如果工具返回 ready=true，再结合结果考虑调用 create_ticket_with_confirmation。
+4. 该工具用于“整理草稿”，不代表已经创建工单。
+`))
+	}
 	if hasToolCode(extraToolCodes, toolx.GraphCreateTicketConfirmToolCode) {
 		appendixParts = append(appendixParts, strings.TrimSpace(`
 你可以在确认信息充分后调用 create_ticket_with_confirmation 这个 Graph Tool 来创建工单，但必须遵守以下规则：
 1. 只有在用户明确表达希望提交工单、投诉、报障、售后处理等诉求时，才考虑调用该工具。
-2. 调用前你必须已经整理出清晰的工单标题和问题描述；如果信息不足，先继续追问，不要过早调用。
+2. 调用前你必须已经整理出清晰的工单标题和问题描述；如果信息还比较散乱，优先先调用 prepare_ticket_draft 或继续追问，不要过早调用。
 3. 一旦准备创建工单，必须调用 create_ticket_with_confirmation 工具，禁止直接口头宣称“已经创建工单”。
 4. 该 Graph Tool 会先向用户发起确认。用户确认后才会真正创建工单；用户取消则结束本次建单流程。
 5. 如果用户只是咨询、抱怨或泛泛表达不满，但没有明确要求建单，优先继续澄清，不要主动创建工单。
