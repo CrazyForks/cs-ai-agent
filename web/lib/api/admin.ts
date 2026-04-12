@@ -416,6 +416,18 @@ export type AgentRunLog = {
   createdAt: string
 }
 
+export type AgentRunGraphSummary = {
+  triageCount: number
+  triagePrepareTicket: number
+  triagePrepareTicketReady: number
+  triageHandoff: number
+  triageContinueAnswering: number
+  analyzeCount: number
+  prepareDraftCount: number
+  createTicketCount: number
+  handoffCount: number
+}
+
 export type AdminAgentProfile = {
   id: number
   userId: number
@@ -893,6 +905,12 @@ export function fetchAgentRunLogs(
 
 export function fetchAgentRunLog(id: number) {
   return request<AgentRunLog>(`/api/console/agent-run-log/${id}`)
+}
+
+export function fetchAgentRunGraphSummary(params?: { aiAgentId?: string }) {
+  return request<AgentRunGraphSummary>(
+    `/api/console/agent-run-log/graph/summary${toQueryString(params)}`
+  )
 }
 
 export function updateSkillDefinitionStatus(id: number, status: number) {

@@ -58,3 +58,22 @@ func (c *AgentRunLogController) GetBy(id int64) *web.JsonResult {
 	}
 	return web.JsonData(builders.BuildAgentRunLog(item))
 }
+
+func (c *AgentRunLogController) AnyGraphSummary() *web.JsonResult {
+	if _, err := services.AuthService.RequirePermission(c.Ctx, constants.PermissionConversationView); err != nil {
+		return web.JsonError(err)
+	}
+	aiAgentID, _ := params.GetInt64(c.Ctx, "aiAgentId")
+	summary := services.AgentRunLogService.BuildGraphSummary(aiAgentID)
+	return web.JsonData(&response.AgentRunGraphSummaryResponse{
+		TriageCount:              summary.TriageCount,
+		TriagePrepareTicket:      summary.TriagePrepareTicket,
+		TriagePrepareTicketReady: summary.TriagePrepareTicketReady,
+		TriageHandoff:            summary.TriageHandoff,
+		TriageContinueAnswering:  summary.TriageContinueAnswering,
+		AnalyzeCount:             summary.AnalyzeCount,
+		PrepareDraftCount:        summary.PrepareDraftCount,
+		CreateTicketCount:        summary.CreateTicketCount,
+		HandoffCount:             summary.HandoffCount,
+	})
+}
