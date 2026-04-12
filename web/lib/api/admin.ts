@@ -275,7 +275,7 @@ export type SkillDefinition = {
   description: string
   instruction: string
   examples: string[]
-  allowedToolCodes: string[]
+  toolWhitelist: string[]
   priority: number
   status: number
   statusName: string
@@ -292,7 +292,7 @@ export type CreateSkillDefinitionPayload = {
   description: string
   instruction: string
   examples: string[]
-  allowedToolCodes: string[]
+  toolWhitelist: string[]
   priority?: number
   remark: string
 }

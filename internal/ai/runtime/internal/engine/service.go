@@ -113,7 +113,7 @@ func (s *Service) Run(ctx context.Context, req Request) (*Summary, error) {
 	if req.SelectedSkill != nil {
 		summary.SelectedSkillCode = strings.TrimSpace(req.SelectedSkill.Code)
 		summary.SelectedSkillName = strings.TrimSpace(req.SelectedSkill.Name)
-		summary.SkillAllowedToolCodes = parseJSONArrayList(req.SelectedSkill.AllowedToolCodes)
+		summary.SkillAllowedToolCodes = parseJSONArrayList(req.SelectedSkill.ToolWhitelist)
 		collector.Data.Skill.Code = summary.SelectedSkillCode
 		collector.Data.Skill.Name = summary.SelectedSkillName
 		collector.Data.Skill.AllowedToolCodes = append([]string(nil), summary.SkillAllowedToolCodes...)
@@ -315,7 +315,7 @@ func filterToolDefinitionsBySkill(definitions []adapter.MCPToolDefinition, skill
 	if len(definitions) == 0 || skill == nil {
 		return definitions
 	}
-	allowed := parseJSONArraySet(skill.AllowedToolCodes)
+	allowed := parseJSONArraySet(skill.ToolWhitelist)
 	if len(allowed) == 0 {
 		return definitions
 	}

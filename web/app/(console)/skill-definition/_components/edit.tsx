@@ -79,7 +79,7 @@ function buildForm(item: SkillDefinition | null): EditForm {
 
 function buildPayload(
   form: EditForm,
-  allowedToolCodes: string[],
+  toolWhitelist: string[],
 ): CreateSkillDefinitionPayload {
   return {
     code: form.code.trim(),
@@ -90,7 +90,7 @@ function buildPayload(
       .split("\n")
       .map((item) => item.trim())
       .filter(Boolean),
-    allowedToolCodes,
+    toolWhitelist,
     remark: form.remark.trim(),
   };
 }
@@ -130,7 +130,7 @@ function SkillEditDialogBody({
   const formId = "skill-definition-edit-form";
   const [loading, setLoading] = useState(false);
   const [toolCatalog, setToolCatalog] = useState<MCPToolCatalogItem[]>([]);
-  const [selectedAllowedToolCodes, setSelectedAllowedToolCodes] = useState<
+  const [selectedToolWhitelist, setSelectedToolWhitelist] = useState<
     string[]
   >([]);
   const [toolCodeToAdd, setToolCodeToAdd] = useState("");
@@ -154,7 +154,7 @@ function SkillEditDialogBody({
     async function loadDetail() {
       if (!itemId) {
         reset(emptyForm);
-        setSelectedAllowedToolCodes([]);
+        setSelectedToolWhitelist([]);
         setToolCodeToAdd("");
         return;
       }
@@ -163,7 +163,7 @@ function SkillEditDialogBody({
       try {
         const data = await fetchSkillDefinition(itemId);
         reset(buildForm(data));
-        setSelectedAllowedToolCodes(data.allowedToolCodes ?? []);
+        setSelectedToolWhitelist(data.toolWhitelist ?? []);
         setToolCodeToAdd("");
       } catch (error) {
         console.error("Failed to load skill definition:", error);
@@ -189,7 +189,7 @@ function SkillEditDialogBody({
   }, []);
 
   async function onFormSubmit(values: EditForm) {
-    await onSubmit(buildPayload(values, selectedAllowedToolCodes));
+    await onSubmit(buildPayload(values, selectedToolWhitelist));
   }
 
   const toolOptions = useMemo(
@@ -204,31 +204,31 @@ function SkillEditDialogBody({
   const addableToolOptions = useMemo(
     () =>
       toolOptions.filter(
-        (option) => !selectedAllowedToolCodes.includes(option.value),
+        (option) => !selectedToolWhitelist.includes(option.value),
       ),
-    [selectedAllowedToolCodes, toolOptions],
+    [selectedToolWhitelist, toolOptions],
   );
 
   const selectedToolOptions = useMemo(
     () =>
-      selectedAllowedToolCodes
+      selectedToolWhitelist
         .map((toolCode) => toolOptions.find((option) => option.value === toolCode))
         .filter(
           (option): option is { value: string; label: string } => !!option,
         ),
-    [selectedAllowedToolCodes, toolOptions],
+    [selectedToolWhitelist, toolOptions],
   );
 
-  function handleAddAllowedTool(toolCode: string) {
-    if (!toolCode || selectedAllowedToolCodes.includes(toolCode)) {
+  function handleAddToolWhitelist(toolCode: string) {
+    if (!toolCode || selectedToolWhitelist.includes(toolCode)) {
       return;
     }
-    setSelectedAllowedToolCodes((prev) => [...prev, toolCode]);
+    setSelectedToolWhitelist((prev) => [...prev, toolCode]);
     setToolCodeToAdd("");
   }
 
-  function handleRemoveAllowedTool(toolCode: string) {
-    setSelectedAllowedToolCodes((prev) =>
+  function handleRemoveToolWhitelist(toolCode: string) {
+    setSelectedToolWhitelist((prev) =>
       prev.filter((item) => item !== toolCode),
     );
   }
@@ -336,24 +336,24 @@ function SkillEditDialogBody({
           </Field>
 
           <Field>
-            <FieldLabel>Allowed Tools</FieldLabel>
+            <FieldLabel>工具白名单</FieldLabel>
             <FieldContent className="space-y-3">
               <div className="flex items-center gap-2">
                 <div className="flex-1">
                   <OptionCombobox
                     value={toolCodeToAdd}
                     options={addableToolOptions}
-                    placeholder="选择允许该 Skill 使用的工具"
+                    placeholder="选择该 Skill 允许使用的工具"
                     searchPlaceholder="搜索 toolCode 或工具名"
                     emptyText="没有可添加的工具"
-                    onChange={handleAddAllowedTool}
+                    onChange={handleAddToolWhitelist}
                   />
                 </div>
                 <Button
                   type="button"
                   variant="outline"
                   disabled={!toolCodeToAdd}
-                  onClick={() => handleAddAllowedTool(toolCodeToAdd)}
+                  onClick={() => handleAddToolWhitelist(toolCodeToAdd)}
                 >
                   添加
                 </Button>
@@ -370,7 +370,7 @@ function SkillEditDialogBody({
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => handleRemoveAllowedTool(option.value)}
+                      onClick={() => handleRemoveToolWhitelist(option.value)}
                       className="justify-start"
                     >
                       {option.label}

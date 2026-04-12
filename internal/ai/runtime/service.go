@@ -205,7 +205,7 @@ func parseSkillAllowedToolCodes(skill *models.SkillDefinition) []string {
 	if skill == nil {
 		return nil
 	}
-	raw := strings.TrimSpace(skill.AllowedToolCodes)
+	raw := strings.TrimSpace(skill.ToolWhitelist)
 	if raw == "" {
 		return nil
 	}

@@ -3,21 +3,21 @@ package response
 import "time"
 
 type SkillDefinitionResponse struct {
-	ID               int64     `json:"id"`
-	Code             string    `json:"code"`
-	Name             string    `json:"name"`
-	Description      string    `json:"description"`
-	Instruction      string    `json:"instruction"`
-	Examples         []string  `json:"examples"`
-	AllowedToolCodes []string  `json:"allowedToolCodes"`
-	Priority         int       `json:"priority"`
-	Status           int       `json:"status"`
-	StatusName       string    `json:"statusName"`
-	Remark           string    `json:"remark"`
-	CreatedAt        time.Time `json:"createdAt"`
-	UpdatedAt        time.Time `json:"updatedAt"`
-	CreateUserName   string    `json:"createUserName"`
-	UpdateUserName   string    `json:"updateUserName"`
+	ID             int64     `json:"id"`
+	Code           string    `json:"code"`
+	Name           string    `json:"name"`
+	Description    string    `json:"description"`
+	Instruction    string    `json:"instruction"`
+	Examples       []string  `json:"examples"`
+	ToolWhitelist  []string  `json:"toolWhitelist"`
+	Priority       int       `json:"priority"`
+	Status         int       `json:"status"`
+	StatusName     string    `json:"statusName"`
+	Remark         string    `json:"remark"`
+	CreatedAt      time.Time `json:"createdAt"`
+	UpdatedAt      time.Time `json:"updatedAt"`
+	CreateUserName string    `json:"createUserName"`
+	UpdateUserName string    `json:"updateUserName"`
 }
 
 type SkillDebugRunResponse struct {

@@ -109,16 +109,16 @@ func (s *skillDefinitionService) CreateSkillDefinition(req request.CreateSkillDe
 		return nil, errorsx.InvalidParam("Skill 编码已存在")
 	}
 	item := &models.SkillDefinition{
-		Code:             normalized.Code,
-		Name:             normalized.Name,
-		Description:      normalized.Description,
-		Instruction:      normalized.Instruction,
-		Examples:         mustMarshalSkillStringArray(normalized.Examples),
-		AllowedToolCodes: mustMarshalSkillStringArray(normalized.AllowedToolCodes),
-		Priority:         normalized.Priority,
-		Status:           enums.StatusOk,
-		Remark:           normalized.Remark,
-		AuditFields:      utils.BuildAuditFields(operator),
+		Code:          normalized.Code,
+		Name:          normalized.Name,
+		Description:   normalized.Description,
+		Instruction:   normalized.Instruction,
+		Examples:      mustMarshalSkillStringArray(normalized.Examples),
+		ToolWhitelist: mustMarshalSkillStringArray(normalized.ToolWhitelist),
+		Priority:      normalized.Priority,
+		Status:        enums.StatusOk,
+		Remark:        normalized.Remark,
+		AuditFields:   utils.BuildAuditFields(operator),
 	}
 	if item.Priority <= 0 {
 		item.Priority = s.NextPriority()
@@ -151,9 +151,9 @@ func (s *skillDefinitionService) UpdateSkillDefinition(req request.UpdateSkillDe
 		"code":               normalized.Code,
 		"name":               normalized.Name,
 		"description":        normalized.Description,
-		"content":            normalized.Instruction,
+		"instruction":        normalized.Instruction,
 		"examples":           mustMarshalSkillStringArray(normalized.Examples),
-		"allowed_tool_codes": mustMarshalSkillStringArray(normalized.AllowedToolCodes),
+		"allowed_tool_codes": mustMarshalSkillStringArray(normalized.ToolWhitelist),
 		"priority":           resolveSkillPriorityForService(normalized.Priority, current.Priority),
 		"remark":             normalized.Remark,
 		"update_user_id":     operator.UserID,
@@ -184,17 +184,17 @@ func (s *skillDefinitionService) normalizeSkillDefinitionRequest(req request.Cre
 	if err != nil {
 		return nil, err
 	}
-	allowedToolCodes, err := normalizeSkillStringArray(req.AllowedToolCodes)
+	toolWhitelist, err := normalizeSkillStringArray(req.ToolWhitelist)
 	if err != nil {
 		return nil, err
 	}
-	for _, toolCode := range allowedToolCodes {
+	for _, toolCode := range toolWhitelist {
 		if err := ToolCatalogService.ValidateMCPToolCode(toolCode); err != nil {
 			return nil, err
 		}
 	}
 	normalized.Examples = examples
-	normalized.AllowedToolCodes = allowedToolCodes
+	normalized.ToolWhitelist = toolWhitelist
 	return normalized, nil
 }
 

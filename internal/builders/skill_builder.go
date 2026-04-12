@@ -13,26 +13,26 @@ func BuildSkillDefinitionResponse(item *models.SkillDefinition) response.SkillDe
 	if raw := item.Examples; raw != "" {
 		_ = json.Unmarshal([]byte(raw), &examples)
 	}
-	allowedToolCodes := make([]string, 0)
-	if raw := item.AllowedToolCodes; raw != "" {
-		_ = json.Unmarshal([]byte(raw), &allowedToolCodes)
+	toolWhitelist := make([]string, 0)
+	if raw := item.ToolWhitelist; raw != "" {
+		_ = json.Unmarshal([]byte(raw), &toolWhitelist)
 	}
 	return response.SkillDefinitionResponse{
-		ID:               item.ID,
-		Code:             item.Code,
-		Name:             item.Name,
-		Description:      item.Description,
-		Instruction:      item.Instruction,
-		Examples:         examples,
-		AllowedToolCodes: allowedToolCodes,
-		Priority:         item.Priority,
-		Status:           int(item.Status),
-		StatusName:       getSkillStatusName(item.Status),
-		Remark:           item.Remark,
-		CreatedAt:        item.CreatedAt,
-		UpdatedAt:        item.UpdatedAt,
-		CreateUserName:   item.CreateUserName,
-		UpdateUserName:   item.UpdateUserName,
+		ID:             item.ID,
+		Code:           item.Code,
+		Name:           item.Name,
+		Description:    item.Description,
+		Instruction:    item.Instruction,
+		Examples:       examples,
+		ToolWhitelist:  toolWhitelist,
+		Priority:       item.Priority,
+		Status:         int(item.Status),
+		StatusName:     getSkillStatusName(item.Status),
+		Remark:         item.Remark,
+		CreatedAt:      item.CreatedAt,
+		UpdatedAt:      item.UpdatedAt,
+		CreateUserName: item.CreateUserName,
+		UpdateUserName: item.UpdateUserName,
 	}
 }
 
