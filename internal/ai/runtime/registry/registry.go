@@ -53,33 +53,14 @@ func isAllowedToolCode(toolCode string, allowedToolCodes map[string]struct{}) bo
 	if len(allowedToolCodes) == 0 {
 		return true
 	}
+	toolCode = toolx.NormalizeToolCodeAlias(strings.TrimSpace(toolCode))
 	if _, ok := allowedToolCodes[toolCode]; ok {
 		return true
 	}
-	if isAlwaysAllowedToolCode(toolCode) {
+	if toolx.IsAlwaysAllowedToolCode(toolCode) {
 		return true
 	}
-	if strings.TrimSpace(toolCode) == toolx.GraphTriageServiceRequest.Code {
-		if _, ok := allowedToolCodes[toolx.GraphCreateTicketConfirm.Code]; ok {
-			return true
-		}
-		if _, ok := allowedToolCodes[toolx.GraphHandoffConversation.Code]; ok {
-			return true
-		}
-	}
-	if strings.TrimSpace(toolCode) == toolx.GraphAnalyzeConversation.Code {
-		if _, ok := allowedToolCodes[toolx.GraphCreateTicketConfirm.Code]; ok {
-			return true
-		}
-		if _, ok := allowedToolCodes[toolx.GraphHandoffConversation.Code]; ok {
-			return true
-		}
-	}
-	if strings.TrimSpace(toolCode) == toolx.GraphPrepareTicketDraft.Code {
-		_, ok := allowedToolCodes[toolx.GraphCreateTicketConfirm.Code]
-		return ok
-	}
-	return false
+	return toolx.IsImpliedAllowedToolCode(toolCode, allowedToolCodes)
 }
 
 func makeAllowedToolCodeSet(input []string) map[string]struct{} {
@@ -88,15 +69,11 @@ func makeAllowedToolCodeSet(input []string) map[string]struct{} {
 	}
 	ret := make(map[string]struct{}, len(input))
 	for _, item := range input {
-		item = strings.TrimSpace(item)
+		item = toolx.NormalizeToolCodeAlias(strings.TrimSpace(item))
 		if item == "" {
 			continue
 		}
 		ret[item] = struct{}{}
 	}
 	return ret
-}
-
-func isAlwaysAllowedToolCode(toolCode string) bool {
-	return strings.TrimSpace(toolCode) == toolx.GraphHandoffConversation.Code
 }

@@ -278,6 +278,38 @@ func BuildToolAppendices(hasDynamicMCPTools bool, toolCodes map[string]string) [
 	return ret
 }
 
+func BuildToolMetadata(toolCode string) (serverCode, toolName, sourceType string, ok bool) {
+	spec, ok := GetRegisteredToolSpec(toolCode)
+	if !ok {
+		return "", "", ResolveToolSourceType(toolCode), false
+	}
+	return spec.ServerCode, spec.Name, spec.SourceType, true
+}
+
+func IsAlwaysAllowedToolCode(toolCode string) bool {
+	return NormalizeToolCodeAlias(strings.TrimSpace(toolCode)) == GraphHandoffConversation.Code
+}
+
+func IsImpliedAllowedToolCode(toolCode string, allowedToolCodes map[string]struct{}) bool {
+	toolCode = NormalizeToolCodeAlias(strings.TrimSpace(toolCode))
+	if toolCode == "" || len(allowedToolCodes) == 0 {
+		return false
+	}
+	switch toolCode {
+	case GraphTriageServiceRequest.Code, GraphAnalyzeConversation.Code:
+		if _, ok := allowedToolCodes[GraphCreateTicketConfirm.Code]; ok {
+			return true
+		}
+		if _, ok := allowedToolCodes[GraphHandoffConversation.Code]; ok {
+			return true
+		}
+	case GraphPrepareTicketDraft.Code:
+		_, ok := allowedToolCodes[GraphCreateTicketConfirm.Code]
+		return ok
+	}
+	return false
+}
+
 func hasToolCode(toolCodes map[string]string, target string) bool {
 	target = strings.TrimSpace(target)
 	if target == "" || len(toolCodes) == 0 {

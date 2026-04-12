@@ -108,12 +108,12 @@ func (f *AgentFactory) BuildCustomerServiceAgent(ctx context.Context, input Buil
 			if modelName == "" || toolCode == "" {
 				continue
 			}
-			serverCode, toolName, _ := toolx.GetRegisteredToolIdentity(toolCode)
+			serverCode, toolName, sourceType, _ := toolx.BuildToolMetadata(toolCode)
 			toolMetadataBy[modelName] = einocallbacks.ToolMetadata{
 				ToolCode:   toolCode,
 				ServerCode: serverCode,
 				ToolName:   toolName,
-				SourceType: toolx.ResolveToolSourceType(toolCode),
+				SourceType: sourceType,
 			}
 		}
 		if input.SelectedSkill != nil {
