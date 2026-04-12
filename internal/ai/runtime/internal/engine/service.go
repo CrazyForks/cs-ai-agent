@@ -159,18 +159,12 @@ func (s *Service) Run(ctx context.Context, req Request) (*Summary, error) {
 	messages = append(messages, history.Messages...)
 
 	retriever := retrievers.NewKnowledgeRetriever(req.AIAgent)
-	if retrieveResult, retrieveErr := retriever.RetrieveContext(ctx, strings.TrimSpace(req.UserMessage.Content)); retrieveErr == nil && retrieveResult != nil {
+	if retrieveResult, retrieveErr := retriever.RetrieveContextByOptions(ctx, retrievers.KnowledgeRetrieveOptions{
+		QueryPreview: preview(req.UserMessage.Content, 120),
+	}, strings.TrimSpace(req.UserMessage.Content)); retrieveErr == nil && retrieveResult != nil {
 		summary.RetrieverCount = len(retrieveResult.Hits)
 		collector.Data.Retriever.Count = len(retrieveResult.Hits)
-		for _, item := range retrieveResult.Hits {
-			collector.Data.Retriever.Items = append(collector.Data.Retriever.Items, callbacks.RetrieverTraceItem{
-				Query:           preview(req.UserMessage.Content, 120),
-				KnowledgeBaseID: item.KnowledgeBaseID,
-				DocumentID:      item.DocumentID,
-				DocumentTitle:   item.DocumentTitle,
-				Score:           float64(item.Score),
-			})
-		}
+		collector.Data.Retriever.Items = append(collector.Data.Retriever.Items, retrieveResult.TraceItems...)
 		if strings.TrimSpace(retrieveResult.ContextText) != "" {
 			messages = append(messages, schema.SystemMessage(retrieveResult.ContextText))
 		}
