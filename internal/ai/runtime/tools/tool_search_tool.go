@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"cs-agent/internal/ai/mcps"
+	impladapter "cs-agent/internal/ai/runtime/internal/impl/adapter"
 	"cs-agent/internal/ai/runtime/registry"
 	"cs-agent/internal/pkg/toolx"
 
@@ -282,32 +283,5 @@ func cloneArguments(input map[string]any) map[string]any {
 }
 
 func buildToolCallResultSummary(result *mcps.ToolCallResult) string {
-	if result == nil {
-		return ""
-	}
-	lines := make([]string, 0, len(result.Content)+2)
-	if result.IsError {
-		lines = append(lines, "tool returned an error")
-	}
-	if result.StructuredContent != nil {
-		if data, err := json.Marshal(result.StructuredContent); err == nil {
-			lines = append(lines, string(data))
-		}
-	}
-	for _, item := range result.Content {
-		switch item.Type {
-		case "text":
-			if text := strings.TrimSpace(item.Text); text != "" {
-				lines = append(lines, text)
-			}
-		default:
-			if item.Data == nil {
-				continue
-			}
-			if data, err := json.Marshal(item.Data); err == nil {
-				lines = append(lines, string(data))
-			}
-		}
-	}
-	return strings.TrimSpace(strings.Join(lines, "\n"))
+	return impladapter.BuildReducedToolResultSummary(result)
 }
