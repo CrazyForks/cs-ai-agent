@@ -106,15 +106,15 @@ func (s *agentRunLogService) BuildGraphSummary(aiAgentID int64) *AgentRunGraphSu
 		return cnd
 	}
 	return &AgentRunGraphSummary{
-		TriageCount:              s.countByGraphTool(buildBaseCnd(), toolx.GraphTriageServiceRequestToolCode),
-		TriagePrepareTicket:      s.countByGraphToolAndPlanReason(buildBaseCnd(), toolx.GraphTriageServiceRequestToolCode, "%prepare_ticket%"),
-		TriagePrepareTicketReady: s.countByGraphToolAndPlanReason(buildBaseCnd(), toolx.GraphTriageServiceRequestToolCode, "%prepare_ticket with ready ticket draft%"),
-		TriageHandoff:            s.countByGraphToolAndPlanReason(buildBaseCnd(), toolx.GraphTriageServiceRequestToolCode, "%handoff_to_human%"),
-		TriageContinueAnswering:  s.countByGraphToolAndPlanReason(buildBaseCnd(), toolx.GraphTriageServiceRequestToolCode, "%continue_answering%"),
-		AnalyzeCount:             s.countByGraphTool(buildBaseCnd(), toolx.GraphAnalyzeConversationToolCode),
-		PrepareDraftCount:        s.countByGraphTool(buildBaseCnd(), toolx.GraphPrepareTicketDraftToolCode),
-		CreateTicketCount:        s.countByGraphTool(buildBaseCnd(), toolx.GraphCreateTicketConfirmToolCode),
-		HandoffCount:             s.countByGraphTool(buildBaseCnd(), toolx.GraphHandoffConversationToolCode),
+		TriageCount:              s.countByGraphTool(buildBaseCnd(), toolx.GraphTriageServiceRequest.Code),
+		TriagePrepareTicket:      s.countByGraphToolAndPlanReason(buildBaseCnd(), toolx.GraphTriageServiceRequest.Code, "%prepare_ticket%"),
+		TriagePrepareTicketReady: s.countByGraphToolAndPlanReason(buildBaseCnd(), toolx.GraphTriageServiceRequest.Code, "%prepare_ticket with ready ticket draft%"),
+		TriageHandoff:            s.countByGraphToolAndPlanReason(buildBaseCnd(), toolx.GraphTriageServiceRequest.Code, "%handoff_to_human%"),
+		TriageContinueAnswering:  s.countByGraphToolAndPlanReason(buildBaseCnd(), toolx.GraphTriageServiceRequest.Code, "%continue_answering%"),
+		AnalyzeCount:             s.countByGraphTool(buildBaseCnd(), toolx.GraphAnalyzeConversation.Code),
+		PrepareDraftCount:        s.countByGraphTool(buildBaseCnd(), toolx.GraphPrepareTicketDraft.Code),
+		CreateTicketCount:        s.countByGraphTool(buildBaseCnd(), toolx.GraphCreateTicketConfirm.Code),
+		HandoffCount:             s.countByGraphTool(buildBaseCnd(), toolx.GraphHandoffConversation.Code),
 	}
 }
 

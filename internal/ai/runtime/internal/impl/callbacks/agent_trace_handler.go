@@ -64,7 +64,7 @@ func (h *RuntimeTraceHandler) WrapInvokableToolCall(_ context.Context, endpoint 
 			item.ErrorMessage = err.Error()
 		}
 		h.collector.AddToolItem(item)
-		if metadata, ok := h.resolveToolMetadata(item.ToolName); ok && strings.TrimSpace(metadata.SourceType) == toolx.GraphToolCatalogServerCode {
+		if metadata, ok := h.resolveToolMetadata(item.ToolName); ok && strings.TrimSpace(metadata.SourceType) == toolx.GraphCreateTicketConfirm.ServerCode {
 			recommendedAction, riskLevel, ticketDraftReady := parseGraphToolOutcome(item.ToolCode, result)
 			h.collector.AddGraphToolItem(GraphToolTraceItem{
 				ToolCode:          item.ToolCode,
@@ -82,7 +82,7 @@ func (h *RuntimeTraceHandler) WrapInvokableToolCall(_ context.Context, endpoint 
 				TicketDraftReady:  ticketDraftReady,
 			})
 		}
-		if metadata, ok := h.resolveToolMetadata(item.ToolName); ok && strings.TrimSpace(metadata.ToolCode) == toolx.BuiltinToolSearchToolCode {
+		if metadata, ok := h.resolveToolMetadata(item.ToolName); ok && strings.TrimSpace(metadata.ToolCode) == toolx.BuiltinToolSearch.Code {
 			h.collector.AddToolSearchItem(h.buildToolSearchTraceItem(argumentsInJSON, result, err))
 		}
 		return result, err
@@ -99,9 +99,9 @@ func parseGraphToolOutcome(toolCode string, result string) (recommendedAction, r
 		return "", "", false
 	}
 	switch toolCode {
-	case toolx.GraphAnalyzeConversationToolCode:
+	case toolx.GraphAnalyzeConversation.Code:
 		return strings.TrimSpace(readToolSearchString(payload, "recommendedNextAction")), strings.TrimSpace(readToolSearchString(payload, "riskLevel")), false
-	case toolx.GraphTriageServiceRequestToolCode:
+	case toolx.GraphTriageServiceRequest.Code:
 		recommendedAction = strings.TrimSpace(readToolSearchString(payload, "recommendedAction"))
 		if analysis, ok := payload["analysis"].(map[string]any); ok {
 			riskLevel = strings.TrimSpace(readToolSearchString(analysis, "riskLevel"))
@@ -124,20 +124,20 @@ func (h *RuntimeTraceHandler) resolveToolMetadata(modelToolName string) (ToolMet
 	if modelToolName == "" {
 		return ToolMetadata{}, false
 	}
-	if modelToolName == toolx.BuiltinToolSearchToolName {
+	if modelToolName == toolx.BuiltinToolSearch.Name {
 		return ToolMetadata{
-			ToolCode:   toolx.BuiltinToolSearchToolCode,
-			ServerCode: toolx.BuiltinToolCatalogServerCode,
-			ToolName:   toolx.BuiltinToolSearchToolName,
-			SourceType: toolx.BuiltinToolCatalogServerCode,
+			ToolCode:   toolx.BuiltinToolSearch.Code,
+			ServerCode: toolx.BuiltinToolSearch.ServerCode,
+			ToolName:   toolx.BuiltinToolSearch.Name,
+			SourceType: toolx.BuiltinToolSearch.SourceType,
 		}, true
 	}
-	if modelToolName == toolx.BuiltinSkillToolName {
+	if modelToolName == toolx.BuiltinSkill.Name {
 		return ToolMetadata{
-			ToolCode:   toolx.BuiltinSkillToolCode,
-			ServerCode: toolx.BuiltinToolCatalogServerCode,
-			ToolName:   toolx.BuiltinSkillToolName,
-			SourceType: toolx.BuiltinToolCatalogServerCode,
+			ToolCode:   toolx.BuiltinSkill.Code,
+			ServerCode: toolx.BuiltinSkill.ServerCode,
+			ToolName:   toolx.BuiltinSkill.Name,
+			SourceType: toolx.BuiltinSkill.SourceType,
 		}, true
 	}
 	metadata, ok := h.toolMetadataBy[modelToolName]

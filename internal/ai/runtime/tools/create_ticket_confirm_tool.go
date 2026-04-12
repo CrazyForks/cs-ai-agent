@@ -15,9 +15,9 @@ import (
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
-const (
-	CreateTicketConfirmToolCode = toolx.GraphCreateTicketConfirmToolCode
-	CreateTicketConfirmToolName = toolx.GraphCreateTicketConfirmToolName
+var (
+	CreateTicketConfirmToolCode = toolx.GraphCreateTicketConfirm.Code
+	CreateTicketConfirmToolName = toolx.GraphCreateTicketConfirm.Name
 )
 
 type CreateTicketGraphTool struct {

@@ -177,39 +177,23 @@ func buildAIAgentResponse(item *models.AIAgent) response.AIAgentResponse {
 				}
 				serverCode := strings.TrimSpace(tool.ServerCode)
 				toolName := strings.TrimSpace(tool.ToolName)
-				if toolCode == toolx.BuiltinToolSearchToolCode {
-					serverCode = toolx.BuiltinToolCatalogServerCode
-					toolName = toolx.BuiltinToolSearchToolName
-				} else if toolCode == toolx.GraphCreateTicketConfirmToolCode {
-					serverCode = toolx.GraphToolCatalogServerCode
-					toolName = toolx.GraphCreateTicketConfirmToolName
-				} else if toolCode == toolx.GraphHandoffConversationToolCode {
-					serverCode = toolx.GraphToolCatalogServerCode
-					toolName = toolx.GraphHandoffConversationToolName
+				if registeredServerCode, registeredToolName, ok := toolx.GetRegisteredToolIdentity(toolCode); ok {
+					serverCode = registeredServerCode
+					toolName = registeredToolName
 				} else if parsedServerCode, parsedToolName := toolx.SplitMCPToolCode(toolCode); parsedServerCode != "" && parsedToolName != "" {
 					serverCode = parsedServerCode
 					toolName = parsedToolName
 				}
 				title := strings.TrimSpace(tool.Title)
 				if title == "" {
-					switch toolCode {
-					case toolx.BuiltinToolSearchToolCode:
-						title = toolx.BuiltinToolSearchToolTitle
-					case toolx.GraphCreateTicketConfirmToolCode:
-						title = toolx.GraphCreateTicketConfirmToolTitle
-					case toolx.GraphHandoffConversationToolCode:
-						title = toolx.GraphHandoffConversationToolTitle
+					if registeredTitle := toolx.GetRegisteredToolTitle(toolCode); registeredTitle != "" {
+						title = registeredTitle
 					}
 				}
 				description := strings.TrimSpace(tool.Description)
 				if description == "" {
-					switch toolCode {
-					case toolx.BuiltinToolSearchToolCode:
-						description = toolx.BuiltinToolSearchToolDescription
-					case toolx.GraphCreateTicketConfirmToolCode:
-						description = toolx.GraphCreateTicketConfirmToolDescription
-					case toolx.GraphHandoffConversationToolCode:
-						description = toolx.GraphHandoffConversationToolDescription
+					if registeredDescription := toolx.GetRegisteredToolDescription(toolCode); registeredDescription != "" {
+						description = registeredDescription
 					}
 				}
 				ret.DirectTools = append(ret.DirectTools, response.AIAgentMCPToolResponse{

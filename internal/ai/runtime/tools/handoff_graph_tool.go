@@ -15,9 +15,9 @@ import (
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
-const (
-	HandoffConversationToolCode = toolx.GraphHandoffConversationToolCode
-	HandoffConversationToolName = toolx.GraphHandoffConversationToolName
+var (
+	HandoffConversationToolCode = toolx.GraphHandoffConversation.Code
+	HandoffConversationToolName = toolx.GraphHandoffConversation.Name
 )
 
 type HandoffGraphTool struct {

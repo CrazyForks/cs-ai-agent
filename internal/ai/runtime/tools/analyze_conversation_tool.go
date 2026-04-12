@@ -15,9 +15,9 @@ import (
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
-const (
-	AnalyzeConversationToolCode = toolx.GraphAnalyzeConversationToolCode
-	AnalyzeConversationToolName = toolx.GraphAnalyzeConversationToolName
+var (
+	AnalyzeConversationToolCode = toolx.GraphAnalyzeConversation.Code
+	AnalyzeConversationToolName = toolx.GraphAnalyzeConversation.Name
 )
 
 type AnalyzeConversationTool struct {

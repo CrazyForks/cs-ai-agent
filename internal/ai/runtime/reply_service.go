@@ -549,7 +549,7 @@ func summaryPrimaryToolCode(summary *Summary) string {
 		return ""
 	}
 	toolCode := firstInvokedToolCode(summary)
-	if toolCode != toolx.BuiltinToolSearchToolCode {
+	if toolCode != toolx.BuiltinToolSearch.Code {
 		return toolCode
 	}
 	if targetToolCode := firstToolSearchTargetToolCode(summary); targetToolCode != "" {
@@ -611,7 +611,7 @@ func firstGraphToolCode(summary *Summary) string {
 func extractHandoffReason(summary *Summary) string {
 	trace := parseRuntimeTraceData(summary.TraceData)
 	for _, item := range trace.GraphTools.Items {
-		if strings.TrimSpace(item.ToolCode) != toolx.GraphHandoffConversationToolCode {
+		if strings.TrimSpace(item.ToolCode) != toolx.GraphHandoffConversation.Code {
 			continue
 		}
 		if len(item.Arguments) == 0 {
@@ -628,7 +628,7 @@ func graphPlanReason(summary *Summary) string {
 	for _, item := range trace.GraphTools.Items {
 		toolCode := strings.TrimSpace(item.ToolCode)
 		switch toolCode {
-		case toolx.GraphTriageServiceRequestToolCode:
+		case toolx.GraphTriageServiceRequest.Code:
 			recommendedAction := strings.TrimSpace(item.RecommendedAction)
 			if recommendedAction == "" {
 				return "graph tool triaged service request"
@@ -637,7 +637,7 @@ func graphPlanReason(summary *Summary) string {
 				return "graph tool triaged service request: " + recommendedAction + " with ready ticket draft"
 			}
 			return "graph tool triaged service request: " + recommendedAction
-		case toolx.GraphAnalyzeConversationToolCode:
+		case toolx.GraphAnalyzeConversation.Code:
 			recommendedAction := strings.TrimSpace(item.RecommendedAction)
 			riskLevel := strings.TrimSpace(item.RiskLevel)
 			switch {

@@ -15,9 +15,9 @@ import (
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
-const (
-	TriageServiceRequestToolCode = toolx.GraphTriageServiceRequestToolCode
-	TriageServiceRequestToolName = toolx.GraphTriageServiceRequestToolName
+var (
+	TriageServiceRequestToolCode = toolx.GraphTriageServiceRequest.Code
+	TriageServiceRequestToolName = toolx.GraphTriageServiceRequest.Name
 )
 
 type TriageServiceRequestTool struct {

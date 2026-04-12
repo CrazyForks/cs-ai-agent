@@ -108,42 +108,22 @@ func (f *AgentFactory) BuildCustomerServiceAgent(ctx context.Context, input Buil
 			if modelName == "" || toolCode == "" {
 				continue
 			}
-			serverCode, toolName := "", ""
-			switch toolCode {
-			case toolx.BuiltinToolSearchToolCode:
-				serverCode = toolx.BuiltinToolCatalogServerCode
-				toolName = toolx.BuiltinToolSearchToolName
-			case toolx.GraphTriageServiceRequestToolCode:
-				serverCode = toolx.GraphToolCatalogServerCode
-				toolName = toolx.GraphTriageServiceRequestToolName
-			case toolx.GraphAnalyzeConversationToolCode:
-				serverCode = toolx.GraphToolCatalogServerCode
-				toolName = toolx.GraphAnalyzeConversationToolName
-			case toolx.GraphPrepareTicketDraftToolCode:
-				serverCode = toolx.GraphToolCatalogServerCode
-				toolName = toolx.GraphPrepareTicketDraftToolName
-			case toolx.GraphCreateTicketConfirmToolCode:
-				serverCode = toolx.GraphToolCatalogServerCode
-				toolName = toolx.GraphCreateTicketConfirmToolName
-			case toolx.GraphHandoffConversationToolCode:
-				serverCode = toolx.GraphToolCatalogServerCode
-				toolName = toolx.GraphHandoffConversationToolName
-			}
+			serverCode, toolName, _ := toolx.GetRegisteredToolIdentity(toolCode)
 			toolMetadataBy[modelName] = einocallbacks.ToolMetadata{
 				ToolCode:   toolCode,
 				ServerCode: serverCode,
 				ToolName:   toolName,
-				SourceType: resolveToolSourceType(toolCode),
+				SourceType: toolx.ResolveToolSourceType(toolCode),
 			}
 		}
 		if input.SelectedSkill != nil {
-			toolMetadataBy[toolx.BuiltinSkillToolName] = einocallbacks.ToolMetadata{
-				ToolCode:   toolx.BuiltinSkillToolCode,
-				ServerCode: toolx.BuiltinToolCatalogServerCode,
-				ToolName:   toolx.BuiltinSkillToolName,
-				SourceType: toolx.BuiltinToolCatalogServerCode,
+			toolMetadataBy[toolx.BuiltinSkill.Name] = einocallbacks.ToolMetadata{
+				ToolCode:   toolx.BuiltinSkill.Code,
+				ServerCode: toolx.BuiltinSkill.ServerCode,
+				ToolName:   toolx.BuiltinSkill.Name,
+				SourceType: toolx.BuiltinSkill.SourceType,
 			}
-			input.Collector.SetSkillMiddleware(true, toolx.BuiltinSkillToolName)
+			input.Collector.SetSkillMiddleware(true, toolx.BuiltinSkill.Name)
 		}
 		handlers = append(handlers, einocallbacks.NewRuntimeTraceHandler(input.Collector, toolMetadataBy))
 	}
@@ -181,28 +161,12 @@ func (f *AgentFactory) buildSelectedSkillMiddleware(ctx context.Context, selecte
 	if err != nil {
 		return nil, err
 	}
-	toolName := toolx.BuiltinSkillToolName
+	toolName := toolx.BuiltinSkill.Name
 	return einoskill.NewMiddleware(ctx, &einoskill.Config{
 		Backend:       backend,
 		SkillToolName: &toolName,
 		UseChinese:    true,
 	})
-}
-
-func resolveToolSourceType(toolCode string) string {
-	toolCode = strings.TrimSpace(toolCode)
-	switch {
-	case toolCode == toolx.BuiltinToolSearchToolCode:
-		return toolx.BuiltinToolCatalogServerCode
-	case toolCode == toolx.BuiltinSkillToolCode:
-		return toolx.BuiltinToolCatalogServerCode
-	case strings.HasPrefix(toolCode, toolx.GraphToolCatalogServerCode+"/"):
-		return toolx.GraphToolCatalogServerCode
-	case strings.HasPrefix(toolCode, toolx.BuiltinToolCatalogServerCode+"/"):
-		return toolx.BuiltinToolCatalogServerCode
-	default:
-		return "mcp"
-	}
 }
 
 func assembleAgentInstruction(aiAgent *models.AIAgent, selectedSkill *models.SkillDefinition, toolDefinitions []einoadapter.MCPToolDefinition, extraToolCodes map[string]string) InstructionAssemblyResult {
@@ -222,7 +186,7 @@ func assembleAgentInstruction(aiAgent *models.AIAgent, selectedSkill *models.Ski
 3. 如果当前已有固定内置工具可以完成任务，优先使用固定工具，不要滥用 tool_search。
 `))
 	}
-	if hasToolCode(extraToolCodes, toolx.GraphTriageServiceRequestToolCode) {
+	if hasToolCode(extraToolCodes, toolx.GraphTriageServiceRequest.Code) {
 		appendixParts = append(appendixParts, strings.TrimSpace(`
 当你需要判断“继续解答 / 建单 / 转人工”这类复杂升级路径时，优先先调用 triage_service_request 这个 Graph Tool，并遵守以下规则：
 1. 该工具会综合当前对话输出 recommendedAction，并在需要建单时附带 ticketDraft。
@@ -232,7 +196,7 @@ func assembleAgentInstruction(aiAgent *models.AIAgent, selectedSkill *models.Ski
 5. 当升级路径不明确时，优先使用该工具，而不是直接凭主 prompt 做复杂分流判断。
 `))
 	}
-	if hasToolCode(extraToolCodes, toolx.GraphPrepareTicketDraftToolCode) {
+	if hasToolCode(extraToolCodes, toolx.GraphPrepareTicketDraft.Code) {
 		appendixParts = append(appendixParts, strings.TrimSpace(`
 当用户已经表达了建单、投诉、报障、售后处理等诉求，但工单标题、描述或问题整理还比较散乱时，优先调用 prepare_ticket_draft 这个 Graph Tool，并遵守以下规则：
 1. 该工具用于整理工单草稿，会返回建议标题、建议描述、缺失字段和追问建议。
@@ -241,7 +205,7 @@ func assembleAgentInstruction(aiAgent *models.AIAgent, selectedSkill *models.Ski
 4. 该工具用于“整理草稿”，不代表已经创建工单。
 `))
 	}
-	if hasToolCode(extraToolCodes, toolx.GraphAnalyzeConversationToolCode) {
+	if hasToolCode(extraToolCodes, toolx.GraphAnalyzeConversation.Code) {
 		appendixParts = append(appendixParts, strings.TrimSpace(`
 当对话可能涉及投诉升级、退款赔偿、明显负面情绪、是否要建单、是否要转人工等复杂判断时，优先调用 analyze_conversation 这个 Graph Tool，并遵守以下规则：
 1. 该工具用于输出结构化摘要、风险信号和下一步建议，不代表实际已经建单或转人工。
@@ -250,7 +214,7 @@ func assembleAgentInstruction(aiAgent *models.AIAgent, selectedSkill *models.Ski
 4. 如果工具建议为 continue_answering，优先继续澄清和解答，不要过早升级动作。
 `))
 	}
-	if hasToolCode(extraToolCodes, toolx.GraphCreateTicketConfirmToolCode) {
+	if hasToolCode(extraToolCodes, toolx.GraphCreateTicketConfirm.Code) {
 		appendixParts = append(appendixParts, strings.TrimSpace(`
 你可以在确认信息充分后调用 create_ticket_with_confirmation 这个 Graph Tool 来创建工单，但必须遵守以下规则：
 1. 只有在用户明确表达希望提交工单、投诉、报障、售后处理等诉求时，才考虑调用该工具。
@@ -260,7 +224,7 @@ func assembleAgentInstruction(aiAgent *models.AIAgent, selectedSkill *models.Ski
 5. 如果用户只是咨询、抱怨或泛泛表达不满，但没有明确要求建单，优先继续澄清，不要主动创建工单。
 `))
 	}
-	if hasToolCode(extraToolCodes, toolx.GraphHandoffConversationToolCode) {
+	if hasToolCode(extraToolCodes, toolx.GraphHandoffConversation.Code) {
 		appendixParts = append(appendixParts, strings.TrimSpace(`
 你可以在确认需要人工介入后调用 handoff_to_human 这个 Graph Tool 来转人工，但必须遵守以下规则：
 1. 只有在用户明确要求人工客服，或你已经判断该问题必须由人工继续处理时，才调用该工具。
@@ -311,7 +275,7 @@ func buildSelectedSkillActivationInstruction(skill *models.SkillDefinition) stri
 	if desc := strings.TrimSpace(skill.Description); desc != "" {
 		lines = append(lines, fmt.Sprintf("- description: %s", desc))
 	}
-	lines = append(lines, "", "执行要求：", "- 本轮优先处理该技能范围内的问题。", fmt.Sprintf("- 需要专项处理细节时，优先调用 %s 工具加载该技能说明后再继续。", toolx.BuiltinSkillToolName), "- 如果关键信息不足，先向用户追问。", "- 不得调用当前技能未授权的工具。")
+	lines = append(lines, "", "执行要求：", "- 本轮优先处理该技能范围内的问题。", fmt.Sprintf("- 需要专项处理细节时，优先调用 %s 工具加载该技能说明后再继续。", toolx.BuiltinSkill.Name), "- 如果关键信息不足，先向用户追问。", "- 不得调用当前技能未授权的工具。")
 	return strings.TrimSpace(strings.Join(lines, "\n"))
 }
 

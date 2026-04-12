@@ -18,9 +18,9 @@ import (
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
-const (
-	ToolSearchToolCode = toolx.BuiltinToolSearchToolCode
-	ToolSearchToolName = toolx.BuiltinToolSearchToolName
+var (
+	ToolSearchToolCode = toolx.BuiltinToolSearch.Code
+	ToolSearchToolName = toolx.BuiltinToolSearch.Name
 )
 
 type ToolSearchTool struct {

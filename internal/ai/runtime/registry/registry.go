@@ -59,24 +59,24 @@ func isAllowedToolCode(toolCode string, allowedToolCodes map[string]struct{}) bo
 	if isAlwaysAllowedToolCode(toolCode) {
 		return true
 	}
-	if strings.TrimSpace(toolCode) == toolx.GraphTriageServiceRequestToolCode {
-		if _, ok := allowedToolCodes[toolx.GraphCreateTicketConfirmToolCode]; ok {
+	if strings.TrimSpace(toolCode) == toolx.GraphTriageServiceRequest.Code {
+		if _, ok := allowedToolCodes[toolx.GraphCreateTicketConfirm.Code]; ok {
 			return true
 		}
-		if _, ok := allowedToolCodes[toolx.GraphHandoffConversationToolCode]; ok {
-			return true
-		}
-	}
-	if strings.TrimSpace(toolCode) == toolx.GraphAnalyzeConversationToolCode {
-		if _, ok := allowedToolCodes[toolx.GraphCreateTicketConfirmToolCode]; ok {
-			return true
-		}
-		if _, ok := allowedToolCodes[toolx.GraphHandoffConversationToolCode]; ok {
+		if _, ok := allowedToolCodes[toolx.GraphHandoffConversation.Code]; ok {
 			return true
 		}
 	}
-	if strings.TrimSpace(toolCode) == toolx.GraphPrepareTicketDraftToolCode {
-		_, ok := allowedToolCodes[toolx.GraphCreateTicketConfirmToolCode]
+	if strings.TrimSpace(toolCode) == toolx.GraphAnalyzeConversation.Code {
+		if _, ok := allowedToolCodes[toolx.GraphCreateTicketConfirm.Code]; ok {
+			return true
+		}
+		if _, ok := allowedToolCodes[toolx.GraphHandoffConversation.Code]; ok {
+			return true
+		}
+	}
+	if strings.TrimSpace(toolCode) == toolx.GraphPrepareTicketDraft.Code {
+		_, ok := allowedToolCodes[toolx.GraphCreateTicketConfirm.Code]
 		return ok
 	}
 	return false
@@ -98,5 +98,5 @@ func makeAllowedToolCodeSet(input []string) map[string]struct{} {
 }
 
 func isAlwaysAllowedToolCode(toolCode string) bool {
-	return strings.TrimSpace(toolCode) == toolx.GraphHandoffConversationToolCode
+	return strings.TrimSpace(toolCode) == toolx.GraphHandoffConversation.Code
 }

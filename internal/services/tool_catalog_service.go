@@ -34,36 +34,38 @@ type MCPToolCatalogItem struct {
 func (s *toolCatalogService) ListMCPTools(ctx context.Context) ([]MCPToolCatalogItem, error) {
 	cfg := config.Current()
 	ret := make([]MCPToolCatalogItem, 0, 3)
-	ret = append(ret, MCPToolCatalogItem{
-		ToolCode:     toolx.GraphCreateTicketConfirmToolCode,
-		ServerCode:   toolx.GraphToolCatalogServerCode,
-		ToolName:     toolx.GraphCreateTicketConfirmToolName,
-		SourceType:   toolx.GraphToolCatalogServerCode,
-		AutoInjected: false,
-		Title:        toolx.GraphCreateTicketConfirmToolTitle,
-		Description:  toolx.GraphCreateTicketConfirmToolDescription,
-	})
-	ret = append(ret, MCPToolCatalogItem{
-		ToolCode:     toolx.GraphHandoffConversationToolCode,
-		ServerCode:   toolx.GraphToolCatalogServerCode,
-		ToolName:     toolx.GraphHandoffConversationToolName,
-		SourceType:   toolx.GraphToolCatalogServerCode,
-		AutoInjected: false,
-		Title:        toolx.GraphHandoffConversationToolTitle,
-		Description:  toolx.GraphHandoffConversationToolDescription,
-	})
+	for _, toolCode := range []string{
+		toolx.GraphCreateTicketConfirm.Code,
+		toolx.GraphHandoffConversation.Code,
+	} {
+		spec, ok := toolx.GetRegisteredToolSpec(toolCode)
+		if !ok {
+			continue
+		}
+		ret = append(ret, MCPToolCatalogItem{
+			ToolCode:     spec.Code,
+			ServerCode:   spec.ServerCode,
+			ToolName:     spec.Name,
+			SourceType:   spec.SourceType,
+			AutoInjected: spec.AutoInjected,
+			Title:        spec.Title,
+			Description:  spec.Description,
+		})
+	}
 	if !cfg.MCP.Enabled {
 		return ret, nil
 	}
-	ret = append(ret, MCPToolCatalogItem{
-		ToolCode:     toolx.BuiltinToolSearchToolCode,
-		ServerCode:   toolx.BuiltinToolCatalogServerCode,
-		ToolName:     toolx.BuiltinToolSearchToolName,
-		SourceType:   toolx.BuiltinToolCatalogServerCode,
-		AutoInjected: true,
-		Title:        toolx.BuiltinToolSearchToolTitle,
-		Description:  toolx.BuiltinToolSearchToolDescription,
-	})
+	if spec, ok := toolx.GetRegisteredToolSpec(toolx.BuiltinToolSearch.Code); ok {
+		ret = append(ret, MCPToolCatalogItem{
+			ToolCode:     spec.Code,
+			ServerCode:   spec.ServerCode,
+			ToolName:     spec.Name,
+			SourceType:   spec.SourceType,
+			AutoInjected: spec.AutoInjected,
+			Title:        spec.Title,
+			Description:  spec.Description,
+		})
+	}
 	serverCodes := make([]string, 0, len(cfg.MCP.Servers))
 	for serverCode, server := range cfg.MCP.Servers {
 		if !server.Enabled {
@@ -105,7 +107,7 @@ func (s *toolCatalogService) ValidateToolCode(toolCode string) error {
 		return errorsx.InvalidParam("toolCode不能为空")
 	}
 	switch toolCode {
-	case toolx.BuiltinToolSearchToolCode, toolx.BuiltinCreateTicketConfirmToolCode, toolx.GraphCreateTicketConfirmToolCode, toolx.GraphHandoffConversationToolCode:
+	case toolx.BuiltinToolSearch.Code, "builtin/create_ticket_with_confirmation", toolx.GraphCreateTicketConfirm.Code, toolx.GraphHandoffConversation.Code:
 		return nil
 	}
 	serverCode, toolName := toolx.SplitMCPToolCode(toolCode)

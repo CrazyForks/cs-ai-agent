@@ -15,9 +15,9 @@ import (
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
-const (
-	PrepareTicketDraftToolCode = toolx.GraphPrepareTicketDraftToolCode
-	PrepareTicketDraftToolName = toolx.GraphPrepareTicketDraftToolName
+var (
+	PrepareTicketDraftToolCode = toolx.GraphPrepareTicketDraft.Code
+	PrepareTicketDraftToolName = toolx.GraphPrepareTicketDraft.Name
 )
 
 type PrepareTicketDraftTool struct {

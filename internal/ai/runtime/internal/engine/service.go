@@ -84,12 +84,12 @@ func (s *Service) Run(ctx context.Context, req Request) (*Summary, error) {
 		toolDefsByModelName[item.ModelName] = item.ToolCode
 	}
 	if len(filteredToolDefs) > 0 {
-		summary.ToolCodes = appendIfMissing(summary.ToolCodes, toolx.BuiltinToolSearchToolCode)
-		toolDefsByModelName[toolx.BuiltinToolSearchToolName] = toolx.BuiltinToolSearchToolCode
+		summary.ToolCodes = appendIfMissing(summary.ToolCodes, toolx.BuiltinToolSearch.Code)
+		toolDefsByModelName[toolx.BuiltinToolSearch.Name] = toolx.BuiltinToolSearch.Code
 	}
 	if req.SelectedSkill != nil {
-		summary.ToolCodes = appendIfMissing(summary.ToolCodes, toolx.BuiltinSkillToolCode)
-		toolDefsByModelName[toolx.BuiltinSkillToolName] = toolx.BuiltinSkillToolCode
+		summary.ToolCodes = appendIfMissing(summary.ToolCodes, toolx.BuiltinSkill.Code)
+		toolDefsByModelName[toolx.BuiltinSkill.Name] = toolx.BuiltinSkill.Code
 	}
 	for modelName, toolCode := range toolSetStaticToolCodes(req.ToolSet) {
 		toolCode = strings.TrimSpace(toolCode)
@@ -236,8 +236,8 @@ func (s *Service) Resume(ctx context.Context, req ResumeRequest) (*Summary, erro
 		toolDefsByModelName[item.ModelName] = item.ToolCode
 	}
 	if len(toolDefs) > 0 {
-		summary.ToolCodes = appendIfMissing(summary.ToolCodes, toolx.BuiltinToolSearchToolCode)
-		toolDefsByModelName[toolx.BuiltinToolSearchToolName] = toolx.BuiltinToolSearchToolCode
+		summary.ToolCodes = appendIfMissing(summary.ToolCodes, toolx.BuiltinToolSearch.Code)
+		toolDefsByModelName[toolx.BuiltinToolSearch.Name] = toolx.BuiltinToolSearch.Code
 	}
 	for modelName, toolCode := range toolSetStaticToolCodes(req.ToolSet) {
 		toolCode = strings.TrimSpace(toolCode)
