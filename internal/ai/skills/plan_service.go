@@ -3,33 +3,24 @@ package skills
 import (
 	"context"
 	"strings"
-
-	"cs-agent/internal/pkg/errorsx"
-	"cs-agent/internal/repositories"
-
-	"github.com/mlogclub/simple/sqls"
 )
 
 func newPlanService() *planService {
-	return &planService{}
+	return &planService{
+		loader: newContextLoader(),
+	}
 }
 
-type planService struct{}
+type planService struct {
+	loader *contextLoader
+}
 
 // BuildExecutionPlan 构建当前请求的 Skill 执行计划。
 func (s *planService) BuildExecutionPlan(execCtx context.Context, ctx RuntimeContext) (*ExecutionPlan, error) {
-	if ctx.AIAgentID <= 0 {
-		return nil, errorsx.InvalidParam("AIAgentID不能为空")
+	if s.loader == nil {
+		s.loader = newContextLoader()
 	}
-
-	aiAgent := repositories.AIAgentRepository.Get(sqls.DB(), ctx.AIAgentID)
-	if aiAgent == nil {
-		return nil, errorsx.InvalidParam("AI Agent不存在")
-	}
-	aiConfig := repositories.AIConfigRepository.Get(sqls.DB(), aiAgent.AIConfigID)
-	if aiConfig == nil {
-		return nil, errorsx.InvalidParam("AI Agent关联的AI配置不存在")
-	}
+	aiAgent, aiConfig, err := s.loader.loadAIAgentWithConfig(ctx.AIAgentID)
 
 	skill, matchReason, routeTrace, err := MatchSkill(execCtx, ctx, aiAgent, aiConfig)
 	if err != nil {
