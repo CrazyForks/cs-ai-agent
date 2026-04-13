@@ -28,12 +28,9 @@ func (s *replyInterruptService) ResumePendingInterrupt(ctx context.Context, owne
 			*summaryRef = summary
 			trace.Status = "interrupt_expired"
 			trace.FinalAction = "expired"
-			replyMessage, expireErr := owner.commit.SendAIReply(conversation, message, aiAgent, summary.ReplyText, trace, "ai_interrupt_expired")
+			replyMessage, expireErr := owner.commit.CommitAIReply(conversation, message, aiAgent, summary.ReplyText, trace, "ai_interrupt_expired")
 			if expireErr != nil {
 				return expireErr
-			}
-			if err := owner.commit.IncrementAIReplyRounds(conversation.ID, conversation.AIReplyRounds+1, aiAgent.Name); err != nil {
-				return err
 			}
 			lastResumeMessageID := int64(0)
 			if replyMessage != nil {
@@ -50,11 +47,8 @@ func (s *replyInterruptService) ResumePendingInterrupt(ctx context.Context, owne
 		return s.HandleInterruptedResume(owner, conversation, message, aiAgent, pendingInterrupt, summary, trace)
 	}
 	if summary != nil && strings.TrimSpace(summary.ReplyText) != "" {
-		replyMessage, err := owner.commit.SendAIReply(conversation, message, aiAgent, summary.ReplyText, trace, "ai_resume")
+		replyMessage, err := owner.commit.CommitAIReply(conversation, message, aiAgent, summary.ReplyText, trace, "ai_resume")
 		if err != nil {
-			return err
-		}
-		if err := owner.commit.IncrementAIReplyRounds(conversation.ID, conversation.AIReplyRounds+1, aiAgent.Name); err != nil {
 			return err
 		}
 		replyMessageID := int64(0)
@@ -80,11 +74,8 @@ func (s *replyInterruptService) HandleInterruptedSummary(owner *aiReplyService, 
 	}
 	pending = svc.ConversationInterruptService.GetByCheckPointID(summary.CheckPointID)
 	replyText := resolveInterruptPrompt(summary)
-	replyMessage, err := owner.commit.SendAIReply(conversation, message, aiAgent, replyText, trace, "ai_interrupt")
+	replyMessage, err := owner.commit.CommitAIReply(conversation, message, aiAgent, replyText, trace, "ai_interrupt")
 	if err != nil {
-		return err
-	}
-	if err := owner.commit.IncrementAIReplyRounds(conversation.ID, conversation.AIReplyRounds+1, aiAgent.Name); err != nil {
 		return err
 	}
 	if replyMessage != nil && pending != nil {
@@ -99,11 +90,8 @@ func (s *replyInterruptService) HandleInterruptedResume(owner *aiReplyService, c
 		return nil
 	}
 	replyText := resolveInterruptPrompt(summary)
-	replyMessage, err := owner.commit.SendAIReply(conversation, message, aiAgent, replyText, trace, "ai_interrupt_resume")
+	replyMessage, err := owner.commit.CommitAIReply(conversation, message, aiAgent, replyText, trace, "ai_interrupt_resume")
 	if err != nil {
-		return err
-	}
-	if err := owner.commit.IncrementAIReplyRounds(conversation.ID, conversation.AIReplyRounds+1, aiAgent.Name); err != nil {
 		return err
 	}
 	if replyMessage != nil {

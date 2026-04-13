@@ -46,6 +46,18 @@ func (s *replyCommitService) SendAIReply(conversation models.Conversation, messa
 	return replyMessage, err
 }
 
+func (s *replyCommitService) CommitAIReply(conversation models.Conversation, message models.Message, aiAgent models.AIAgent,
+	replyText string, trace *aiReplyTraceData, clientPrefix string) (*models.Message, error) {
+	replyMessage, err := s.SendAIReply(conversation, message, aiAgent, replyText, trace, clientPrefix)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.IncrementAIReplyRounds(conversation.ID, conversation.AIReplyRounds+1, aiAgent.Name); err != nil {
+		return nil, err
+	}
+	return replyMessage, nil
+}
+
 func (s *replyCommitService) IncrementAIReplyRounds(conversationID int64, nextRounds int, aiAgentName string) error {
 	return repositories.ConversationRepository.Updates(sqls.DB(), conversationID, map[string]any{
 		"ai_reply_rounds":  nextRounds,

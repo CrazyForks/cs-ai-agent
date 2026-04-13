@@ -84,11 +84,8 @@ func (s *aiReplyService) executeReply(ctx context.Context, conversation models.C
 		return s.interrupts.HandleInterruptedSummary(s, conversation, message, aiAgent, summary, trace)
 	}
 	if summary != nil && strings.TrimSpace(summary.ReplyText) != "" {
-		replyMessage, err := s.commit.SendAIReply(conversation, message, aiAgent, summary.ReplyText, trace, "ai_reply")
+		replyMessage, err := s.commit.CommitAIReply(conversation, message, aiAgent, summary.ReplyText, trace, "ai_reply")
 		if err != nil {
-			return err
-		}
-		if err := s.commit.IncrementAIReplyRounds(conversation.ID, conversation.AIReplyRounds+1, aiAgent.Name); err != nil {
 			return err
 		}
 		trace.ReplySent = replyMessage != nil
