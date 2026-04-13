@@ -55,10 +55,28 @@ func (s *aiReplyService) TriggerReply(ctx context.Context, conversation models.C
 		s.runlog.Write(startedAt, message, conversation, aiAgent, message.Content, retErr, trace, summary)
 	}()
 	if pendingInterrupt := svc.ConversationInterruptService.FindLatestPendingByConversationID(conversation.ID); pendingInterrupt != nil {
-		return s.interrupts.ResumePendingInterrupt(ctx, s, conversation, message, aiAgent, pendingInterrupt, trace, &summary)
+		return s.resumePendingInterrupt(ctx, conversation, message, aiAgent, pendingInterrupt, trace, &summary)
 	}
-	var err error
-	summary, err = s.executor.Run(ctx, conversation, message, aiAgent, trace)
+	return s.executeReply(ctx, conversation, message, aiAgent, trace, &summary)
+}
+
+func (s *aiReplyService) resumePendingInterrupt(ctx context.Context, conversation models.Conversation, message models.Message, aiAgent models.AIAgent,
+	pendingInterrupt *models.ConversationInterrupt, trace *aiReplyTraceData, summaryRef **Summary) error {
+	if s == nil || s.interrupts == nil {
+		return nil
+	}
+	return s.interrupts.ResumePendingInterrupt(ctx, s, conversation, message, aiAgent, pendingInterrupt, trace, summaryRef)
+}
+
+func (s *aiReplyService) executeReply(ctx context.Context, conversation models.Conversation, message models.Message, aiAgent models.AIAgent,
+	trace *aiReplyTraceData, summaryRef **Summary) error {
+	if s == nil || s.executor == nil {
+		return nil
+	}
+	summary, err := s.executor.Run(ctx, conversation, message, aiAgent, trace)
+	if summaryRef != nil {
+		*summaryRef = summary
+	}
 	if err != nil {
 		return err
 	}
