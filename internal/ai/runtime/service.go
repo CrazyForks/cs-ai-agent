@@ -3,19 +3,19 @@ package runtime
 import (
 	"context"
 
-	runtimeapp "cs-agent/internal/ai/runtime/app"
+	applicationruntime "cs-agent/internal/ai/application/runtime"
 )
 
 var Service = newService()
 
 func newService() *service {
 	return &service{
-		app: runtimeapp.NewService(),
+		app: applicationruntime.NewService(),
 	}
 }
 
 type service struct {
-	app *runtimeapp.Service
+	app *applicationruntime.Service
 }
 
 func (s *service) Run(ctx context.Context, req Request) (*Summary, error) {
