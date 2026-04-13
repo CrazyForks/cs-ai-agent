@@ -9,11 +9,17 @@ import (
 	"github.com/mlogclub/simple/sqls"
 )
 
-func findManualSkillDefinition(skillCode string) *models.SkillDefinition {
+func newCandidateLoader() *candidateLoader {
+	return &candidateLoader{}
+}
+
+type candidateLoader struct{}
+
+func (l *candidateLoader) findManualSkillDefinition(skillCode string) *models.SkillDefinition {
 	return repositories.SkillDefinitionRepository.GetByCode(sqls.DB(), skillCode)
 }
 
-func loadCandidateSkills(aiAgent *models.AIAgent) []models.SkillDefinition {
+func (l *candidateLoader) loadCandidateSkills(aiAgent *models.AIAgent) []models.SkillDefinition {
 	if aiAgent == nil {
 		return nil
 	}

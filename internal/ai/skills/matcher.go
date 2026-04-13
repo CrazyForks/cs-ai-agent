@@ -17,8 +17,9 @@ type intentTriggerConfig struct {
 
 // MatchSkill 对单个 SkillDefinition 执行命中判断。
 func MatchSkill(execCtx context.Context, ctx RuntimeContext, aiAgent *models.AIAgent, aiConfig *models.AIConfig) (*models.SkillDefinition, string, *RouteTrace, error) {
+	loader := newCandidateLoader()
 	if strs.IsNotBlank(ctx.ManualSkillCode) {
-		skill := findManualSkillDefinition(ctx.ManualSkillCode)
+		skill := loader.findManualSkillDefinition(ctx.ManualSkillCode)
 		if skill == nil || skill.Status != enums.StatusOk {
 			return nil, "", nil, errorsx.InvalidParam("Skill 不存在或未启用")
 		}
@@ -28,7 +29,7 @@ func MatchSkill(execCtx context.Context, ctx RuntimeContext, aiAgent *models.AIA
 		}, nil
 	}
 
-	candidates := loadCandidateSkills(aiAgent)
+	candidates := loader.loadCandidateSkills(aiAgent)
 	trace := &RouteTrace{
 		Status:              "started",
 		CandidateSkillCodes: make([]string, 0, len(candidates)),
