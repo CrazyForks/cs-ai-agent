@@ -4,38 +4,24 @@ import (
 	"context"
 
 	"cs-agent/internal/ai/runtime/internal/executor"
-	"cs-agent/internal/ai/runtime/registry"
-	"cs-agent/internal/ai/runtime/tools"
 )
 
 type Service struct {
-	runtime  *executor.Service
-	registry *registry.Registry
-	prepare  *prepareService
+	runtime *executor.Service
+	catalog *toolCatalog
+	prepare *prepareService
 }
 
 func NewService() *Service {
+	catalog := newToolCatalog()
 	return &Service{
 		runtime: executor.NewService(),
-		registry: registry.NewRegistry(
-			tools.NewTriageServiceRequestTool(),
-			tools.NewAnalyzeConversationTool(),
-			tools.NewPrepareTicketDraftTool(),
-			tools.NewCreateTicketGraphTool(),
-			tools.NewHandoffGraphTool(),
-		),
-	}
-}
-
-// TODO 这个方法真的要这样吗？ 不能直接在NewService中直接初始化吗？
-func (s *Service) initPrepareService() {
-	if s.prepare == nil {
-		s.prepare = newPrepareService(s.registry)
+		catalog: catalog,
+		prepare: newPrepareService(catalog),
 	}
 }
 
 func (s *Service) Run(ctx context.Context, req Request) (*Summary, error) {
-	s.initPrepareService()
 	selectedSkill, skillReason, skillTrace, skillErr := s.prepare.selectSkill(ctx, req)
 	req.SelectedSkill = selectedSkill
 	req.SkillRouteReason = skillReason
@@ -72,7 +58,6 @@ func (s *Service) Run(ctx context.Context, req Request) (*Summary, error) {
 }
 
 func (s *Service) Resume(ctx context.Context, req ResumeRequest) (*Summary, error) {
-	s.initPrepareService()
 	if err := s.prepare.prepareToolsForResume(&req); err != nil {
 		return nil, err
 	}
