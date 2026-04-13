@@ -221,28 +221,11 @@ func (s *index) removeDocumentIndexByChunks(ctx context.Context, knowledgeBaseID
 		return nil
 	}
 
-	collectionName := s.getCollectionName()
-	provider := vectordb.GetProvider()
-	if provider == nil {
-		return fmt.Errorf("vectordb provider not initialized")
+	if err := s.deleteChunkVectors(ctx, collectChunkVectorIDs(chunks)); err != nil {
+		slog.Error("Failed to delete vectors", "error", err)
 	}
 
-	vectorIDs := make([]string, 0, len(chunks))
-	for _, chunk := range chunks {
-		if chunk.VectorID != "" {
-			vectorIDs = append(vectorIDs, chunk.VectorID)
-		}
-	}
-
-	if len(vectorIDs) > 0 {
-		if err := provider.DeleteVectors(ctx, collectionName, vectorIDs); err != nil {
-			slog.Error("Failed to delete vectors", "error", err)
-		}
-	}
-
-	if err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
-		return ctx.Tx.Where("document_id = ?", documentID).Delete(&models.KnowledgeChunk{}).Error
-	}); err != nil {
+	if err := deleteChunksByCondition("document_id", documentID); err != nil {
 		return fmt.Errorf("failed to delete chunks: %w", err)
 	}
 
@@ -267,25 +250,10 @@ func (s *index) removeFAQIndexByChunks(ctx context.Context, knowledgeBaseID int6
 	if len(chunks) == 0 {
 		return nil
 	}
-	collectionName := s.getCollectionName()
-	provider := vectordb.GetProvider()
-	if provider == nil {
-		return fmt.Errorf("vectordb provider not initialized")
+	if err := s.deleteChunkVectors(ctx, collectChunkVectorIDs(chunks)); err != nil {
+		slog.Error("Failed to delete faq vectors", "error", err)
 	}
-	vectorIDs := make([]string, 0, len(chunks))
-	for _, chunk := range chunks {
-		if chunk.VectorID != "" {
-			vectorIDs = append(vectorIDs, chunk.VectorID)
-		}
-	}
-	if len(vectorIDs) > 0 {
-		if err := provider.DeleteVectors(ctx, collectionName, vectorIDs); err != nil {
-			slog.Error("Failed to delete faq vectors", "error", err)
-		}
-	}
-	if err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
-		return ctx.Tx.Where("faq_id = ?", faqID).Delete(&models.KnowledgeChunk{}).Error
-	}); err != nil {
+	if err := deleteChunksByCondition("faq_id", faqID); err != nil {
 		return fmt.Errorf("failed to delete faq chunks: %w", err)
 	}
 	slog.Info("FAQ index removed", "faq_id", faqID, "chunks_removed", len(chunks))
@@ -455,33 +423,6 @@ func joinSimilarQuestions(items []string) string {
 }
 
 func (s *index) resetKnowledgeBaseIndexStorage(ctx context.Context, knowledgeBaseID int64) error {
-	collectionName := s.getCollectionName()
-	provider := vectordb.GetProvider()
-	if provider == nil {
-		return fmt.Errorf("vectordb provider not initialized")
-	}
-
 	chunks := repositories.KnowledgeChunkRepository.Find(sqls.DB(), sqls.NewCnd().Eq("knowledge_base_id", knowledgeBaseID))
-	vectorIDs := make([]string, 0, len(chunks))
-	for _, chunk := range chunks {
-		if strs.IsNotBlank(chunk.VectorID) {
-			vectorIDs = append(vectorIDs, chunk.VectorID)
-		}
-	}
-	if len(vectorIDs) > 0 {
-		if err := provider.DeleteVectors(ctx, collectionName, vectorIDs); err != nil {
-			return fmt.Errorf("failed to delete vectors for knowledge base %d before rebuild: %w", knowledgeBaseID, err)
-		}
-	}
-
-	if err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
-		return ctx.Tx.Where("knowledge_base_id = ?", knowledgeBaseID).Delete(&models.KnowledgeChunk{}).Error
-	}); err != nil {
-		return fmt.Errorf("failed to clear chunks before rebuild: %w", err)
-	}
-
-	slog.Info("Knowledge base index storage reset",
-		"knowledge_base_id", knowledgeBaseID,
-		"collection", collectionName)
-	return nil
+	return s.cleanupKnowledgeBaseChunks(ctx, knowledgeBaseID, chunks)
 }
