@@ -31,34 +31,18 @@ type RetrieveTrace struct {
 }
 
 func (s *retrieve) RetrieveWithTrace(ctx context.Context, req RetrieveRequest) ([]RetrieveResult, *RetrieveTrace, error) {
-	trace := &RetrieveTrace{}
-	if req.Query == "" {
-		return nil, trace, nil
-	}
-	knowledgeBaseIDs := normalizeKnowledgeBaseIDs(req.KnowledgeBaseIDs)
-	if len(knowledgeBaseIDs) == 0 {
-		return nil, trace, nil
-	}
-
-	retrievableKnowledgeBases := s.loadRetrievableKnowledgeBases(knowledgeBaseIDs)
-	if len(retrievableKnowledgeBases) == 0 {
-		slog.Info("Skip retrieve for non-enabled knowledge bases",
-			"knowledge_base_ids", fmt.Sprint(knowledgeBaseIDs))
+	trace := newRetrieveTrace()
+	retrievableKnowledgeBases, _, ok := s.prepareRetrievableKnowledgeBases(req, trace)
+	if !ok {
 		return nil, trace, nil
 	}
 
 	searchResults, searchTrace, err := s.searchKnowledgeBaseVectors(ctx, req, retrievableKnowledgeBases)
 	if err != nil {
-		if searchTrace != nil {
-			trace.EmbeddingMs = searchTrace.EmbeddingMs
-			trace.VectorSearchMs = searchTrace.VectorSearchMs
-		}
+		applySearchTrace(trace, searchTrace)
 		return nil, trace, err
 	}
-	if searchTrace != nil {
-		trace.EmbeddingMs = searchTrace.EmbeddingMs
-		trace.VectorSearchMs = searchTrace.VectorSearchMs
-	}
+	applySearchTrace(trace, searchTrace)
 
 	if len(searchResults) == 0 {
 		return nil, trace, nil
