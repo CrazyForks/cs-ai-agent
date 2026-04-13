@@ -17,7 +17,6 @@ import (
 	"cs-agent/internal/repositories"
 
 	"github.com/google/uuid"
-	"github.com/mlogclub/simple/common/strs"
 	"github.com/mlogclub/simple/sqls"
 )
 
@@ -73,46 +72,9 @@ func (s *index) IndexDocument(ctx context.Context, document *models.KnowledgeDoc
 	if err != nil {
 		return fail(err)
 	}
-
-	existingChunks := repositories.KnowledgeChunkRepository.FindByDocumentID(sqls.DB(), document.ID)
-
-	chunks, err := s.buildDocumentChunks(ctx, document, knowledgeBase)
+	vectors, chunkCount, err := s.runDocumentIndex(ctx, document, knowledgeBase)
 	if err != nil {
 		return fail(err)
-	}
-
-	collectionName := s.getCollectionName()
-	provider := vectordb.GetProvider()
-	if provider == nil {
-		return fail(fmt.Errorf("vectordb provider not initialized"))
-	}
-
-	if _, err := ai.Embedding.GetModel(ctx); err != nil {
-		return fail(fmt.Errorf("failed to get embedding model: %w", err))
-	}
-
-	existingVectorIDs := collectExistingVectorIDs(existingChunks)
-	vectors, chunkModels, dimension, err := s.prepareDocumentVectors(ctx, knowledgeBase, document, chunks)
-	if err != nil {
-		return fail(err)
-	}
-
-	if err := s.ensureCollection(ctx, provider, collectionName, dimension); err != nil {
-		return fail(err)
-	}
-
-	if len(existingVectorIDs) > 0 {
-		if err := provider.DeleteVectors(ctx, collectionName, existingVectorIDs); err != nil {
-			return fail(fmt.Errorf("failed to delete old vectors: %w", err))
-		}
-	}
-
-	if err := provider.UpsertVectors(ctx, collectionName, vectors); err != nil {
-		return fail(fmt.Errorf("failed to upsert vectors: %w", err))
-	}
-
-	if err := s.replaceDocumentChunks(document.ID, chunkModels); err != nil {
-		return fail(fmt.Errorf("failed to save chunks: %w", err))
 	}
 
 	if err := s.markDocumentIndexIndexed(document.ID); err != nil {
@@ -121,7 +83,7 @@ func (s *index) IndexDocument(ctx context.Context, document *models.KnowledgeDoc
 
 	slog.Info("Document indexed successfully",
 		slog.Any("document_id", document.ID),
-		slog.Any("chunks_count", len(chunks)),
+		slog.Any("chunks_count", chunkCount),
 		slog.Any("vectors_count", len(vectors)),
 		slog.Any("time_taken", time.Since(start).String()),
 	)
@@ -147,47 +109,8 @@ func (s *index) IndexFAQByID(ctx context.Context, faqID int64) error {
 	if err != nil {
 		return fail(err)
 	}
-	existingChunks := repositories.KnowledgeChunkRepository.FindByFaqID(sqls.DB(), faq.ID)
-	content := buildFAQChunkContent(faq)
-	if content == "" {
-		return fail(fmt.Errorf("faq content is empty"))
-	}
-
-	provider := vectordb.GetProvider()
-	if provider == nil {
-		return fail(fmt.Errorf("vectordb provider not initialized"))
-	}
-	if _, err := ai.Embedding.GetModel(ctx); err != nil {
-		return fail(fmt.Errorf("failed to get embedding model: %w", err))
-	}
-	vector, chunkModel, dimension, err := s.prepareFAQVector(ctx, knowledgeBase, faq, content)
-	if err != nil {
+	if err := s.runFAQIndex(ctx, faq, knowledgeBase); err != nil {
 		return fail(err)
-	}
-
-	collectionName := s.getCollectionName()
-	if err := s.ensureCollection(ctx, provider, collectionName, dimension); err != nil {
-		return fail(err)
-	}
-
-	existingVectorIDs := make([]string, 0, len(existingChunks))
-	for _, chunk := range existingChunks {
-		if strs.IsNotBlank(chunk.VectorID) {
-			existingVectorIDs = append(existingVectorIDs, chunk.VectorID)
-		}
-	}
-	if len(existingVectorIDs) > 0 {
-		if err := provider.DeleteVectors(ctx, collectionName, existingVectorIDs); err != nil {
-			return fail(fmt.Errorf("failed to delete old vectors: %w", err))
-		}
-	}
-
-	if err := provider.UpsertVectors(ctx, collectionName, []vectordb.Vector{vector}); err != nil {
-		return fail(fmt.Errorf("failed to upsert vectors: %w", err))
-	}
-
-	if err := s.replaceFAQChunk(faq.ID, &chunkModel); err != nil {
-		return fail(fmt.Errorf("failed to save faq chunk: %w", err))
 	}
 	if err := s.markFAQIndexIndexed(faq.ID); err != nil {
 		slog.Error("Failed to mark knowledge faq index as indexed", "faq_id", faq.ID, "error", err)
