@@ -48,9 +48,9 @@ var Index = &index{
 }
 
 func (s *index) IndexDocumentByID(ctx context.Context, documentID int64) error {
-	document := repositories.KnowledgeDocumentRepository.Get(sqls.DB(), documentID)
-	if document == nil {
-		return fmt.Errorf("document not found: %d", documentID)
+	document, err := s.loadDocumentByID(documentID)
+	if err != nil {
+		return err
 	}
 	return s.IndexDocument(ctx, document)
 }
@@ -69,9 +69,9 @@ func (s *index) IndexDocument(ctx context.Context, document *models.KnowledgeDoc
 	}
 
 	// TODO 这里每次都查询下知识库不太友好
-	knowledgeBase := repositories.KnowledgeBaseRepository.Get(sqls.DB(), document.KnowledgeBaseID)
-	if knowledgeBase == nil {
-		return fail(fmt.Errorf("knowledge base not found: %d", document.KnowledgeBaseID))
+	knowledgeBase, err := s.loadDocumentKnowledgeBase(document)
+	if err != nil {
+		return fail(err)
 	}
 
 	existingChunks := repositories.KnowledgeChunkRepository.FindByDocumentID(sqls.DB(), document.ID)
@@ -130,9 +130,9 @@ func (s *index) IndexDocument(ctx context.Context, document *models.KnowledgeDoc
 }
 
 func (s *index) IndexFAQByID(ctx context.Context, faqID int64) error {
-	faq := repositories.KnowledgeFAQRepository.Get(sqls.DB(), faqID)
-	if faq == nil {
-		return fmt.Errorf("faq not found: %d", faqID)
+	faq, err := s.loadFAQByID(faqID)
+	if err != nil {
+		return err
 	}
 	if err := s.markFAQIndexPending(faq.ID); err != nil {
 		slog.Error("Failed to mark knowledge faq index as pending", "faq_id", faq.ID, "error", err)
@@ -143,12 +143,9 @@ func (s *index) IndexFAQByID(ctx context.Context, faqID int64) error {
 		}
 		return err
 	}
-	knowledgeBase := repositories.KnowledgeBaseRepository.Get(sqls.DB(), faq.KnowledgeBaseID)
-	if knowledgeBase == nil {
-		return fail(fmt.Errorf("knowledge base not found: %d", faq.KnowledgeBaseID))
-	}
-	if knowledgeBase.KnowledgeType != string(enums.KnowledgeBaseTypeFAQ) {
-		return fail(fmt.Errorf("knowledge base %d is not faq type", knowledgeBase.ID))
+	knowledgeBase, err := s.loadFAQKnowledgeBase(faq)
+	if err != nil {
+		return fail(err)
 	}
 	existingChunks := repositories.KnowledgeChunkRepository.FindByFaqID(sqls.DB(), faq.ID)
 	content := buildFAQChunkContent(faq)
