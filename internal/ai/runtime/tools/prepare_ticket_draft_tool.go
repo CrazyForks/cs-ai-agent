@@ -15,11 +15,6 @@ import (
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
-var (
-	PrepareTicketDraftToolCode = toolx.GraphPrepareTicketDraft.Code
-	PrepareTicketDraftToolName = toolx.GraphPrepareTicketDraft.Name
-)
-
 type PrepareTicketDraftTool struct {
 	conversation *models.Conversation
 }
@@ -29,11 +24,11 @@ func NewPrepareTicketDraftTool() *PrepareTicketDraftTool {
 }
 
 func (t *PrepareTicketDraftTool) Name() string {
-	return PrepareTicketDraftToolName
+	return toolx.GraphPrepareTicketDraft.Name
 }
 
 func (t *PrepareTicketDraftTool) Code() string {
-	return PrepareTicketDraftToolCode
+	return toolx.GraphPrepareTicketDraft.Code
 }
 
 func (t *PrepareTicketDraftTool) Enabled(ctx registry.Context) bool {
@@ -49,7 +44,7 @@ func (t *PrepareTicketDraftTool) Build(ctx registry.Context) (einotool.BaseTool,
 
 func (t *PrepareTicketDraftTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 	return &schema.ToolInfo{
-		Name: PrepareTicketDraftToolName,
+		Name: toolx.GraphPrepareTicketDraft.Name,
 		Desc: "Graph Tool。用于根据当前会话和已收集信息整理工单草稿，输出建议标题、建议描述、缺失字段和追问建议。适合在真正调用 create_ticket_with_confirmation 前先整理工单内容。",
 		ParamsOneOf: schema.NewParamsOneOfByJSONSchema(&einojsonschema.Schema{
 			Version: einojsonschema.Version,
@@ -114,7 +109,7 @@ func (t *PrepareTicketDraftTool) Info(ctx context.Context) (*schema.ToolInfo, er
 			)),
 		}),
 		Extra: map[string]any{
-			"toolCode":   PrepareTicketDraftToolCode,
+			"toolCode":   toolx.GraphPrepareTicketDraft.Code,
 			"sourceType": "graph",
 		},
 	}, nil

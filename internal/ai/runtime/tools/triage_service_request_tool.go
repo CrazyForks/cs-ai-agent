@@ -15,11 +15,6 @@ import (
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
-var (
-	TriageServiceRequestToolCode = toolx.GraphTriageServiceRequest.Code
-	TriageServiceRequestToolName = toolx.GraphTriageServiceRequest.Name
-)
-
 type TriageServiceRequestTool struct {
 	conversation *models.Conversation
 }
@@ -29,11 +24,11 @@ func NewTriageServiceRequestTool() *TriageServiceRequestTool {
 }
 
 func (t *TriageServiceRequestTool) Name() string {
-	return TriageServiceRequestToolName
+	return toolx.GraphTriageServiceRequest.Name
 }
 
 func (t *TriageServiceRequestTool) Code() string {
-	return TriageServiceRequestToolCode
+	return toolx.GraphTriageServiceRequest.Code
 }
 
 func (t *TriageServiceRequestTool) Enabled(ctx registry.Context) bool {
@@ -49,7 +44,7 @@ func (t *TriageServiceRequestTool) Build(ctx registry.Context) (einotool.BaseToo
 
 func (t *TriageServiceRequestTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 	return &schema.ToolInfo{
-		Name: TriageServiceRequestToolName,
+		Name: toolx.GraphTriageServiceRequest.Name,
 		Desc: "Graph Tool。用于综合分析当前对话，判断应该继续解答、整理工单草稿还是转人工；当判断为建单时，会一并返回结构化工单草稿建议。",
 		ParamsOneOf: schema.NewParamsOneOfByJSONSchema(&einojsonschema.Schema{
 			Version: einojsonschema.Version,
@@ -93,7 +88,7 @@ func (t *TriageServiceRequestTool) Info(ctx context.Context) (*schema.ToolInfo, 
 			)),
 		}),
 		Extra: map[string]any{
-			"toolCode":   TriageServiceRequestToolCode,
+			"toolCode":   toolx.GraphTriageServiceRequest.Code,
 			"sourceType": "graph",
 		},
 	}, nil

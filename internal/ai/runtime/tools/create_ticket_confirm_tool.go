@@ -15,11 +15,6 @@ import (
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
-var (
-	CreateTicketConfirmToolCode = toolx.GraphCreateTicketConfirm.Code
-	CreateTicketConfirmToolName = toolx.GraphCreateTicketConfirm.Name
-)
-
 type CreateTicketGraphTool struct {
 	conversation *models.Conversation
 	aiAgent      *models.AIAgent
@@ -30,11 +25,11 @@ func NewCreateTicketGraphTool() *CreateTicketGraphTool {
 }
 
 func (t *CreateTicketGraphTool) Name() string {
-	return CreateTicketConfirmToolName
+	return toolx.GraphCreateTicketConfirm.Name
 }
 
 func (t *CreateTicketGraphTool) Code() string {
-	return CreateTicketConfirmToolCode
+	return toolx.GraphCreateTicketConfirm.Code
 }
 
 func (t *CreateTicketGraphTool) Enabled(ctx registry.Context) bool {
@@ -53,7 +48,7 @@ func (t *CreateTicketGraphTool) Build(ctx registry.Context) (einotool.BaseTool, 
 
 func (t *CreateTicketGraphTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 	return &schema.ToolInfo{
-		Name: CreateTicketConfirmToolName,
+		Name: toolx.GraphCreateTicketConfirm.Name,
 		Desc: "Graph Tool。用于封装建单参数整理、用户确认、真正创建工单和结果返回的确定性流程。仅在用户明确要求建单且标题、描述已整理清楚后调用。",
 		ParamsOneOf: schema.NewParamsOneOfByJSONSchema(&einojsonschema.Schema{
 			Version: einojsonschema.Version,
@@ -94,7 +89,7 @@ func (t *CreateTicketGraphTool) Info(ctx context.Context) (*schema.ToolInfo, err
 			)),
 		}),
 		Extra: map[string]any{
-			"toolCode":   CreateTicketConfirmToolCode,
+			"toolCode":   toolx.GraphCreateTicketConfirm.Code,
 			"sourceType": "graph",
 		},
 	}, nil

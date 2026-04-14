@@ -15,11 +15,6 @@ import (
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
-var (
-	HandoffConversationToolCode = toolx.GraphHandoffConversation.Code
-	HandoffConversationToolName = toolx.GraphHandoffConversation.Name
-)
-
 type HandoffGraphTool struct {
 	conversation *models.Conversation
 	aiAgent      *models.AIAgent
@@ -30,11 +25,11 @@ func NewHandoffGraphTool() *HandoffGraphTool {
 }
 
 func (t *HandoffGraphTool) Name() string {
-	return HandoffConversationToolName
+	return toolx.GraphHandoffConversation.Name
 }
 
 func (t *HandoffGraphTool) Code() string {
-	return HandoffConversationToolCode
+	return toolx.GraphHandoffConversation.Code
 }
 
 func (t *HandoffGraphTool) Enabled(ctx registry.Context) bool {
@@ -53,7 +48,7 @@ func (t *HandoffGraphTool) Build(ctx registry.Context) (einotool.BaseTool, error
 
 func (t *HandoffGraphTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 	return &schema.ToolInfo{
-		Name: HandoffConversationToolName,
+		Name: toolx.GraphHandoffConversation.Name,
 		Desc: "Graph Tool。用于封装转人工原因整理、用户确认、真正转人工和结果返回的确定性流程。仅在用户明确要求人工客服，或你已确认必须转人工处理时调用。",
 		ParamsOneOf: schema.NewParamsOneOfByJSONSchema(&einojsonschema.Schema{
 			Version: einojsonschema.Version,
@@ -69,7 +64,7 @@ func (t *HandoffGraphTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 			)),
 		}),
 		Extra: map[string]any{
-			"toolCode":   HandoffConversationToolCode,
+			"toolCode":   toolx.GraphHandoffConversation.Code,
 			"sourceType": "graph",
 		},
 	}, nil

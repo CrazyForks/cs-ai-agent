@@ -15,11 +15,6 @@ import (
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
-var (
-	AnalyzeConversationToolCode = toolx.GraphAnalyzeConversation.Code
-	AnalyzeConversationToolName = toolx.GraphAnalyzeConversation.Name
-)
-
 type AnalyzeConversationTool struct {
 	conversation *models.Conversation
 }
@@ -29,11 +24,11 @@ func NewAnalyzeConversationTool() *AnalyzeConversationTool {
 }
 
 func (t *AnalyzeConversationTool) Name() string {
-	return AnalyzeConversationToolName
+	return toolx.GraphAnalyzeConversation.Name
 }
 
 func (t *AnalyzeConversationTool) Code() string {
-	return AnalyzeConversationToolCode
+	return toolx.GraphAnalyzeConversation.Code
 }
 
 func (t *AnalyzeConversationTool) Enabled(ctx registry.Context) bool {
@@ -49,7 +44,7 @@ func (t *AnalyzeConversationTool) Build(ctx registry.Context) (einotool.BaseTool
 
 func (t *AnalyzeConversationTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 	return &schema.ToolInfo{
-		Name: AnalyzeConversationToolName,
+		Name: toolx.GraphAnalyzeConversation.Name,
 		Desc: "Graph Tool。用于整理当前对话摘要、识别投诉/资金/情绪等风险信号，并给出继续解答、建单或转人工的建议。",
 		ParamsOneOf: schema.NewParamsOneOfByJSONSchema(&einojsonschema.Schema{
 			Version: einojsonschema.Version,
@@ -100,7 +95,7 @@ func (t *AnalyzeConversationTool) Info(ctx context.Context) (*schema.ToolInfo, e
 			)),
 		}),
 		Extra: map[string]any{
-			"toolCode":   AnalyzeConversationToolCode,
+			"toolCode":   toolx.GraphAnalyzeConversation.Code,
 			"sourceType": "graph",
 		},
 	}, nil

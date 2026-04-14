@@ -18,11 +18,6 @@ import (
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
-var (
-	ToolSearchToolCode = toolx.BuiltinToolSearch.Code
-	ToolSearchToolName = toolx.BuiltinToolSearch.Name
-)
-
 type ToolSearchTool struct {
 	allowedToolCodes []string
 }
@@ -32,11 +27,11 @@ func NewToolSearchTool() *ToolSearchTool {
 }
 
 func (t *ToolSearchTool) Name() string {
-	return ToolSearchToolName
+	return toolx.BuiltinToolSearch.Name
 }
 
 func (t *ToolSearchTool) Code() string {
-	return ToolSearchToolCode
+	return toolx.BuiltinToolSearch.Code
 }
 
 func (t *ToolSearchTool) Enabled(ctx registry.Context) bool {
@@ -54,7 +49,7 @@ func (t *ToolSearchTool) Build(ctx registry.Context) (einotool.BaseTool, error) 
 
 func (t *ToolSearchTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 	return &schema.ToolInfo{
-		Name: ToolSearchToolName,
+		Name: toolx.BuiltinToolSearch.Name,
 		Desc: "当你需要使用当前会话允许的长尾 MCP 工具时，先调用本工具搜索合适的 toolCode；确认目标后，可再次调用本工具并传入 toolCode 与 arguments 代理执行。不要用它替代明确固定的内置流程工具。",
 		ParamsOneOf: schema.NewParamsOneOfByJSONSchema(&einojsonschema.Schema{
 			Version: einojsonschema.Version,
@@ -85,7 +80,7 @@ func (t *ToolSearchTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 			)),
 		}),
 		Extra: map[string]any{
-			"toolCode": ToolSearchToolCode,
+			"toolCode": toolx.BuiltinToolSearch.Code,
 		},
 	}, nil
 }
