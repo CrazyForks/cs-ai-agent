@@ -34,6 +34,9 @@ func (f *ToolFactory) BuildMCPTools(aiAgent *models.AIAgent) ([]runtimetooling.M
 		if toolCode == "" {
 			toolCode = toolx.BuildMCPToolCode(item.ServerCode, item.ToolName)
 		}
+		if toolx.ResolveToolSourceType(toolCode) != "mcp" {
+			continue
+		}
 		serverCode, toolName := toolx.SplitMCPToolCode(toolCode)
 		if serverCode == "" || toolName == "" {
 			continue
