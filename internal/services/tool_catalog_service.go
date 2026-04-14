@@ -7,6 +7,7 @@ import (
 
 	"cs-agent/internal/ai/mcps"
 	"cs-agent/internal/pkg/config"
+	"cs-agent/internal/pkg/enums"
 	"cs-agent/internal/pkg/errorsx"
 	"cs-agent/internal/pkg/toolx"
 )
@@ -23,7 +24,7 @@ type MCPToolCatalogItem struct {
 	ToolCode     string
 	ServerCode   string
 	ToolName     string
-	SourceType   string
+	SourceType   enums.ToolSourceType
 	AutoInjected bool
 	Title        string
 	Description  string
@@ -69,7 +70,7 @@ func (s *toolCatalogService) ListMCPTools(ctx context.Context) ([]MCPToolCatalog
 				ToolCode:     toolx.BuildMCPToolCode(serverCode, item.Name),
 				ServerCode:   serverCode,
 				ToolName:     strings.TrimSpace(item.Name),
-				SourceType:   "mcp",
+				SourceType:   enums.ToolSourceTypeMCP,
 				AutoInjected: false,
 				Title:        strings.TrimSpace(item.Title),
 				Description:  strings.TrimSpace(item.Description),

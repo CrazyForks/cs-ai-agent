@@ -1,6 +1,10 @@
 package toolx
 
-import "strings"
+import (
+	"strings"
+
+	"cs-agent/internal/pkg/enums"
+)
 
 type ToolSpec struct {
 	Code          string
@@ -8,7 +12,7 @@ type ToolSpec struct {
 	Name          string
 	Title         string
 	Description   string
-	SourceType    string
+	SourceType    enums.ToolSourceType
 	AutoInjected  bool
 	DirectAccess  bool
 	RuntimeStatic bool
@@ -20,7 +24,7 @@ type ToolMetadata struct {
 	ToolCode   string
 	ServerCode string
 	ToolName   string
-	SourceType string
+	SourceType enums.ToolSourceType
 }
 
 var (
@@ -30,7 +34,7 @@ var (
 		Name:         "tool_search",
 		Title:        "搜索并调用动态工具",
 		Description:  "用于搜索当前允许使用的 MCP 工具，并在确认目标 toolCode 后动态调用该工具。适合处理长尾工具，不应替代固定内置流程工具。",
-		SourceType:   "builtin",
+		SourceType:   enums.ToolSourceTypeBuiltin,
 		AutoInjected: true,
 		DirectAccess: true,
 		Appendix: strings.TrimSpace(`
@@ -46,7 +50,7 @@ var (
 		Name:         "skill",
 		Title:        "加载专项技能说明",
 		Description:  "用于加载当前命中的专项技能说明文档。仅在本轮已命中 Skill 时可用，适合将专项处理规则按需注入上下文。",
-		SourceType:   "builtin",
+		SourceType:   enums.ToolSourceTypeBuiltin,
 		AutoInjected: true,
 	}
 	GraphTriageServiceRequest = ToolSpec{
@@ -55,7 +59,7 @@ var (
 		Name:          "triage_service_request",
 		Title:         "升级分流判断",
 		Description:   "Graph Tool。用于综合分析当前对话，判断应继续解答、整理工单草稿还是转人工，并在需要建单时一并整理工单草稿。",
-		SourceType:    "graph",
+		SourceType:    enums.ToolSourceTypeGraph,
 		RuntimeStatic: true,
 		Appendix: strings.TrimSpace(`
 当你需要判断“继续解答 / 建单 / 转人工”这类复杂升级路径时，优先先调用 triage_service_request 这个 Graph Tool，并遵守以下规则：
@@ -72,7 +76,7 @@ var (
 		Name:          "analyze_conversation",
 		Title:         "分析对话风险与摘要",
 		Description:   "Graph Tool。用于整理当前对话摘要、识别风险信号，并给出继续解答、建单或转人工的建议。",
-		SourceType:    "graph",
+		SourceType:    enums.ToolSourceTypeGraph,
 		RuntimeStatic: true,
 		Appendix: strings.TrimSpace(`
 当对话可能涉及投诉升级、退款赔偿、明显负面情绪、是否要建单、是否要转人工等复杂判断时，优先调用 analyze_conversation 这个 Graph Tool，并遵守以下规则：
@@ -88,7 +92,7 @@ var (
 		Name:          "prepare_ticket_draft",
 		Title:         "整理工单草稿",
 		Description:   "Graph Tool。用于根据当前会话和已收集信息整理工单草稿，输出建议标题、描述、缺失字段和追问建议。",
-		SourceType:    "graph",
+		SourceType:    enums.ToolSourceTypeGraph,
 		RuntimeStatic: true,
 		Appendix: strings.TrimSpace(`
 当用户已经表达了建单、投诉、报障、售后处理等诉求，但工单标题、描述或问题整理还比较散乱时，优先调用 prepare_ticket_draft 这个 Graph Tool，并遵守以下规则：
@@ -104,7 +108,7 @@ var (
 		Name:          "create_ticket_with_confirmation",
 		Title:         "创建工单确认流程",
 		Description:   "Graph Tool。用于封装建单参数整理、用户确认、真正建单和结果返回的确定性流程。",
-		SourceType:    "graph",
+		SourceType:    enums.ToolSourceTypeGraph,
 		DirectAccess:  true,
 		RuntimeStatic: true,
 		Aliases:       []string{"builtin/create_ticket_with_confirmation"},
@@ -123,7 +127,7 @@ var (
 		Name:          "handoff_to_human",
 		Title:         "转人工确认流程",
 		Description:   "Graph Tool。用于封装转人工原因整理、用户确认、真正转人工和结果返回的确定性流程。",
-		SourceType:    "graph",
+		SourceType:    enums.ToolSourceTypeGraph,
 		DirectAccess:  true,
 		RuntimeStatic: true,
 		Appendix: strings.TrimSpace(`
@@ -229,18 +233,18 @@ func GetRegisteredToolIdentity(toolCode string) (serverCode, toolName string, ok
 	return spec.ServerCode, spec.Name, true
 }
 
-func ResolveToolSourceType(toolCode string) string {
+func ResolveToolSourceType(toolCode string) enums.ToolSourceType {
 	if spec, ok := GetRegisteredToolSpec(toolCode); ok {
 		return spec.SourceType
 	}
 	toolCode = strings.TrimSpace(toolCode)
 	switch {
 	case strings.HasPrefix(toolCode, "graph/"):
-		return "graph"
+		return enums.ToolSourceTypeGraph
 	case strings.HasPrefix(toolCode, "builtin/"):
-		return "builtin"
+		return enums.ToolSourceTypeBuiltin
 	default:
-		return "mcp"
+		return enums.ToolSourceTypeMCP
 	}
 }
 
@@ -309,7 +313,7 @@ func BuildToolAppendicesForCodes(hasDynamicMCPTools bool, toolCodes []string) []
 	return ret
 }
 
-func BuildToolMetadata(toolCode string) (serverCode, toolName, sourceType string, ok bool) {
+func BuildToolMetadata(toolCode string) (serverCode, toolName string, sourceType enums.ToolSourceType, ok bool) {
 	spec, ok := GetRegisteredToolSpec(toolCode)
 	if !ok {
 		return "", "", ResolveToolSourceType(toolCode), false
@@ -331,7 +335,7 @@ func ResolveToolMetadata(toolCode string, fallbackName string) ToolMetadata {
 		ToolCode:   toolCode,
 		ServerCode: strings.TrimSpace(serverCode),
 		ToolName:   strings.TrimSpace(toolName),
-		SourceType: strings.TrimSpace(sourceType),
+		SourceType: sourceType,
 	}
 }
 

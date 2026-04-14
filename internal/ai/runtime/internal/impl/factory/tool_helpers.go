@@ -8,6 +8,7 @@ import (
 	"cs-agent/internal/ai/runtime/registry"
 	runtimetooling "cs-agent/internal/ai/runtime/tooling"
 	"cs-agent/internal/models"
+	"cs-agent/internal/pkg/enums"
 	"cs-agent/internal/pkg/toolx"
 )
 
@@ -37,7 +38,7 @@ func buildRuntimeTraceToolMetadata(
 			ToolCode:   strings.TrimSpace(item.ToolCode),
 			ServerCode: strings.TrimSpace(item.ServerCode),
 			ToolName:   strings.TrimSpace(item.ToolName),
-			SourceType: "mcp",
+			SourceType: enums.ToolSourceTypeMCP,
 		}
 	}
 	for modelName, metadata := range staticToolMetadata {
@@ -45,7 +46,6 @@ func buildRuntimeTraceToolMetadata(
 		metadata.ToolCode = strings.TrimSpace(metadata.ToolCode)
 		metadata.ServerCode = strings.TrimSpace(metadata.ServerCode)
 		metadata.ToolName = strings.TrimSpace(metadata.ToolName)
-		metadata.SourceType = strings.TrimSpace(metadata.SourceType)
 		if modelName == "" || metadata.ToolCode == "" {
 			continue
 		}

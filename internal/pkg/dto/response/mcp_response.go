@@ -1,6 +1,9 @@
 package response
 
-import "cs-agent/internal/ai/mcps"
+import (
+	"cs-agent/internal/ai/mcps"
+	"cs-agent/internal/pkg/enums"
+)
 
 type MCPConnectionResponse struct {
 	ServerCode string `json:"serverCode"`
@@ -66,15 +69,15 @@ func BuildMCPToolInfoResponses(items []mcps.ToolInfo) []MCPToolInfoResponse {
 }
 
 type MCPToolCatalogResponse struct {
-	ToolCode     string `json:"toolCode"`
-	ServerCode   string `json:"serverCode"`
-	ToolName     string `json:"toolName"`
-	SourceType   string `json:"sourceType"`
-	AutoInjected bool   `json:"autoInjected"`
-	Title        string `json:"title"`
-	Description  string `json:"description"`
-	InputSchema  any    `json:"inputSchema"`
-	OutputSchema any    `json:"outputSchema,omitempty"`
+	ToolCode     string               `json:"toolCode"`
+	ServerCode   string               `json:"serverCode"`
+	ToolName     string               `json:"toolName"`
+	SourceType   enums.ToolSourceType `json:"sourceType"`
+	AutoInjected bool                 `json:"autoInjected"`
+	Title        string               `json:"title"`
+	Description  string               `json:"description"`
+	InputSchema  any                  `json:"inputSchema"`
+	OutputSchema any                  `json:"outputSchema,omitempty"`
 }
 
 type MCPToolResultContentResponse struct {

@@ -359,11 +359,13 @@ export type MCPToolInfo = {
   outputSchema?: unknown
 }
 
+export type MCPToolSourceType = "mcp" | "graph" | "builtin"
+
 export type MCPToolCatalogItem = {
   toolCode: string
   serverCode: string
   toolName: string
-  sourceType: string
+  sourceType: MCPToolSourceType
   autoInjected: boolean
   title: string
   description: string

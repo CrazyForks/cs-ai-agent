@@ -60,8 +60,8 @@ func (r *Registry) Resolve(ctx Context) (*ToolSet, error) {
 		if strings.TrimSpace(resolvedMetadata.ToolName) == "" {
 			resolvedMetadata.ToolName = toolName
 		}
-		if strings.TrimSpace(resolvedMetadata.SourceType) == "" {
-			resolvedMetadata.SourceType = strings.TrimSpace(spec.SourceType)
+		if resolvedMetadata.SourceType == "" {
+			resolvedMetadata.SourceType = spec.SourceType
 		}
 		ret.StaticToolMetadata[toolName] = ToolMetadata{
 			ToolCode:   resolvedMetadata.ToolCode,

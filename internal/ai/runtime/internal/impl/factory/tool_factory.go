@@ -8,6 +8,7 @@ import (
 	impladapter "cs-agent/internal/ai/runtime/internal/impl/adapter"
 	runtimetooling "cs-agent/internal/ai/runtime/tooling"
 	"cs-agent/internal/models"
+	"cs-agent/internal/pkg/enums"
 	"cs-agent/internal/pkg/toolx"
 
 	einotool "github.com/cloudwego/eino/components/tool"
@@ -34,7 +35,7 @@ func (f *ToolFactory) BuildMCPTools(aiAgent *models.AIAgent) ([]runtimetooling.M
 		if toolCode == "" {
 			toolCode = toolx.BuildMCPToolCode(item.ServerCode, item.ToolName)
 		}
-		if toolx.ResolveToolSourceType(toolCode) != "mcp" {
+		if toolx.ResolveToolSourceType(toolCode) != enums.ToolSourceTypeMCP {
 			continue
 		}
 		serverCode, toolName := toolx.SplitMCPToolCode(toolCode)

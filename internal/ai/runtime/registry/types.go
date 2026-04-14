@@ -2,6 +2,7 @@ package registry
 
 import (
 	"cs-agent/internal/models"
+	"cs-agent/internal/pkg/enums"
 	"cs-agent/internal/pkg/toolx"
 
 	einotool "github.com/cloudwego/eino/components/tool"
@@ -19,7 +20,7 @@ type ToolMetadata struct {
 	ToolCode   string
 	ServerCode string
 	ToolName   string
-	SourceType string
+	SourceType enums.ToolSourceType
 }
 
 // ToolSet 描述当前运行时可直接挂载到 ToolsNode 上的固定工具集合。

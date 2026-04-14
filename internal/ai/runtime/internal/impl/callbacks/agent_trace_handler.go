@@ -7,6 +7,7 @@ import (
 	"time"
 
 	impladapter "cs-agent/internal/ai/runtime/internal/impl/adapter"
+	"cs-agent/internal/pkg/enums"
 	"cs-agent/internal/pkg/toolx"
 
 	einotool "github.com/cloudwego/eino/components/tool"
@@ -18,7 +19,7 @@ type ToolMetadata struct {
 	ToolCode   string
 	ServerCode string
 	ToolName   string
-	SourceType string
+	SourceType enums.ToolSourceType
 }
 
 type RuntimeTraceHandler struct {
@@ -101,7 +102,7 @@ func (h *RuntimeTraceHandler) WrapInvokableToolCall(_ context.Context, endpoint 
 			item.ErrorMessage = err.Error()
 		}
 		h.collector.AddToolItem(item)
-		if metadata, ok := h.resolveToolMetadata(item.ToolName); ok && strings.TrimSpace(metadata.SourceType) == toolx.GraphCreateTicketConfirm.ServerCode {
+		if metadata, ok := h.resolveToolMetadata(item.ToolName); ok && metadata.SourceType == enums.ToolSourceTypeGraph {
 			recommendedAction, riskLevel, ticketDraftReady := parseGraphToolOutcome(item.ToolCode, result)
 			h.collector.AddGraphToolItem(GraphToolTraceItem{
 				ToolCode:          item.ToolCode,

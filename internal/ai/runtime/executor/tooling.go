@@ -93,7 +93,6 @@ func toolSetStaticToolMetadata(toolSet *registry.ToolSet) map[string]registry.To
 		item.ToolCode = strings.TrimSpace(item.ToolCode)
 		item.ServerCode = strings.TrimSpace(item.ServerCode)
 		item.ToolName = strings.TrimSpace(item.ToolName)
-		item.SourceType = strings.TrimSpace(item.SourceType)
 		ret[trimmedName] = item
 	}
 	return ret

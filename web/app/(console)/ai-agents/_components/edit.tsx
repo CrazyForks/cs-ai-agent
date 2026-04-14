@@ -38,6 +38,7 @@ import {
   type CreateAIAgentPayload,
   type KnowledgeBase,
   type MCPToolCatalogItem,
+  type MCPToolSourceType,
   type SkillDefinition,
   fetchAIAgent,
   fetchAIConfigsAll,
@@ -63,7 +64,7 @@ type DirectToolOption = {
   value: string;
   label: string;
   meta: DirectToolItem;
-  sourceType: string;
+  sourceType: MCPToolSourceType;
   autoInjected: boolean;
   groupLabel: string;
 };
