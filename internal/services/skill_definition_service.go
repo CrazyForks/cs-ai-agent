@@ -148,17 +148,17 @@ func (s *skillDefinitionService) UpdateSkillDefinition(req request.UpdateSkillDe
 		return errorsx.InvalidParam("Skill 编码已存在")
 	}
 	return repositories.SkillDefinitionRepository.Updates(sqls.DB(), req.ID, map[string]any{
-		"code":               normalized.Code,
-		"name":               normalized.Name,
-		"description":        normalized.Description,
-		"instruction":        normalized.Instruction,
-		"examples":           mustMarshalSkillStringArray(normalized.Examples),
-		"allowed_tool_codes": mustMarshalSkillStringArray(normalized.ToolWhitelist),
-		"priority":           resolveSkillPriorityForService(normalized.Priority, current.Priority),
-		"remark":             normalized.Remark,
-		"update_user_id":     operator.UserID,
-		"update_user_name":   operator.Username,
-		"updated_at":         time.Now(),
+		"code":             normalized.Code,
+		"name":             normalized.Name,
+		"description":      normalized.Description,
+		"instruction":      normalized.Instruction,
+		"examples":         mustMarshalSkillStringArray(normalized.Examples),
+		"tool_whitelist":   mustMarshalSkillStringArray(normalized.ToolWhitelist),
+		"priority":         resolveSkillPriorityForService(normalized.Priority, current.Priority),
+		"remark":           normalized.Remark,
+		"update_user_id":   operator.UserID,
+		"update_user_name": operator.Username,
+		"updated_at":       time.Now(),
 	})
 }
 

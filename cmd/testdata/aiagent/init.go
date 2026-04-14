@@ -140,11 +140,11 @@ func getDefaultSkillIDs() (string, error) {
 	skillItem := repositories.SkillDefinitionRepository.Take(
 		sqls.DB(),
 		"code = ? AND status = ?",
-		skill.TestGreetingSkillCode,
+		skill.AfterSalesEscalationSkillCode,
 		enums.StatusOk,
 	)
 	if skillItem == nil {
-		return "", fmt.Errorf("default test skill not found: %s", skill.TestGreetingSkillCode)
+		return "", fmt.Errorf("default test skill not found: %s", skill.AfterSalesEscalationSkillCode)
 	}
 	return utils.JoinInt64s([]int64{skillItem.ID}), nil
 }
