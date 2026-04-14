@@ -2,8 +2,6 @@ package factory
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"strings"
 
 	einoadapter "cs-agent/internal/ai/runtime/internal/impl/adapter"
@@ -15,7 +13,6 @@ import (
 
 	"github.com/cloudwego/eino/adk"
 	einotoolsearch "github.com/cloudwego/eino/adk/middlewares/dynamictool/toolsearch"
-	einoskill "github.com/cloudwego/eino/adk/middlewares/skill"
 	einobasetool "github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/compose"
 )
@@ -24,6 +21,7 @@ type AgentFactory struct {
 	chatModelFactory   *ChatModelFactory
 	toolFactory        *ToolFactory
 	instructionService *InstructionService
+	skillMiddleware    *SkillMiddlewareService
 }
 
 // BuildCustomerServiceAgentInput 定义客服 Agent 的装配输入。
@@ -60,6 +58,7 @@ func NewAgentFactory() *AgentFactory {
 		chatModelFactory:   NewChatModelFactory(),
 		toolFactory:        NewToolFactory(),
 		instructionService: NewInstructionService(nil, nil, nil, nil, nil),
+		skillMiddleware:    NewSkillMiddlewareService(),
 	}
 }
 
@@ -89,7 +88,7 @@ func (f *AgentFactory) BuildCustomerServiceAgent(ctx context.Context, input Buil
 		handlers = append(handlers, toolSearchHandler)
 	}
 	if input.SelectedSkill != nil {
-		skillHandler, skillErr := f.buildSelectedSkillMiddleware(ctx, input.SelectedSkill, input.InstructionToolDefinitions)
+		skillHandler, skillErr := f.skillMiddleware.Build(ctx, input.SelectedSkill, input.InstructionToolDefinitions)
 		if skillErr != nil {
 			return nil, skillErr
 		}
@@ -129,91 +128,4 @@ func (f *AgentFactory) BuildCustomerServiceAgent(ctx context.Context, input Buil
 		return nil, err
 	}
 	return &einoagents.CustomerServiceAgent{Inner: inner}, nil
-}
-
-func (f *AgentFactory) buildSelectedSkillMiddleware(ctx context.Context, selectedSkill *models.SkillDefinition, toolDefinitions []einoadapter.MCPToolDefinition) (adk.ChatModelAgentMiddleware, error) {
-	backend, err := newSelectedSkillBackend(selectedSkill, toolDefinitions)
-	if err != nil {
-		return nil, err
-	}
-	toolName := toolx.BuiltinSkill.Name
-	return einoskill.NewMiddleware(ctx, &einoskill.Config{
-		Backend:       backend,
-		SkillToolName: &toolName,
-		UseChinese:    true,
-	})
-}
-
-func buildSelectedSkillActivationInstruction(skill *models.SkillDefinition) string {
-	if skill == nil {
-		return ""
-	}
-	lines := []string{
-		"当前命中的专项技能：",
-		fmt.Sprintf("- code: %s", strings.TrimSpace(skill.Code)),
-		fmt.Sprintf("- name: %s", strings.TrimSpace(skill.Name)),
-	}
-	if desc := strings.TrimSpace(skill.Description); desc != "" {
-		lines = append(lines, fmt.Sprintf("- description: %s", desc))
-	}
-	lines = append(lines, "", "执行要求：", "- 本轮优先处理该技能范围内的问题。", fmt.Sprintf("- 需要专项处理细节时，优先调用 %s 工具加载该技能说明后再继续。", toolx.BuiltinSkill.Name), "- 如果关键信息不足，先向用户追问。", "- 不得调用当前技能未授权的工具。")
-	return strings.TrimSpace(strings.Join(lines, "\n"))
-}
-
-func buildSelectedSkillDocument(skill *models.SkillDefinition, toolDefinitions []einoadapter.MCPToolDefinition) string {
-	if skill == nil {
-		return ""
-	}
-	lines := []string{
-		"当前命中的专项技能：",
-		fmt.Sprintf("- code: %s", strings.TrimSpace(skill.Code)),
-		fmt.Sprintf("- name: %s", strings.TrimSpace(skill.Name)),
-	}
-	if desc := strings.TrimSpace(skill.Description); desc != "" {
-		lines = append(lines, fmt.Sprintf("- description: %s", desc))
-	}
-	if content := strings.TrimSpace(skill.Instruction); content != "" {
-		lines = append(lines, "", "技能说明：", content)
-	}
-	if examples := parseJSONStringArray(skill.Examples); len(examples) > 0 {
-		lines = append(lines, "", "典型示例问法：")
-		for _, item := range examples {
-			lines = append(lines, "- "+item)
-		}
-	}
-	if len(toolDefinitions) > 0 {
-		lines = append(lines, "", "当前技能允许使用的工具：")
-		for _, item := range toolDefinitions {
-			if strings.TrimSpace(item.ToolCode) == "" {
-				continue
-			}
-			line := "- " + strings.TrimSpace(item.ToolCode)
-			if title := strings.TrimSpace(item.Title); title != "" {
-				line += " | " + title
-			}
-			lines = append(lines, line)
-		}
-	}
-	lines = append(lines, "", "执行要求：", "- 优先遵循该技能说明完成任务。", "- 如果关键信息不足，先向用户追问。", "- 不得调用当前技能未授权的工具。")
-	return strings.TrimSpace(strings.Join(lines, "\n"))
-}
-
-func parseJSONStringArray(raw string) []string {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
-		return nil
-	}
-	var ret []string
-	if err := json.Unmarshal([]byte(raw), &ret); err != nil {
-		return nil
-	}
-	out := make([]string, 0, len(ret))
-	for _, item := range ret {
-		item = strings.TrimSpace(item)
-		if item == "" {
-			continue
-		}
-		out = append(out, item)
-	}
-	return out
 }
