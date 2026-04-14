@@ -104,12 +104,14 @@ export function AgentRunLogDetailDialog({
         <div className="py-10 text-sm text-muted-foreground">加载中...</div>
       ) : activeLog ? (
         <>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <MetricCard label="日志ID" value={String(activeLog.id)} />
-            <MetricCard label="会话ID" value={String(activeLog.conversationId || "-")} />
-            <MetricCard label="消息ID" value={String(activeLog.messageId || "-")} />
-            <MetricCard label="AI Agent" value={String(activeLog.aiAgentId || "-")} />
-          </div>
+          <MetaStrip
+            items={[
+              { label: "日志ID", value: String(activeLog.id) },
+              { label: "会话ID", value: String(activeLog.conversationId || "-") },
+              { label: "消息ID", value: String(activeLog.messageId || "-") },
+              { label: "AI Agent", value: String(activeLog.aiAgentId || "-") },
+            ]}
+          />
 
           <InfoBlock
             title="规划阶段"
@@ -202,11 +204,21 @@ function safeParseJSON(value: string) {
   }
 }
 
-function MetricCard({ label, value }: { label: string; value: string }) {
+function MetaStrip({
+  items,
+}: {
+  items: Array<{ label: string; value: string }>
+}) {
   return (
-    <div className="rounded-lg border bg-muted/20 p-4">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="mt-2 text-lg font-semibold">{value}</div>
+    <div className="rounded-lg border bg-muted/20 px-4 py-3">
+      <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+        {items.map((item) => (
+          <div key={item.label} className="flex min-w-0 items-center gap-2">
+            <span className="shrink-0 text-xs text-muted-foreground">{item.label}</span>
+            <span className="min-w-0 truncate font-medium">{item.value}</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
