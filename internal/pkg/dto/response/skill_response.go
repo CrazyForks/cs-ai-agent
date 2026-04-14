@@ -73,15 +73,3 @@ type AgentRunLogResponse struct {
 	TraceData         string `json:"traceData"`
 	CreatedAt         string `json:"createdAt"`
 }
-
-type AgentRunGraphSummaryResponse struct {
-	TriageCount              int64 `json:"triageCount"`
-	TriagePrepareTicket      int64 `json:"triagePrepareTicket"`
-	TriagePrepareTicketReady int64 `json:"triagePrepareTicketReady"`
-	TriageHandoff            int64 `json:"triageHandoff"`
-	TriageContinueAnswering  int64 `json:"triageContinueAnswering"`
-	AnalyzeCount             int64 `json:"analyzeCount"`
-	PrepareDraftCount        int64 `json:"prepareDraftCount"`
-	CreateTicketCount        int64 `json:"createTicketCount"`
-	HandoffCount             int64 `json:"handoffCount"`
-}

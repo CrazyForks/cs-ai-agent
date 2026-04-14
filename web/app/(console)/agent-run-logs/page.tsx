@@ -8,13 +8,6 @@ import { ListPagination } from "@/components/list-pagination"
 import { OptionCombobox } from "@/components/option-combobox"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
   Table,
@@ -26,10 +19,8 @@ import {
 } from "@/components/ui/table"
 import { AgentRunLogDetailDialog } from "./_components/detail"
 import {
-  fetchAgentRunGraphSummary,
   fetchAgentRunLogs,
   fetchAIAgentsAll,
-  type AgentRunGraphSummary,
   type AIAgent,
   type AgentRunLog,
   type PageResult,
@@ -115,23 +106,11 @@ export default function DashboardAgentRunLogsPage() {
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(20)
   const [loading, setLoading] = useState(true)
-  const [summaryLoading, setSummaryLoading] = useState(true)
   const [detailOpen, setDetailOpen] = useState(false)
   const [activeLogId, setActiveLogId] = useState<number | null>(null)
   const [result, setResult] = useState<PageResult<AgentRunLog>>({
     results: [],
     page: { page: 1, limit: 20, total: 0 },
-  })
-  const [graphSummary, setGraphSummary] = useState<AgentRunGraphSummary>({
-    triageCount: 0,
-    triagePrepareTicket: 0,
-    triagePrepareTicketReady: 0,
-    triageHandoff: 0,
-    triageContinueAnswering: 0,
-    analyzeCount: 0,
-    prepareDraftCount: 0,
-    createTicketCount: 0,
-    handoffCount: 0,
   })
   const [aiAgents, setAiAgents] = useState<AIAgent[]>([])
 
@@ -170,23 +149,6 @@ export default function DashboardAgentRunLogsPage() {
   useEffect(() => {
     void loadData()
   }, [loadData])
-
-  useEffect(() => {
-    async function loadGraphSummary() {
-      setSummaryLoading(true)
-      try {
-        const data = await fetchAgentRunGraphSummary({
-          aiAgentId: aiAgentId === "all" ? undefined : aiAgentId,
-        })
-        setGraphSummary(data)
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "加载 Graph 摘要失败")
-      } finally {
-        setSummaryLoading(false)
-      }
-    }
-    void loadGraphSummary()
-  }, [aiAgentId])
 
   useEffect(() => {
     async function loadAIAgents() {
@@ -290,57 +252,6 @@ export default function DashboardAgentRunLogsPage() {
             <RefreshCwIcon className={loading ? "animate-spin" : ""} />
             刷新列表
           </Button>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <SummaryCard
-            title="统一分流"
-            description="triage_service_request 调用次数"
-            value={graphSummary.triageCount}
-            loading={summaryLoading}
-          />
-          <SummaryCard
-            title="推荐建单"
-            description="triage 推荐 prepare_ticket 次数"
-            value={graphSummary.triagePrepareTicket}
-            loading={summaryLoading}
-          />
-          <SummaryCard
-            title="草稿就绪"
-            description="triage 推荐建单且 ticketDraft 已就绪"
-            value={graphSummary.triagePrepareTicketReady}
-            loading={summaryLoading}
-          />
-          <SummaryCard
-            title="推荐转人工"
-            description="triage 推荐 handoff_to_human 次数"
-            value={graphSummary.triageHandoff}
-            loading={summaryLoading}
-          />
-          <SummaryCard
-            title="继续解答"
-            description="triage 推荐 continue_answering 次数"
-            value={graphSummary.triageContinueAnswering}
-            loading={summaryLoading}
-          />
-          <SummaryCard
-            title="风险分析"
-            description="analyze_conversation 调用次数"
-            value={graphSummary.analyzeCount}
-            loading={summaryLoading}
-          />
-          <SummaryCard
-            title="工单草稿"
-            description="prepare_ticket_draft 调用次数"
-            value={graphSummary.prepareDraftCount}
-            loading={summaryLoading}
-          />
-          <SummaryCard
-            title="最终动作"
-            description={`建单 ${graphSummary.createTicketCount} / 转人工 ${graphSummary.handoffCount}`}
-            value={graphSummary.createTicketCount + graphSummary.handoffCount}
-            loading={summaryLoading}
-          />
         </div>
 
         <div className="overflow-hidden rounded-lg border bg-background">
@@ -472,32 +383,6 @@ export default function DashboardAgentRunLogsPage() {
         }}
       />
     </>
-  )
-}
-
-function SummaryCard({
-  title,
-  description,
-  value,
-  loading,
-}: {
-  title: string
-  description: string
-  value: number
-  loading: boolean
-}) {
-  return (
-    <Card size="sm">
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-semibold tracking-tight">
-          {loading ? "--" : value}
-        </div>
-      </CardContent>
-    </Card>
   )
 }
 

@@ -2,9 +2,7 @@ package services
 
 import (
 	"cs-agent/internal/models"
-	"cs-agent/internal/pkg/toolx"
 	"cs-agent/internal/repositories"
-	"strings"
 
 	"github.com/mlogclub/simple/sqls"
 	"github.com/mlogclub/simple/web/params"
@@ -17,18 +15,6 @@ func newAgentRunLogService() *agentRunLogService {
 }
 
 type agentRunLogService struct{}
-
-type AgentRunGraphSummary struct {
-	TriageCount              int64
-	TriagePrepareTicket      int64
-	TriagePrepareTicketReady int64
-	TriageHandoff            int64
-	TriageContinueAnswering  int64
-	AnalyzeCount             int64
-	PrepareDraftCount        int64
-	CreateTicketCount        int64
-	HandoffCount             int64
-}
 
 func (s *agentRunLogService) Get(id int64) *models.AgentRunLog {
 	return repositories.AgentRunLogRepository.Get(sqls.DB(), id)
@@ -95,38 +81,4 @@ func (s *agentRunLogService) ApplyHITLStatusFilter(cnd *sqls.Cnd, hitlStatus str
 		cnd.Where("interrupt_type <> ''")
 	}
 	return cnd
-}
-
-func (s *agentRunLogService) BuildGraphSummary(aiAgentID int64) *AgentRunGraphSummary {
-	buildBaseCnd := func() *sqls.Cnd {
-		cnd := sqls.NewCnd()
-		if aiAgentID > 0 {
-			cnd.Eq("ai_agent_id", aiAgentID)
-		}
-		return cnd
-	}
-	return &AgentRunGraphSummary{
-		TriageCount:              s.countByGraphTool(buildBaseCnd(), toolx.GraphTriageServiceRequest.Code),
-		TriagePrepareTicket:      s.countByGraphToolAndPlanReason(buildBaseCnd(), toolx.GraphTriageServiceRequest.Code, "%prepare_ticket%"),
-		TriagePrepareTicketReady: s.countByGraphToolAndPlanReason(buildBaseCnd(), toolx.GraphTriageServiceRequest.Code, "%prepare_ticket with ready ticket draft%"),
-		TriageHandoff:            s.countByGraphToolAndPlanReason(buildBaseCnd(), toolx.GraphTriageServiceRequest.Code, "%handoff_to_human%"),
-		TriageContinueAnswering:  s.countByGraphToolAndPlanReason(buildBaseCnd(), toolx.GraphTriageServiceRequest.Code, "%continue_answering%"),
-		AnalyzeCount:             s.countByGraphTool(buildBaseCnd(), toolx.GraphAnalyzeConversation.Code),
-		PrepareDraftCount:        s.countByGraphTool(buildBaseCnd(), toolx.GraphPrepareTicketDraft.Code),
-		CreateTicketCount:        s.countByGraphTool(buildBaseCnd(), toolx.GraphCreateTicketConfirm.Code),
-		HandoffCount:             s.countByGraphTool(buildBaseCnd(), toolx.GraphHandoffConversation.Code),
-	}
-}
-
-func (s *agentRunLogService) countByGraphTool(baseCnd *sqls.Cnd, graphToolCode string) int64 {
-	cnd := baseCnd
-	cnd.Eq("graph_tool_code", strings.TrimSpace(graphToolCode))
-	return s.Count(cnd)
-}
-
-func (s *agentRunLogService) countByGraphToolAndPlanReason(baseCnd *sqls.Cnd, graphToolCode string, planReasonLike string) int64 {
-	cnd := baseCnd
-	cnd.Eq("graph_tool_code", strings.TrimSpace(graphToolCode))
-	cnd.Where("plan_reason LIKE ?", strings.TrimSpace(planReasonLike))
-	return s.Count(cnd)
 }
