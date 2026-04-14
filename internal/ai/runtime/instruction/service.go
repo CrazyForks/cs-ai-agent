@@ -1,4 +1,4 @@
-package factory
+package instruction
 
 import (
 	"strings"
@@ -7,23 +7,23 @@ import (
 	"cs-agent/internal/models"
 )
 
-type InstructionService struct {
-	assembler                     *InstructionAssembler
+type Service struct {
+	assembler                     *Assembler
 	projectInstructionProvider    *ProjectInstructionProvider
 	governanceInstructionProvider *GovernanceInstructionProvider
 	skillInstructionProvider      *SkillInstructionProvider
 	toolAppendixProvider          *ToolAppendixProvider
 }
 
-func NewInstructionService(
-	assembler *InstructionAssembler,
+func NewService(
+	assembler *Assembler,
 	projectProvider *ProjectInstructionProvider,
 	governanceProvider *GovernanceInstructionProvider,
 	skillProvider *SkillInstructionProvider,
 	toolProvider *ToolAppendixProvider,
-) *InstructionService {
+) *Service {
 	if assembler == nil {
-		assembler = NewInstructionAssembler()
+		assembler = NewAssembler()
 	}
 	if projectProvider == nil {
 		projectProvider = NewProjectInstructionProvider()
@@ -37,7 +37,7 @@ func NewInstructionService(
 	if toolProvider == nil {
 		toolProvider = NewToolAppendixProvider()
 	}
-	return &InstructionService{
+	return &Service{
 		assembler:                     assembler,
 		projectInstructionProvider:    projectProvider,
 		governanceInstructionProvider: governanceProvider,
@@ -46,12 +46,12 @@ func NewInstructionService(
 	}
 }
 
-func (s *InstructionService) Build(
+func (s *Service) Build(
 	aiAgent *models.AIAgent,
 	selectedSkill *models.SkillDefinition,
 	toolDefinitions []runtimetooling.MCPToolDefinition,
 	extraToolCodes map[string]string,
-) InstructionAssemblyResult {
+) AssemblyResult {
 	baseInstruction := ""
 	if aiAgent != nil {
 		baseInstruction = strings.TrimSpace(aiAgent.SystemPrompt)
@@ -72,11 +72,11 @@ func (s *InstructionService) Build(
 	if s != nil && s.toolAppendixProvider != nil {
 		toolAppendices = s.toolAppendixProvider.Build(toolDefinitions, extraToolCodes)
 	}
-	assembler := NewInstructionAssembler()
+	assembler := NewAssembler()
 	if s != nil && s.assembler != nil {
 		assembler = s.assembler
 	}
-	return assembler.Assemble(InstructionAssemblerInput{
+	return assembler.Assemble(AssemblerInput{
 		AgentInstruction:      baseInstruction,
 		GovernanceInstruction: governanceInstruction,
 		SkillInstruction:      skillInstruction,

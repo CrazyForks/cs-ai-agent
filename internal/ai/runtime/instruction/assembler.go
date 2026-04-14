@@ -1,4 +1,4 @@
-package factory
+package instruction
 
 import "strings"
 
@@ -8,11 +8,11 @@ const defaultGovernanceInstruction = `
 如果存在工具白名单限制，只能调用当前允许的工具；信息不足时优先追问，不要伪造事实或跳过必要确认。
 `
 
-type InstructionAssembler struct {
+type Assembler struct {
 	governanceInstruction string
 }
 
-type InstructionAssemblerInput struct {
+type AssemblerInput struct {
 	AgentInstruction      string
 	GovernanceInstruction string
 	SkillInstruction      string
@@ -20,8 +20,7 @@ type InstructionAssemblerInput struct {
 	ProjectInstruction    string
 }
 
-// InstructionAssemblySummary 描述 instruction 各组成部分的来源摘要。
-type InstructionAssemblySummary struct {
+type AssemblySummary struct {
 	SectionTitles     []string
 	HasProjectRule    bool
 	HasGovernanceRule bool
@@ -30,26 +29,22 @@ type InstructionAssemblySummary struct {
 	HasToolRule       bool
 }
 
-// InstructionAssemblyResult 为 instruction 装配结果。
-type InstructionAssemblyResult struct {
+type AssemblyResult struct {
 	Text    string
-	Summary InstructionAssemblySummary
+	Summary AssemblySummary
 }
 
-func NewInstructionAssembler() *InstructionAssembler {
-	return &InstructionAssembler{
-		governanceInstruction: strings.TrimSpace(defaultGovernanceInstruction),
-	}
+func NewAssembler() *Assembler {
+	return &Assembler{governanceInstruction: strings.TrimSpace(defaultGovernanceInstruction)}
 }
 
-func (a *InstructionAssembler) Build(input InstructionAssemblerInput) string {
+func (a *Assembler) Build(input AssemblerInput) string {
 	return a.Assemble(input).Text
 }
 
-// Assemble 构建最终 instruction 文本及其来源摘要。
-func (a *InstructionAssembler) Assemble(input InstructionAssemblerInput) InstructionAssemblyResult {
+func (a *Assembler) Assemble(input AssemblerInput) AssemblyResult {
 	parts := make([]string, 0, 5)
-	summary := InstructionAssemblySummary{SectionTitles: make([]string, 0, 5)}
+	summary := AssemblySummary{SectionTitles: make([]string, 0, 5)}
 	projectInstruction := strings.TrimSpace(input.ProjectInstruction)
 	if projectInstruction == "" {
 		projectInstruction = strings.TrimSpace(DefaultProjectInstruction)
@@ -83,7 +78,7 @@ func (a *InstructionAssembler) Assemble(input InstructionAssemblerInput) Instruc
 		summary.HasToolRule = true
 		summary.SectionTitles = append(summary.SectionTitles, "工具补充规则")
 	}
-	return InstructionAssemblyResult{
+	return AssemblyResult{
 		Text:    strings.TrimSpace(strings.Join(parts, "\n\n")),
 		Summary: summary,
 	}

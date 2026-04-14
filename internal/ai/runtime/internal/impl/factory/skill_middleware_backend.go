@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	runtimeinstruction "cs-agent/internal/ai/runtime/instruction"
 	runtimetooling "cs-agent/internal/ai/runtime/tooling"
 	"cs-agent/internal/models"
 
@@ -25,7 +26,7 @@ func newSelectedSkillBackend(selectedSkill *models.SkillDefinition, toolDefiniti
 		return nil, fmt.Errorf("selected skill code is empty")
 	}
 	description := strings.TrimSpace(selectedSkill.Description)
-	content := buildSelectedSkillDocument(selectedSkill, toolDefinitions)
+	content := runtimeinstruction.BuildSelectedSkillDocument(selectedSkill, toolDefinitions)
 	return &selectedSkillBackend{
 		frontMatter: einoskill.FrontMatter{
 			Name:        skillName,

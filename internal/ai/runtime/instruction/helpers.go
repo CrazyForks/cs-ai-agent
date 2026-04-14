@@ -1,4 +1,4 @@
-package factory
+package instruction
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 	"cs-agent/internal/pkg/toolx"
 )
 
-func buildSelectedSkillActivationInstruction(skill *models.SkillDefinition) string {
+func BuildSelectedSkillActivationInstruction(skill *models.SkillDefinition) string {
 	if skill == nil {
 		return ""
 	}
@@ -26,7 +26,7 @@ func buildSelectedSkillActivationInstruction(skill *models.SkillDefinition) stri
 	return strings.TrimSpace(strings.Join(lines, "\n"))
 }
 
-func buildSelectedSkillDocument(skill *models.SkillDefinition, toolDefinitions []runtimetooling.MCPToolDefinition) string {
+func BuildSelectedSkillDocument(skill *models.SkillDefinition, toolDefinitions []runtimetooling.MCPToolDefinition) string {
 	if skill == nil {
 		return ""
 	}

@@ -1,4 +1,4 @@
-package factory
+package instruction
 
 import (
 	"os"
@@ -14,7 +14,6 @@ type ProjectInstructionProvider struct {
 	fileName string
 }
 
-// TODO 这个要读取AGENTS.md文件，后面考虑还要不要
 func NewProjectInstructionProvider() *ProjectInstructionProvider {
 	return &ProjectInstructionProvider{fileName: "AGENTS.md"}
 }
@@ -84,7 +83,7 @@ func NewSkillInstructionProvider() *SkillInstructionProvider {
 }
 
 func (p *SkillInstructionProvider) Resolve(selectedSkill *models.SkillDefinition) string {
-	return buildSelectedSkillActivationInstruction(selectedSkill)
+	return BuildSelectedSkillActivationInstruction(selectedSkill)
 }
 
 func (p *ToolAppendixProvider) Build(toolDefinitions []runtimetooling.MCPToolDefinition, extraToolCodes map[string]string) []string {

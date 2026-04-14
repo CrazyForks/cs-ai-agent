@@ -1,12 +1,12 @@
-package factory
+package instruction
 
 import (
 	"strings"
 	"testing"
 )
 
-func TestInstructionAssemblerRespectsProvidedSources(t *testing.T) {
-	result := NewInstructionAssembler().Assemble(InstructionAssemblerInput{
+func TestAssemblerRespectsProvidedSources(t *testing.T) {
+	result := NewAssembler().Assemble(AssemblerInput{
 		ProjectInstruction:    "project-rule",
 		GovernanceInstruction: "governance-rule",
 		AgentInstruction:      "agent-rule",

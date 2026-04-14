@@ -2,10 +2,12 @@ package factory
 
 import (
 	"testing"
+
+	runtimeinstruction "cs-agent/internal/ai/runtime/instruction"
 )
 
 func TestBuildInstructionTraceSummary(t *testing.T) {
-	got := buildInstructionTraceSummary(InstructionAssemblySummary{
+	got := buildInstructionTraceSummary(runtimeinstruction.AssemblySummary{
 		SectionTitles:     []string{"项目级规则", "当前技能上下文"},
 		HasProjectRule:    true,
 		HasGovernanceRule: true,

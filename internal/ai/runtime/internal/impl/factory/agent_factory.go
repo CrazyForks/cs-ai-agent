@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	runtimeinstruction "cs-agent/internal/ai/runtime/instruction"
 	einoagents "cs-agent/internal/ai/runtime/internal/impl/agents"
 	einocallbacks "cs-agent/internal/ai/runtime/internal/impl/callbacks"
 	"cs-agent/internal/ai/runtime/registry"
@@ -18,7 +19,7 @@ import (
 type AgentFactory struct {
 	chatModelFactory   *ChatModelFactory
 	toolFactory        *ToolFactory
-	instructionService *InstructionService
+	instructionService *runtimeinstruction.Service
 	handlerService     *AgentHandlerService
 }
 
@@ -55,7 +56,7 @@ func NewAgentFactory() *AgentFactory {
 	return &AgentFactory{
 		chatModelFactory:   NewChatModelFactory(),
 		toolFactory:        NewToolFactory(),
-		instructionService: NewInstructionService(nil, nil, nil, nil, nil),
+		instructionService: runtimeinstruction.NewService(nil, nil, nil, nil, nil),
 		handlerService:     NewAgentHandlerService(nil),
 	}
 }
