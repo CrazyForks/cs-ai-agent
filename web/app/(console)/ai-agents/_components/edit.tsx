@@ -739,12 +739,174 @@ function EditDialogBody({
               </FieldContent>
             </Field>
           </SectionCard>
+          <SectionCard
+            title="服务策略"
+            description="控制 Graph Tool 转人工配置、兜底策略和自动回复边界。"
+          >
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+              <Field data-invalid={!!errors.handoffMode}>
+                <FieldLabel>转人工模式</FieldLabel>
+                <FieldContent>
+                  <Controller
+                    control={control}
+                    name="handoffMode"
+                    render={({ field }) => (
+                      <OptionCombobox
+                        value={field.value}
+                        options={handoffModeOptions}
+                        placeholder="请选择转人工模式"
+                        searchPlaceholder="搜索转人工模式"
+                        emptyText="未找到转人工模式"
+                        onChange={field.onChange}
+                      />
+                    )}
+                  />
+                  <FieldError errors={[errors.handoffMode]} />
+                </FieldContent>
+              </Field>
+              <Field data-invalid={!!errors.replyTimeoutSeconds}>
+                <FieldLabel
+                  htmlFor="ai-agent-reply-timeout-seconds"
+                  className="flex items-center gap-1"
+                >
+                  回复超时秒数
+                  <Popover>
+                    <PopoverTrigger
+                      render={
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center text-muted-foreground hover:text-foreground"
+                        >
+                          <InfoIcon className="size-4" />
+                        </button>
+                      }
+                    />
+                    <PopoverContent side="top" align="start" className="max-w-xs">
+                      <PopoverDescription>
+                        AI 自动回复的异步执行超时时间。填 0 时使用系统默认值 180 秒。
+                      </PopoverDescription>
+                    </PopoverContent>
+                  </Popover>
+                </FieldLabel>
+                <FieldContent>
+                  <Input
+                    id="ai-agent-reply-timeout-seconds"
+                    type="number"
+                    min={0}
+                    step={1}
+                    {...register("replyTimeoutSeconds", { valueAsNumber: true })}
+                  />
+                  <FieldError errors={[errors.replyTimeoutSeconds]} />
+                </FieldContent>
+              </Field>
+            </div>
+
+            <div className="rounded-xl border bg-muted/10 p-4">
+              <div className="mb-1 text-sm font-medium">客服组</div>
+              <div className="mb-4 text-xs text-muted-foreground">
+                当前转人工模式：{selectedHandoffModeLabel}
+                {handoffMode ===
+                String(AIAgentHandoffMode.DefaultTeamPool)
+                  ? "。该模式要求至少配置一个客服组。"
+                  : "。仅在涉及转人工时生效。"}
+              </div>
+              <Field>
+                <FieldContent className="space-y-3">
+                  <OptionCombobox
+                    value={teamToAdd}
+                    options={addableTeamOptions}
+                    placeholder="请选择客服组"
+                    searchPlaceholder="搜索客服组"
+                    emptyText="未找到客服组"
+                    onChange={handleAddTeam}
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    {selectedTeamOptions.length === 0 ? (
+                      <span className="text-sm text-muted-foreground">
+                        未配置客服组
+                      </span>
+                    ) : (
+                      selectedTeamOptions.map((option) => (
+                        <Badge
+                          key={option.value}
+                          variant="secondary"
+                          className="gap-1 pr-1"
+                        >
+                          {option.label}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="size-5"
+                            onClick={() =>
+                              handleRemoveTeam(Number(option.value))
+                            }
+                            aria-label={`移除客服组 ${option.label}`}
+                          >
+                            <Trash2Icon className="size-3" />
+                          </Button>
+                        </Badge>
+                      ))
+                    )}
+                  </div>
+                </FieldContent>
+              </Field>
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            title="话术配置"
+            description="配置用户能直接看到的欢迎语、兜底文案，以及影响整体回复风格的系统提示词。"
+          >
+            <Field data-invalid={!!errors.welcomeMessage}>
+              <FieldLabel htmlFor="ai-agent-welcome-message">欢迎语</FieldLabel>
+              <FieldContent>
+                <Textarea
+                  id="ai-agent-welcome-message"
+                  rows={5}
+                  {...register("welcomeMessage")}
+                />
+                <FieldError errors={[errors.welcomeMessage]} />
+              </FieldContent>
+            </Field>
+
+              <Field data-invalid={!!errors.fallbackMessage}>
+                <FieldLabel htmlFor="ai-agent-fallback-message">
+                  兜底文案
+                </FieldLabel>
+                <FieldContent>
+                  <div className="text-xs text-muted-foreground mb-1">
+                    仅在兜底模式为“直接声明无答案”或“引导补充信息”时使用。转人工已统一改为 AI Graph Tool，不再通过兜底模式直接触发。
+                  </div>
+                  <Textarea
+                    id="ai-agent-fallback-message"
+                    rows={5}
+                    {...register("fallbackMessage")}
+                  />
+                <FieldError errors={[errors.fallbackMessage]} />
+              </FieldContent>
+            </Field>
+
+            <Field data-invalid={!!errors.systemPrompt}>
+              <FieldLabel htmlFor="ai-agent-system-prompt">
+                系统提示词
+              </FieldLabel>
+              <FieldContent>
+                <Textarea
+                  id="ai-agent-system-prompt"
+                  rows={8}
+                  {...register("systemPrompt")}
+                />
+                <FieldError errors={[errors.systemPrompt]} />
+              </FieldContent>
+            </Field>
+          </SectionCard>
 
           <SectionCard
             title="能力配置"
             description="知识库用于 RAG，Skills 用于业务流程，Direct Tools 用于外部 MCP 查询，Graph Tools 用于内置业务流程。"
           >
-            <div className="grid gap-4 xl:grid-cols-4">
+            <div className="space-y-4">
               <div className="rounded-xl border bg-muted/10 p-4">
                 <div className="mb-1 text-sm font-medium">知识库</div>
                 <div className="mb-4 text-xs text-muted-foreground">
@@ -1058,169 +1220,6 @@ function EditDialogBody({
               </div>
             </div>
           </SectionCard>
-
-          <SectionCard
-            title="服务策略"
-            description="控制 Graph Tool 转人工配置、兜底策略和自动回复边界。"
-          >
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
-              <Field data-invalid={!!errors.handoffMode}>
-                <FieldLabel>转人工模式</FieldLabel>
-                <FieldContent>
-                  <Controller
-                    control={control}
-                    name="handoffMode"
-                    render={({ field }) => (
-                      <OptionCombobox
-                        value={field.value}
-                        options={handoffModeOptions}
-                        placeholder="请选择转人工模式"
-                        searchPlaceholder="搜索转人工模式"
-                        emptyText="未找到转人工模式"
-                        onChange={field.onChange}
-                      />
-                    )}
-                  />
-                  <FieldError errors={[errors.handoffMode]} />
-                </FieldContent>
-              </Field>
-              <Field data-invalid={!!errors.replyTimeoutSeconds}>
-                <FieldLabel
-                  htmlFor="ai-agent-reply-timeout-seconds"
-                  className="flex items-center gap-1"
-                >
-                  回复超时秒数
-                  <Popover>
-                    <PopoverTrigger
-                      render={
-                        <button
-                          type="button"
-                          className="inline-flex items-center justify-center text-muted-foreground hover:text-foreground"
-                        >
-                          <InfoIcon className="size-4" />
-                        </button>
-                      }
-                    />
-                    <PopoverContent side="top" align="start" className="max-w-xs">
-                      <PopoverDescription>
-                        AI 自动回复的异步执行超时时间。填 0 时使用系统默认值 180 秒。
-                      </PopoverDescription>
-                    </PopoverContent>
-                  </Popover>
-                </FieldLabel>
-                <FieldContent>
-                  <Input
-                    id="ai-agent-reply-timeout-seconds"
-                    type="number"
-                    min={0}
-                    step={1}
-                    {...register("replyTimeoutSeconds", { valueAsNumber: true })}
-                  />
-                  <FieldError errors={[errors.replyTimeoutSeconds]} />
-                </FieldContent>
-              </Field>
-            </div>
-
-            <div className="rounded-xl border bg-muted/10 p-4">
-              <div className="mb-1 text-sm font-medium">客服组</div>
-              <div className="mb-4 text-xs text-muted-foreground">
-                当前转人工模式：{selectedHandoffModeLabel}
-                {handoffMode ===
-                String(AIAgentHandoffMode.DefaultTeamPool)
-                  ? "。该模式要求至少配置一个客服组。"
-                  : "。仅在涉及转人工时生效。"}
-              </div>
-              <Field>
-                <FieldContent className="space-y-3">
-                  <OptionCombobox
-                    value={teamToAdd}
-                    options={addableTeamOptions}
-                    placeholder="请选择客服组"
-                    searchPlaceholder="搜索客服组"
-                    emptyText="未找到客服组"
-                    onChange={handleAddTeam}
-                  />
-                  <div className="flex flex-wrap gap-2">
-                    {selectedTeamOptions.length === 0 ? (
-                      <span className="text-sm text-muted-foreground">
-                        未配置客服组
-                      </span>
-                    ) : (
-                      selectedTeamOptions.map((option) => (
-                        <Badge
-                          key={option.value}
-                          variant="secondary"
-                          className="gap-1 pr-1"
-                        >
-                          {option.label}
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="size-5"
-                            onClick={() =>
-                              handleRemoveTeam(Number(option.value))
-                            }
-                            aria-label={`移除客服组 ${option.label}`}
-                          >
-                            <Trash2Icon className="size-3" />
-                          </Button>
-                        </Badge>
-                      ))
-                    )}
-                  </div>
-                </FieldContent>
-              </Field>
-            </div>
-          </SectionCard>
-
-          <SectionCard
-            title="话术配置"
-            description="配置用户能直接看到的欢迎语、兜底文案，以及影响整体回复风格的系统提示词。"
-          >
-            <Field data-invalid={!!errors.welcomeMessage}>
-              <FieldLabel htmlFor="ai-agent-welcome-message">欢迎语</FieldLabel>
-              <FieldContent>
-                <Textarea
-                  id="ai-agent-welcome-message"
-                  rows={5}
-                  {...register("welcomeMessage")}
-                />
-                <FieldError errors={[errors.welcomeMessage]} />
-              </FieldContent>
-            </Field>
-
-              <Field data-invalid={!!errors.fallbackMessage}>
-                <FieldLabel htmlFor="ai-agent-fallback-message">
-                  兜底文案
-                </FieldLabel>
-                <FieldContent>
-                  <div className="text-xs text-muted-foreground mb-1">
-                    仅在兜底模式为“直接声明无答案”或“引导补充信息”时使用。转人工已统一改为 AI Graph Tool，不再通过兜底模式直接触发。
-                  </div>
-                  <Textarea
-                    id="ai-agent-fallback-message"
-                    rows={5}
-                    {...register("fallbackMessage")}
-                  />
-                <FieldError errors={[errors.fallbackMessage]} />
-              </FieldContent>
-            </Field>
-
-            <Field data-invalid={!!errors.systemPrompt}>
-              <FieldLabel htmlFor="ai-agent-system-prompt">
-                系统提示词
-              </FieldLabel>
-              <FieldContent>
-                <Textarea
-                  id="ai-agent-system-prompt"
-                  rows={8}
-                  {...register("systemPrompt")}
-                />
-                <FieldError errors={[errors.systemPrompt]} />
-              </FieldContent>
-            </Field>
-          </SectionCard>
         </form>
       )}
     </ProjectDialog>
@@ -1237,8 +1236,8 @@ function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-xl border bg-card p-5">
-      <div className="mb-4">
+    <section className="rounded-lg border bg-card p-5">
+      <div className="mb-3">
         <div className="text-base font-semibold">{title}</div>
         <div className="mt-1 text-sm text-muted-foreground">{description}</div>
       </div>
