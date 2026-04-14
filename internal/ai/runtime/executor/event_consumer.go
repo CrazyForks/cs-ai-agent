@@ -4,6 +4,8 @@ import (
 	"strings"
 
 	"cs-agent/internal/ai/runtime/internal/impl/callbacks"
+	"cs-agent/internal/pkg/enums"
+	"cs-agent/internal/pkg/toolx"
 
 	"github.com/cloudwego/eino/adk"
 	"github.com/cloudwego/eino/schema"
@@ -56,6 +58,12 @@ func consumeAgentEvents(events *adk.AsyncIterator[*adk.AgentEvent], summary *Run
 				toolCode = strings.TrimSpace(mappedCode)
 			}
 			summary.InvokedToolCodes = appendIfMissing(summary.InvokedToolCodes, toolCode)
+			if strings.TrimSpace(summary.ReplyText) == "" && toolx.ResolveToolSourceType(toolCode) == enums.ToolSourceTypeGraph {
+				toolReplyText := strings.TrimSpace(messageOutput.Message.Content)
+				if toolReplyText != "" {
+					summary.ReplyText = toolReplyText
+				}
+			}
 		}
 	}
 	if summary.Status == "started" {

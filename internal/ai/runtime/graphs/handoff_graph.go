@@ -82,7 +82,7 @@ func (g *HandoffGraph) Run(ctx context.Context, argumentsInJSON string) (string,
 		if err := services.ConversationService.HandoffByAI(g.conversation.ID, g.aiAgent, state.Reason); err != nil {
 			return "", err
 		}
-		return "已为你转接人工客服，请稍候。", nil
+		return g.buildSuccessReply(), nil
 	case ConfirmationDecisionCancel:
 		return CancelHandoffReply, nil
 	default:
@@ -110,6 +110,10 @@ func (g *HandoffGraph) buildReason(argumentsInJSON string) (string, error) {
 
 func (g *HandoffGraph) buildConfirmationPrompt(reason string) string {
 	return fmt.Sprintf("我准备为你转接人工客服。\n原因：%s\n请直接回复“确认”或“取消”。", strings.TrimSpace(reason))
+}
+
+func (g *HandoffGraph) buildSuccessReply() string {
+	return "已为你转接人工客服，请稍候。，请稍候。"
 }
 
 func parseHandoffDecision(value string) ConfirmationDecision {

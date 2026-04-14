@@ -514,7 +514,7 @@ func (s *messageService) ValidateConversationSender(conversationID int64, sender
 		if operator == nil {
 			return nil, errorsx.Unauthorized("未登录或登录已过期")
 		}
-		if conversation.Status != enums.IMConversationStatusAIServing {
+		if conversation.Status != enums.IMConversationStatusAIServing && !allowAIMessageOnPendingHandoff(conversation) {
 			return nil, errorsx.Forbidden("当前会话不处于 AI 接待状态")
 		}
 		if conversation.CurrentAssigneeID != 0 {
@@ -528,6 +528,15 @@ func (s *messageService) ValidateConversationSender(conversationID int64, sender
 		return nil, errorsx.InvalidParam("不支持的发送人类型")
 	}
 	return conversation, nil
+}
+
+func allowAIMessageOnPendingHandoff(conversation *models.Conversation) bool {
+	if conversation == nil {
+		return false
+	}
+	return conversation.Status == enums.IMConversationStatusPending &&
+		conversation.HandoffAt != nil &&
+		conversation.CurrentAssigneeID == 0
 }
 
 func suffixFilenameForSummary(filename string) string {
