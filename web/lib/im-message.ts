@@ -1,3 +1,5 @@
+import MarkdownIt from "markdown-it"
+
 export type MessageAssetPayload = {
   assetId: string
   filename?: string
@@ -5,6 +7,12 @@ export type MessageAssetPayload = {
   mimeType?: string
   url?: string
 }
+
+const messageMarkdown = new MarkdownIt({
+  html: false,
+  linkify: true,
+  breaks: true,
+})
 
 export function parseMessageAssetPayload(payload?: string): MessageAssetPayload | null {
   if (!payload?.trim()) {
@@ -54,7 +62,7 @@ export function renderIMMessageHTML(message: {
     return `<p>${escapeHTML(message.content || "[附件]")}</p>`
   }
 
-  return `<p>${escapeHTML(message.content || "")}</p>`
+  return renderTextMessageHTML(message.content || "")
 }
 
 export function summarizeIMMessage(message: {
@@ -104,6 +112,14 @@ function extractTextFromHTML(html: string): string {
   const div = document.createElement("div")
   div.innerHTML = html
   return div.textContent || div.innerText || ""
+}
+
+function renderTextMessageHTML(content: string) {
+  const value = content.trim()
+  if (!value) {
+    return "<p></p>"
+  }
+  return messageMarkdown.render(value)
 }
 
 function escapeHTML(value: string) {
