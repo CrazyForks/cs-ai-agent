@@ -3,6 +3,9 @@ package tools
 import (
 	"fmt"
 	"strings"
+
+	"cs-agent/internal/ai/runtime/registry"
+	"cs-agent/internal/pkg/toolx"
 )
 
 type Decision string
@@ -59,5 +62,22 @@ func getInt64Value(data map[string]any, key string) int64 {
 		return int64(v)
 	default:
 		return 0
+	}
+}
+
+func NewRuntimeStaticTool(toolCode string) registry.Tool {
+	switch toolx.NormalizeToolCodeAlias(strings.TrimSpace(toolCode)) {
+	case toolx.GraphTriageServiceRequest.Code:
+		return NewTriageServiceRequestTool()
+	case toolx.GraphAnalyzeConversation.Code:
+		return NewAnalyzeConversationTool()
+	case toolx.GraphPrepareTicketDraft.Code:
+		return NewPrepareTicketDraftTool()
+	case toolx.GraphCreateTicketConfirm.Code:
+		return NewCreateTicketGraphTool()
+	case toolx.GraphHandoffConversation.Code:
+		return NewHandoffGraphTool()
+	default:
+		return nil
 	}
 }

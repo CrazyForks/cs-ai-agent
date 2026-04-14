@@ -21,20 +21,13 @@ func newToolCatalog() *toolCatalog {
 }
 
 func buildRuntimeStaticTools() []registry.Tool {
-	builders := map[string]func() registry.Tool{
-		toolx.GraphTriageServiceRequest.Code: func() registry.Tool { return tools.NewTriageServiceRequestTool() },
-		toolx.GraphAnalyzeConversation.Code:  func() registry.Tool { return tools.NewAnalyzeConversationTool() },
-		toolx.GraphPrepareTicketDraft.Code:   func() registry.Tool { return tools.NewPrepareTicketDraftTool() },
-		toolx.GraphCreateTicketConfirm.Code:  func() registry.Tool { return tools.NewCreateTicketGraphTool() },
-		toolx.GraphHandoffConversation.Code:  func() registry.Tool { return tools.NewHandoffGraphTool() },
-	}
-	ret := make([]registry.Tool, 0, len(builders))
+	ret := make([]registry.Tool, 0, len(toolx.ListRuntimeStaticToolSpecs()))
 	for _, spec := range toolx.ListRuntimeStaticToolSpecs() {
-		build := builders[strings.TrimSpace(spec.Code)]
-		if build == nil {
+		tool := tools.NewRuntimeStaticTool(spec.Code)
+		if tool == nil {
 			continue
 		}
-		ret = append(ret, build())
+		ret = append(ret, tool)
 	}
 	return ret
 }
