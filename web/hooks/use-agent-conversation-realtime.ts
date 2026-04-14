@@ -17,6 +17,7 @@ export function useAgentConversationRealtime() {
   const syncLatestMessages = useAgentConversationsStore(
     (state) => state.syncLatestMessages,
   )
+  const setRealtimeStatus = useAgentConversationsStore((state) => state.setRealtimeStatus)
   const websocketRef = useRef<WebSocket | null>(null)
   const reconnectTimerRef = useRef<number | null>(null)
   const pingTimerRef = useRef<number | null>(null)
@@ -67,8 +68,10 @@ export function useAgentConversationRealtime() {
 
       let socket: WebSocket
       try {
+        setRealtimeStatus("connecting")
         socket = new WebSocket(createAdminWebSocketUrl())
       } catch (error) {
+        setRealtimeStatus("disconnected")
         toast.error(error instanceof Error ? error.message : "连接实时服务失败")
         scheduleReconnect()
         return
@@ -80,6 +83,7 @@ export function useAgentConversationRealtime() {
         console.info("[agent-realtime] websocket connected", {
           url: socket.url,
         })
+        setRealtimeStatus("connected")
         reconnectAttemptRef.current = 0
         if (pingTimerRef.current) {
           window.clearInterval(pingTimerRef.current)
@@ -191,6 +195,7 @@ export function useAgentConversationRealtime() {
           reason: event.reason,
           wasClean: event.wasClean,
         })
+        setRealtimeStatus("disconnected")
         if (pingTimerRef.current) {
           window.clearInterval(pingTimerRef.current)
           pingTimerRef.current = null
@@ -207,6 +212,7 @@ export function useAgentConversationRealtime() {
           url: socket.url,
           readyState: socket.readyState,
         })
+        setRealtimeStatus("disconnected")
         scheduleReconnect()
       }
     }
@@ -222,9 +228,10 @@ export function useAgentConversationRealtime() {
       if (socket) {
         socket.close()
       }
+      setRealtimeStatus("disconnected")
       subscribedConversationIdRef.current = null
     }
-  }, [loadConversations, syncLatestMessages])
+  }, [loadConversations, setRealtimeStatus, syncLatestMessages])
 
   useEffect(() => {
     const socket = websocketRef.current

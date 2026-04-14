@@ -3,7 +3,9 @@
 import { useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
 
+import { RealtimeConnectionStatus } from "@/components/realtime-connection-status"
 import { getPageTitle } from "@/lib/navigation"
+import { useAgentConversationsStore } from "@/lib/stores/agent-conversations"
 import { ThemeToggle } from "@/components/theme-toggle"
 import {
   Breadcrumb,
@@ -20,7 +22,10 @@ export function SiteHeader() {
   const pathname = usePathname()
   const { open, setOpen, isMobile } = useSidebar()
   const pageTitle = getPageTitle(pathname)
+  const realtimeStatus = useAgentConversationsStore((state) => state.realtimeStatus)
   const hasRestoredRef = useRef(false)
+  const showConversationRealtime =
+    pathname === "/conversations" || pathname.startsWith("/conversations/")
 
   useEffect(() => {
     if (hasRestoredRef.current || isMobile) {
@@ -57,7 +62,12 @@ export function SiteHeader() {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbPage>{pageTitle}</BreadcrumbPage>
+                  <div className="flex items-center gap-2">
+                    <BreadcrumbPage>{pageTitle}</BreadcrumbPage>
+                    {showConversationRealtime ? (
+                      <RealtimeConnectionStatus status={realtimeStatus} compact />
+                    ) : null}
+                  </div>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>

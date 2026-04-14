@@ -14,6 +14,7 @@ import {
   type AgentConversation,
   type AgentMessage,
 } from "@/lib/api/agent"
+import type { RealtimeConnectionStatusValue } from "@/components/realtime-connection-status"
 import { summarizeIMMessage } from "@/lib/im-message"
 import { generateUUID } from "@/lib/utils"
 
@@ -126,8 +127,10 @@ type AgentConversationsStore = {
   uploadingAsset: boolean
   recallingMessageId: number
   readingMessageId: number
+  realtimeStatus: RealtimeConnectionStatusValue
   setSearchKeyword: (keyword: string) => void
   setConversationFilter: (filter: AgentConversationFilterKey) => void
+  setRealtimeStatus: (status: RealtimeConnectionStatusValue) => void
   setConversationTags: (
     conversationId: number,
     tags: AgentConversation["tags"]
@@ -164,6 +167,7 @@ export const useAgentConversationsStore = create<AgentConversationsStore>((set, 
   uploadingAsset: false,
   recallingMessageId: 0,
   readingMessageId: 0,
+  realtimeStatus: "connecting",
 
   setSearchKeyword: (keyword) => {
     set({ searchKeyword: keyword })
@@ -171,6 +175,10 @@ export const useAgentConversationsStore = create<AgentConversationsStore>((set, 
 
   setConversationFilter: (filter) => {
     set({ conversationFilter: filter })
+  },
+
+  setRealtimeStatus: (status) => {
+    set({ realtimeStatus: status })
   },
 
   setConversationTags: (conversationId, tags) => {

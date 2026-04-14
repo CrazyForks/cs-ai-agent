@@ -267,10 +267,10 @@ export default function ConversationsPage() {
             <>
               <Avatar className="size-8 shrink-0 lg:size-9">
                 <AvatarImage src="" />
-                <AvatarFallback>客</AvatarFallback>
+              <AvatarFallback>客</AvatarFallback>
               </Avatar>
               <div className="min-w-0">
-                <p className="truncate font-medium leading-tight">
+                <p className="min-w-0 truncate font-medium leading-tight">
                   {conversation.subject}
                 </p>
                 <p className="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">
