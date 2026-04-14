@@ -45,11 +45,12 @@ func buildRuntimeTraceToolMetadata(
 		}
 	}
 	if selectedSkill != nil {
+		resolved := toolx.ResolveToolMetadata(toolx.BuiltinSkill.Code, toolx.BuiltinSkill.Name)
 		ret[toolx.BuiltinSkill.Name] = einocallbacks.ToolMetadata{
-			ToolCode:   toolx.BuiltinSkill.Code,
-			ServerCode: toolx.BuiltinSkill.ServerCode,
-			ToolName:   toolx.BuiltinSkill.Name,
-			SourceType: toolx.BuiltinSkill.SourceType,
+			ToolCode:   resolved.ToolCode,
+			ServerCode: resolved.ServerCode,
+			ToolName:   resolved.ToolName,
+			SourceType: resolved.SourceType,
 		}
 	}
 	return ret

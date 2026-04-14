@@ -16,6 +16,13 @@ type ToolSpec struct {
 	Appendix      string
 }
 
+type ToolMetadata struct {
+	ToolCode   string
+	ServerCode string
+	ToolName   string
+	SourceType string
+}
+
 var (
 	BuiltinToolSearch = ToolSpec{
 		Code:         "builtin/tool_search",
@@ -308,6 +315,24 @@ func BuildToolMetadata(toolCode string) (serverCode, toolName, sourceType string
 		return "", "", ResolveToolSourceType(toolCode), false
 	}
 	return spec.ServerCode, spec.Name, spec.SourceType, true
+}
+
+func ResolveToolMetadata(toolCode string, fallbackName string) ToolMetadata {
+	toolCode = NormalizeToolCodeAlias(strings.TrimSpace(toolCode))
+	fallbackName = strings.TrimSpace(fallbackName)
+	serverCode, toolName, sourceType, ok := BuildToolMetadata(toolCode)
+	if !ok && toolName == "" {
+		toolName = fallbackName
+	}
+	if toolName == "" {
+		toolName = fallbackName
+	}
+	return ToolMetadata{
+		ToolCode:   toolCode,
+		ServerCode: strings.TrimSpace(serverCode),
+		ToolName:   strings.TrimSpace(toolName),
+		SourceType: strings.TrimSpace(sourceType),
+	}
 }
 
 func IsAlwaysAllowedToolCode(toolCode string) bool {

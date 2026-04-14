@@ -125,11 +125,12 @@ func (h *RuntimeTraceHandler) resolveToolMetadata(modelToolName string) (ToolMet
 		return ToolMetadata{}, false
 	}
 	if spec, ok := toolx.GetRegisteredToolSpecByName(modelToolName); ok {
+		resolved := toolx.ResolveToolMetadata(spec.Code, spec.Name)
 		return ToolMetadata{
-			ToolCode:   spec.Code,
-			ServerCode: spec.ServerCode,
-			ToolName:   spec.Name,
-			SourceType: spec.SourceType,
+			ToolCode:   resolved.ToolCode,
+			ServerCode: resolved.ServerCode,
+			ToolName:   resolved.ToolName,
+			SourceType: resolved.SourceType,
 		}, true
 	}
 	metadata, ok := h.toolMetadataBy[modelToolName]

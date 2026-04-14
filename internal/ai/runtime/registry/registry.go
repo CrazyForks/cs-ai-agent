@@ -46,15 +46,12 @@ func (r *Registry) Resolve(ctx Context) (*ToolSet, error) {
 		}
 		ret.StaticTools = append(ret.StaticTools, tool)
 		ret.StaticToolCodes[toolName] = toolCode
-		serverCode, resolvedToolName, sourceType, _ := toolx.BuildToolMetadata(toolCode)
-		if resolvedToolName == "" {
-			resolvedToolName = toolName
-		}
+		resolvedMetadata := toolx.ResolveToolMetadata(toolCode, toolName)
 		ret.StaticToolMetadata[toolName] = ToolMetadata{
-			ToolCode:   toolCode,
-			ServerCode: serverCode,
-			ToolName:   resolvedToolName,
-			SourceType: sourceType,
+			ToolCode:   resolvedMetadata.ToolCode,
+			ServerCode: resolvedMetadata.ServerCode,
+			ToolName:   resolvedMetadata.ToolName,
+			SourceType: resolvedMetadata.SourceType,
 		}
 	}
 	return ret, nil
