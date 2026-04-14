@@ -21,13 +21,9 @@ import (
 )
 
 type AgentFactory struct {
-	chatModelFactory              *ChatModelFactory
-	toolFactory                   *ToolFactory
-	instructionAssembler          *InstructionAssembler
-	projectInstructionProvider    *ProjectInstructionProvider
-	governanceInstructionProvider *GovernanceInstructionProvider
-	skillInstructionProvider      *SkillInstructionProvider
-	toolAppendixProvider          *ToolAppendixProvider
+	chatModelFactory   *ChatModelFactory
+	toolFactory        *ToolFactory
+	instructionService *InstructionService
 }
 
 // BuildCustomerServiceAgentInput 定义客服 Agent 的装配输入。
@@ -61,13 +57,9 @@ type BuildCustomerServiceAgentInput struct {
 
 func NewAgentFactory() *AgentFactory {
 	return &AgentFactory{
-		chatModelFactory:              NewChatModelFactory(),
-		toolFactory:                   NewToolFactory(),
-		instructionAssembler:          NewInstructionAssembler(),
-		projectInstructionProvider:    NewProjectInstructionProvider(),
-		governanceInstructionProvider: NewGovernanceInstructionProvider(),
-		skillInstructionProvider:      NewSkillInstructionProvider(),
-		toolAppendixProvider:          NewToolAppendixProvider(),
+		chatModelFactory:   NewChatModelFactory(),
+		toolFactory:        NewToolFactory(),
+		instructionService: NewInstructionService(nil, nil, nil, nil, nil),
 	}
 }
 
@@ -110,7 +102,7 @@ func (f *AgentFactory) BuildCustomerServiceAgent(ctx context.Context, input Buil
 		}
 		handlers = append(handlers, einocallbacks.NewRuntimeTraceHandler(input.Collector, toolMetadataBy))
 	}
-	instructionResult := f.assembleAgentInstruction(input.AIAgent, input.SelectedSkill, input.InstructionToolDefinitions, input.StaticToolCodes)
+	instructionResult := f.instructionService.Build(input.AIAgent, input.SelectedSkill, input.InstructionToolDefinitions, input.StaticToolCodes)
 	if input.Collector != nil {
 		input.Collector.SetInstructionSummary(einocallbacks.InstructionTraceSummary{
 			SectionTitles:     append([]string(nil), instructionResult.Summary.SectionTitles...),
@@ -149,37 +141,6 @@ func (f *AgentFactory) buildSelectedSkillMiddleware(ctx context.Context, selecte
 		Backend:       backend,
 		SkillToolName: &toolName,
 		UseChinese:    true,
-	})
-}
-
-func (f *AgentFactory) assembleAgentInstruction(aiAgent *models.AIAgent, selectedSkill *models.SkillDefinition, toolDefinitions []einoadapter.MCPToolDefinition, extraToolCodes map[string]string) InstructionAssemblyResult {
-	baseInstruction := ""
-	if aiAgent != nil {
-		baseInstruction = strings.TrimSpace(aiAgent.SystemPrompt)
-	}
-	projectInstruction := ""
-	governanceInstruction := ""
-	skillInstruction := ""
-	appendixParts := buildInstructionAppendices(toolDefinitions, extraToolCodes)
-	if f != nil && f.projectInstructionProvider != nil {
-		projectInstruction = f.projectInstructionProvider.Resolve()
-	}
-	if f != nil && f.governanceInstructionProvider != nil {
-		governanceInstruction = f.governanceInstructionProvider.Resolve()
-	}
-	if f != nil && f.skillInstructionProvider != nil {
-		skillInstruction = f.skillInstructionProvider.Resolve(selectedSkill)
-	}
-	assembler := NewInstructionAssembler()
-	if f != nil && f.instructionAssembler != nil {
-		assembler = f.instructionAssembler
-	}
-	return assembler.Assemble(InstructionAssemblerInput{
-		AgentInstruction:      baseInstruction,
-		GovernanceInstruction: governanceInstruction,
-		SkillInstruction:      skillInstruction,
-		ToolAppendices:        appendixParts,
-		ProjectInstruction:    projectInstruction,
 	})
 }
 
