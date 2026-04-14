@@ -93,7 +93,7 @@ func DebugResumeSkill(ctx context.Context, req request.SkillDebugResumeRequest) 
 		AIAgent:      aiAgent,
 		AIConfig:     aiConfig,
 		CheckPointID: strings.TrimSpace(req.CheckPointID),
-		ResumeData: map[string]any{
+		ResumeData: map[string]string{
 			strings.TrimSpace(pendingInterrupt.InterruptID): resumeText,
 		},
 	})

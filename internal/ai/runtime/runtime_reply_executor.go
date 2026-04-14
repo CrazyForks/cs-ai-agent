@@ -54,7 +54,7 @@ func (e *runtimeReplyExecutor) ResumePendingInterrupt(ctx context.Context, conve
 		AIAgent:      &aiAgent,
 		AIConfig:     aiConfig,
 		CheckPointID: strings.TrimSpace(pendingInterrupt.CheckPointID),
-		ResumeData: map[string]any{
+		ResumeData: map[string]string{
 			strings.TrimSpace(pendingInterrupt.InterruptID): strings.TrimSpace(message.Content),
 		},
 	})

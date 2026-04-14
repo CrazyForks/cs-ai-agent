@@ -17,7 +17,7 @@ func resolveCheckPointID(input string, runID string) string {
 	return "eino_cp_" + strings.TrimSpace(runID)
 }
 
-func buildResumeDataMessage(resumeData map[string]any) *schema.Message {
+func buildResumeDataMessage(resumeData map[string]string) *schema.Message {
 	if len(resumeData) == 0 {
 		return nil
 	}

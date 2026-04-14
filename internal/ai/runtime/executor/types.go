@@ -22,7 +22,7 @@ type ResumeInput struct {
 	AIAgent      *models.AIAgent
 	AIConfig     *models.AIConfig
 	CheckPointID string
-	ResumeData   map[string]any
+	ResumeData   map[string]string
 	ToolSet      *registry.ToolSet
 }
 
