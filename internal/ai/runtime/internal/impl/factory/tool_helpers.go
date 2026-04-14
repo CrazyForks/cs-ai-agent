@@ -56,6 +56,6 @@ func buildRuntimeTraceToolMetadata(
 	return ret
 }
 
-func buildInstructionAppendices(selectedSkill *models.SkillDefinition, toolDefinitions []einoadapter.MCPToolDefinition, extraToolCodes map[string]string) []string {
-	return NewToolAppendixProvider().Build(selectedSkill, toolDefinitions, extraToolCodes)
+func buildInstructionAppendices(toolDefinitions []einoadapter.MCPToolDefinition, extraToolCodes map[string]string) []string {
+	return NewToolAppendixProvider().Build(toolDefinitions, extraToolCodes)
 }

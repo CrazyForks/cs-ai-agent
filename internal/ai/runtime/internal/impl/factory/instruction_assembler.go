@@ -2,15 +2,22 @@ package factory
 
 import "strings"
 
+const defaultGovernanceInstruction = `
+你正在一个有明确工程约束的客服系统中工作。
+执行时必须严格遵守当前注入的项目规则、Agent 规则和技能规则。
+如果存在工具白名单限制，只能调用当前允许的工具；信息不足时优先追问，不要伪造事实或跳过必要确认。
+`
+
 type InstructionAssembler struct {
 	governanceInstruction string
 }
 
 type InstructionAssemblerInput struct {
-	AgentInstruction   string
-	SkillInstruction   string
-	ToolAppendices     []string
-	ProjectInstruction string
+	AgentInstruction      string
+	GovernanceInstruction string
+	SkillInstruction      string
+	ToolAppendices        []string
+	ProjectInstruction    string
 }
 
 // InstructionAssemblySummary 描述 instruction 各组成部分的来源摘要。
@@ -31,11 +38,7 @@ type InstructionAssemblyResult struct {
 
 func NewInstructionAssembler() *InstructionAssembler {
 	return &InstructionAssembler{
-		governanceInstruction: strings.TrimSpace(`
-你正在一个有明确工程约束的客服系统中工作。
-执行时必须严格遵守当前注入的项目规则、Agent 规则和技能规则。
-如果存在工具白名单限制，只能调用当前允许的工具；信息不足时优先追问，不要伪造事实或跳过必要确认。
-`),
+		governanceInstruction: strings.TrimSpace(defaultGovernanceInstruction),
 	}
 }
 
@@ -56,8 +59,12 @@ func (a *InstructionAssembler) Assemble(input InstructionAssemblerInput) Instruc
 		summary.HasProjectRule = true
 		summary.SectionTitles = append(summary.SectionTitles, "项目级规则")
 	}
-	if a != nil && strings.TrimSpace(a.governanceInstruction) != "" {
-		parts = append(parts, buildInstructionSection("系统治理规则", a.governanceInstruction))
+	governanceInstruction := strings.TrimSpace(input.GovernanceInstruction)
+	if governanceInstruction == "" && a != nil {
+		governanceInstruction = strings.TrimSpace(a.governanceInstruction)
+	}
+	if governanceInstruction != "" {
+		parts = append(parts, buildInstructionSection("系统治理规则", governanceInstruction))
 		summary.HasGovernanceRule = true
 		summary.SectionTitles = append(summary.SectionTitles, "系统治理规则")
 	}

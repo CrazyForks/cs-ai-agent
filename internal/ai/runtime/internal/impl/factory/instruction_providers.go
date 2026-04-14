@@ -67,11 +67,28 @@ func NewToolAppendixProvider() *ToolAppendixProvider {
 	return &ToolAppendixProvider{}
 }
 
-func (p *ToolAppendixProvider) Build(selectedSkill *models.SkillDefinition, toolDefinitions []einoadapter.MCPToolDefinition, extraToolCodes map[string]string) []string {
-	appendixParts := make([]string, 0, 2)
-	if skillInstruction := buildSelectedSkillActivationInstruction(selectedSkill); skillInstruction != "" {
-		appendixParts = append(appendixParts, skillInstruction)
-	}
+type GovernanceInstructionProvider struct{}
+
+func NewGovernanceInstructionProvider() *GovernanceInstructionProvider {
+	return &GovernanceInstructionProvider{}
+}
+
+func (p *GovernanceInstructionProvider) Resolve() string {
+	return strings.TrimSpace(defaultGovernanceInstruction)
+}
+
+type SkillInstructionProvider struct{}
+
+func NewSkillInstructionProvider() *SkillInstructionProvider {
+	return &SkillInstructionProvider{}
+}
+
+func (p *SkillInstructionProvider) Resolve(selectedSkill *models.SkillDefinition) string {
+	return buildSelectedSkillActivationInstruction(selectedSkill)
+}
+
+func (p *ToolAppendixProvider) Build(toolDefinitions []einoadapter.MCPToolDefinition, extraToolCodes map[string]string) []string {
+	appendixParts := make([]string, 0, 1)
 	toolCodes := make([]string, 0, len(toolDefinitions)+len(extraToolCodes))
 	for _, item := range toolDefinitions {
 		toolCodes = append(toolCodes, item.ToolCode)

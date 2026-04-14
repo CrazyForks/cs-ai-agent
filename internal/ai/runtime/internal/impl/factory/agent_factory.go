@@ -21,11 +21,13 @@ import (
 )
 
 type AgentFactory struct {
-	chatModelFactory           *ChatModelFactory
-	toolFactory                *ToolFactory
-	instructionAssembler       *InstructionAssembler
-	projectInstructionProvider *ProjectInstructionProvider
-	toolAppendixProvider       *ToolAppendixProvider
+	chatModelFactory              *ChatModelFactory
+	toolFactory                   *ToolFactory
+	instructionAssembler          *InstructionAssembler
+	projectInstructionProvider    *ProjectInstructionProvider
+	governanceInstructionProvider *GovernanceInstructionProvider
+	skillInstructionProvider      *SkillInstructionProvider
+	toolAppendixProvider          *ToolAppendixProvider
 }
 
 // BuildCustomerServiceAgentInput 定义客服 Agent 的装配输入。
@@ -59,11 +61,13 @@ type BuildCustomerServiceAgentInput struct {
 
 func NewAgentFactory() *AgentFactory {
 	return &AgentFactory{
-		chatModelFactory:           NewChatModelFactory(),
-		toolFactory:                NewToolFactory(),
-		instructionAssembler:       NewInstructionAssembler(),
-		projectInstructionProvider: NewProjectInstructionProvider(),
-		toolAppendixProvider:       NewToolAppendixProvider(),
+		chatModelFactory:              NewChatModelFactory(),
+		toolFactory:                   NewToolFactory(),
+		instructionAssembler:          NewInstructionAssembler(),
+		projectInstructionProvider:    NewProjectInstructionProvider(),
+		governanceInstructionProvider: NewGovernanceInstructionProvider(),
+		skillInstructionProvider:      NewSkillInstructionProvider(),
+		toolAppendixProvider:          NewToolAppendixProvider(),
 	}
 }
 
@@ -153,43 +157,30 @@ func (f *AgentFactory) assembleAgentInstruction(aiAgent *models.AIAgent, selecte
 	if aiAgent != nil {
 		baseInstruction = strings.TrimSpace(aiAgent.SystemPrompt)
 	}
-	appendixParts := buildInstructionAppendices(selectedSkill, toolDefinitions, extraToolCodes)
 	projectInstruction := ""
+	governanceInstruction := ""
+	skillInstruction := ""
+	appendixParts := buildInstructionAppendices(toolDefinitions, extraToolCodes)
 	if f != nil && f.projectInstructionProvider != nil {
 		projectInstruction = f.projectInstructionProvider.Resolve()
+	}
+	if f != nil && f.governanceInstructionProvider != nil {
+		governanceInstruction = f.governanceInstructionProvider.Resolve()
+	}
+	if f != nil && f.skillInstructionProvider != nil {
+		skillInstruction = f.skillInstructionProvider.Resolve(selectedSkill)
 	}
 	assembler := NewInstructionAssembler()
 	if f != nil && f.instructionAssembler != nil {
 		assembler = f.instructionAssembler
 	}
 	return assembler.Assemble(InstructionAssemblerInput{
-		AgentInstruction:   baseInstruction,
-		SkillInstruction:   firstAppendixPart(appendixParts),
-		ToolAppendices:     remainingAppendixParts(appendixParts),
-		ProjectInstruction: projectInstruction,
+		AgentInstruction:      baseInstruction,
+		GovernanceInstruction: governanceInstruction,
+		SkillInstruction:      skillInstruction,
+		ToolAppendices:        appendixParts,
+		ProjectInstruction:    projectInstruction,
 	})
-}
-
-func firstAppendixPart(parts []string) string {
-	if len(parts) == 0 {
-		return ""
-	}
-	return strings.TrimSpace(parts[0])
-}
-
-func remainingAppendixParts(parts []string) []string {
-	if len(parts) <= 1 {
-		return nil
-	}
-	ret := make([]string, 0, len(parts)-1)
-	for _, item := range parts[1:] {
-		item = strings.TrimSpace(item)
-		if item == "" {
-			continue
-		}
-		ret = append(ret, item)
-	}
-	return ret
 }
 
 func buildSelectedSkillActivationInstruction(skill *models.SkillDefinition) string {
