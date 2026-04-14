@@ -89,6 +89,7 @@ type AIAgentResponse struct {
 	SkillIDs            []int64                         `json:"skillIds"`
 	Skills              []AIAgentSkillResponse          `json:"skills"`
 	DirectTools         []AIAgentMCPToolResponse        `json:"directTools"`
+	GraphTools          []string                        `json:"graphTools"`
 	SortNo              int                             `json:"sortNo"`
 	Remark              string                          `json:"remark"`
 	CreatedAt           string                          `json:"createdAt"`

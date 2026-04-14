@@ -281,6 +281,12 @@ func IsAgentDirectToolCode(toolCode string) bool {
 	return ok && spec.DirectAccess
 }
 
+func IsAgentDirectGraphToolCode(toolCode string) bool {
+	toolCode = NormalizeToolCodeAlias(strings.TrimSpace(toolCode))
+	spec, ok := GetRegisteredToolSpec(toolCode)
+	return ok && spec.DirectAccess && spec.SourceType == enums.ToolSourceTypeGraph
+}
+
 func NormalizeToolCodeAlias(toolCode string) string {
 	toolCode = strings.TrimSpace(toolCode)
 	if canonical, ok := toolAliasToCanonical[toolCode]; ok {

@@ -73,16 +73,23 @@ func (c *toolCatalog) parseSkillAllowedToolCodes(skill *models.SkillDefinition) 
 }
 
 func (c *toolCatalog) parseAgentAllowedToolCodes(aiAgent *models.AIAgent) []string {
-	if aiAgent == nil || strings.TrimSpace(aiAgent.AllowedMCPTools) == "" {
+	if aiAgent == nil {
 		return nil
 	}
-	items, err := toolx.ParseAgentMCPToolsJSON(aiAgent.AllowedMCPTools)
-	if err != nil {
-		return nil
+	ret := make([]string, 0)
+	if raw := strings.TrimSpace(aiAgent.AllowedMCPTools); raw != "" {
+		items, err := toolx.ParseAgentMCPToolsJSON(raw)
+		if err == nil {
+			for _, item := range items {
+				ret = append(ret, item.ToolCode)
+			}
+		}
 	}
-	ret := make([]string, 0, len(items))
-	for _, item := range items {
-		ret = append(ret, item.ToolCode)
+	if raw := strings.TrimSpace(aiAgent.AllowedGraphTools); raw != "" {
+		var graphTools []string
+		if err := json.Unmarshal([]byte(raw), &graphTools); err == nil {
+			ret = append(ret, graphTools...)
+		}
 	}
 	return toolx.NormalizeToolCodes(ret)
 }

@@ -69,6 +69,11 @@ type DirectToolOption = {
   groupLabel: string;
 };
 
+type GraphToolOption = {
+  value: string;
+  label: string;
+};
+
 type EditDialogProps = {
   open: boolean;
   saving: boolean;
@@ -150,6 +155,7 @@ function buildPayload(
   teamIds: number[],
   skillIds: number[],
   directTools: CreateAIAgentPayload["directTools"],
+  graphTools: CreateAIAgentPayload["graphTools"],
 ): CreateAIAgentPayload {
   return {
     name: form.name.trim(),
@@ -165,6 +171,7 @@ function buildPayload(
     knowledgeIds,
     skillIds,
     directTools,
+    graphTools,
     remark: form.remark.trim(),
   };
 }
@@ -226,12 +233,17 @@ function EditDialogBody({
   const [skillToAdd, setSkillToAdd] = useState("");
   const [directToolGroupToAdd, setDirectToolGroupToAdd] = useState("");
   const [directToolToAdd, setDirectToolToAdd] = useState("");
+  const [graphToolToAdd, setGraphToolToAdd] = useState("");
   const [aiConfigs, setAIConfigs] = useState<AIConfig[]>([]);
   const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([]);
   const [agentTeams, setAgentTeams] = useState<AdminAgentTeam[]>([]);
   const [skills, setSkills] = useState<SkillDefinition[]>([]);
   const [directTools, setDirectTools] = useState<DirectToolItem[]>([]);
+  const [graphTools, setGraphTools] = useState<string[]>([]);
   const [directToolOptions, setDirectToolOptions] = useState<DirectToolOption[]>(
+    [],
+  );
+  const [graphToolOptions, setGraphToolOptions] = useState<GraphToolOption[]>(
     [],
   );
   const [toolCatalog, setToolCatalog] = useState<MCPToolCatalogItem[]>([]);
@@ -244,11 +256,13 @@ function EditDialogBody({
         setSelectedTeamIds([]);
         setSelectedSkillIds([]);
         setDirectTools([]);
+        setGraphTools([]);
         setKnowledgeToAdd("");
         setTeamToAdd("");
         setSkillToAdd("");
         setDirectToolGroupToAdd("");
         setDirectToolToAdd("");
+        setGraphToolToAdd("");
         return;
       }
       setLoading(true);
@@ -259,11 +273,13 @@ function EditDialogBody({
         setSelectedTeamIds((data.teams ?? []).map((team) => team.id));
         setSelectedSkillIds(data.skillIds ?? []);
         setDirectTools(data.directTools ?? []);
+        setGraphTools(data.graphTools ?? []);
         setKnowledgeToAdd("");
         setTeamToAdd("");
         setSkillToAdd("");
         setDirectToolGroupToAdd("");
         setDirectToolToAdd("");
+        setGraphToolToAdd("");
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : "加载 AI Agent 详情失败",
@@ -338,7 +354,7 @@ function EditDialogBody({
         setToolCatalog(catalog);
         setDirectToolOptions(
           catalog
-            .filter((tool) => !tool.autoInjected)
+            .filter((tool) => !tool.autoInjected && tool.sourceType === "mcp")
             .map((tool) => ({
               value: tool.toolCode,
               label: `${tool.title || tool.toolName} · ${tool.toolCode}`,
@@ -356,6 +372,14 @@ function EditDialogBody({
                 description: tool.description || "",
                 arguments: undefined,
               },
+            })),
+        );
+        setGraphToolOptions(
+          catalog
+            .filter((tool) => tool.sourceType === "graph")
+            .map((tool) => ({
+              value: tool.toolCode,
+              label: `${tool.title || tool.toolName} · ${tool.toolCode}`,
             })),
         );
       } catch (error) {
@@ -470,16 +494,21 @@ function EditDialogBody({
   const directToolsGrouped = useMemo(() => {
     const groups = new Map<string, DirectToolItem[]>();
     for (const tool of directTools) {
-      const groupLabel =
-        tool.serverCode === "builtin" || tool.toolCode.startsWith("builtin/")
-          ? "内置工具"
-          : tool.serverCode || "未分组";
+      const groupLabel = tool.serverCode || "未分组";
       const current = groups.get(groupLabel) ?? [];
       current.push(tool);
       groups.set(groupLabel, current);
     }
     return Array.from(groups.entries());
   }, [directTools]);
+
+  const addableGraphToolOptions = useMemo(
+    () =>
+      graphToolOptions.filter(
+        (option) => !graphTools.includes(option.value),
+      ),
+    [graphToolOptions, graphTools],
+  );
 
   const addableTeamOptions = useMemo(
     () =>
@@ -512,6 +541,7 @@ function EditDialogBody({
         selectedTeamIds,
         selectedSkillIds,
         directTools,
+        graphTools,
       ),
     );
   }
@@ -591,6 +621,18 @@ function EditDialogBody({
 
   function handleRemoveDirectTool(value: string) {
     setDirectTools((prev) => prev.filter((item) => item.toolCode !== value));
+  }
+
+  function handleAddGraphTool(value: string) {
+    if (!value || graphTools.includes(value)) {
+      return;
+    }
+    setGraphTools((prev) => [...prev, value]);
+    setGraphToolToAdd("");
+  }
+
+  function handleRemoveGraphTool(value: string) {
+    setGraphTools((prev) => prev.filter((item) => item !== value));
   }
 
   return (
@@ -700,9 +742,9 @@ function EditDialogBody({
 
           <SectionCard
             title="能力配置"
-            description="知识库用于 RAG，Skills 用于业务流程，Direct Tools 用于低风险实时查询。"
+            description="知识库用于 RAG，Skills 用于业务流程，Direct Tools 用于外部 MCP 查询，Graph Tools 用于内置业务流程。"
           >
-            <div className="grid gap-4 xl:grid-cols-3">
+            <div className="grid gap-4 xl:grid-cols-4">
               <div className="rounded-xl border bg-muted/10 p-4">
                 <div className="mb-1 text-sm font-medium">知识库</div>
                 <div className="mb-4 text-xs text-muted-foreground">
@@ -854,8 +896,7 @@ function EditDialogBody({
               <div className="rounded-xl border bg-muted/10 p-4">
                 <div className="mb-1 text-sm font-medium">Direct Tools</div>
                 <div className="mb-4 text-xs text-muted-foreground">
-                  用于低风险、原子化的实时查询。可选择 MCP 工具，也可选择系统内置工具。
-                  `tool_search` 会由 Runtime 自动注入，这里不需要手动添加。
+                  仅用于外部 MCP 工具的低风险、原子化查询。
                 </div>
                 <Field>
                   <FieldContent className="space-y-3">
@@ -923,9 +964,7 @@ function EditDialogBody({
                                   >
                                     {tool.title || catalogItem?.title || value}
                                     <span className="text-[10px] text-muted-foreground/80">
-                                      {catalogItem?.sourceType === "builtin"
-                                        ? "内置"
-                                        : tool.serverCode || "MCP"}
+                                      {tool.serverCode || "MCP"}
                                     </span>
                                     <Button
                                       type="button"
@@ -945,6 +984,73 @@ function EditDialogBody({
                             </div>
                           </div>
                         ))
+                      )}
+                    </div>
+                  </FieldContent>
+                </Field>
+              </div>
+
+              <div className="rounded-xl border bg-muted/10 p-4">
+                <div className="mb-1 text-sm font-medium">Graph Tools</div>
+                <div className="mb-4 text-xs text-muted-foreground">
+                  用于建单、转人工等系统内置流程，不再混放到 Direct Tools 中。
+                </div>
+                <Field>
+                  <FieldContent className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <OptionCombobox
+                          value={graphToolToAdd}
+                          options={addableGraphToolOptions}
+                          placeholder="选择 Graph Tool"
+                          searchPlaceholder="搜索 Graph Tool"
+                          emptyText="没有可添加的 Graph Tool"
+                          onChange={handleAddGraphTool}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={!graphToolToAdd}
+                        onClick={() => handleAddGraphTool(graphToolToAdd)}
+                      >
+                        <PlusIcon />
+                        添加
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {graphTools.length === 0 ? (
+                        <span className="text-sm text-muted-foreground">
+                          不配置 Graph Tool 时，Agent 不会暴露建单/转人工等内置流程工具。
+                        </span>
+                      ) : (
+                        graphTools.map((toolCode) => {
+                          const catalogItem = toolCatalog.find(
+                            (item) => item.toolCode === toolCode,
+                          );
+                          return (
+                            <Badge
+                              key={toolCode}
+                              variant="secondary"
+                              className="gap-1 pr-1"
+                            >
+                              {catalogItem?.title || toolCode}
+                              <span className="text-[10px] text-muted-foreground/80">
+                                graph
+                              </span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-5"
+                                onClick={() => handleRemoveGraphTool(toolCode)}
+                                aria-label={`移除 Graph Tool ${toolCode}`}
+                              >
+                                <Trash2Icon className="size-3" />
+                              </Button>
+                            </Badge>
+                          );
+                        })
                       )}
                     </div>
                   </FieldContent>

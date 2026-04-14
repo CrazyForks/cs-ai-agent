@@ -105,6 +105,7 @@ func (s *aIAgentService) UpdateAIAgent(req request.UpdateAIAgentRequest, operato
 		"knowledge_ids":         item.KnowledgeIDs,
 		"skill_ids":             item.SkillIDs,
 		"allowed_mcp_tools":     item.AllowedMCPTools,
+		"allowed_graph_tools":   item.AllowedGraphTools,
 		"remark":                item.Remark,
 		"update_user_id":        operator.UserID,
 		"update_user_name":      operator.Username,
@@ -179,6 +180,10 @@ func (s *aIAgentService) buildAIAgentModel(id int64, req request.CreateAIAgentRe
 	if err != nil {
 		return nil, err
 	}
+	graphTools, err := s.normalizeGraphTools(req.GraphTools)
+	if err != nil {
+		return nil, err
+	}
 	directToolsJSON := ""
 	if len(directTools) > 0 {
 		buf, marshalErr := json.Marshal(directTools)
@@ -186,6 +191,14 @@ func (s *aIAgentService) buildAIAgentModel(id int64, req request.CreateAIAgentRe
 			return nil, errorsx.InvalidParam("Direct Tools 配置格式不合法")
 		}
 		directToolsJSON = string(buf)
+	}
+	graphToolsJSON := ""
+	if len(graphTools) > 0 {
+		buf, marshalErr := json.Marshal(graphTools)
+		if marshalErr != nil {
+			return nil, errorsx.InvalidParam("Graph Tools 配置格式不合法")
+		}
+		graphToolsJSON = string(buf)
 	}
 	return &models.AIAgent{
 		Name:                name,
@@ -201,6 +214,7 @@ func (s *aIAgentService) buildAIAgentModel(id int64, req request.CreateAIAgentRe
 		KnowledgeIDs:        utils.JoinInt64s(knowledgeIDs),
 		SkillIDs:            utils.JoinInt64s(skillIDs),
 		AllowedMCPTools:     directToolsJSON,
+		AllowedGraphTools:   graphToolsJSON,
 		Remark:              strings.TrimSpace(req.Remark),
 	}, nil
 }
@@ -289,6 +303,9 @@ func (s *aIAgentService) normalizeDirectTools(input []request.AIAgentMCPToolRequ
 		if toolx.IsAutoInjectedToolCode(strings.TrimSpace(normalized.ToolCode)) {
 			continue
 		}
+		if toolx.ResolveToolSourceType(normalized.ToolCode) != enums.ToolSourceTypeMCP {
+			return nil, errorsx.InvalidParam("Direct Tools 仅允许配置 MCP 工具")
+		}
 		if err := ToolCatalogService.ValidateToolCode(normalized.ToolCode); err != nil {
 			return nil, err
 		}
@@ -298,6 +315,29 @@ func (s *aIAgentService) normalizeDirectTools(input []request.AIAgentMCPToolRequ
 		}
 		seen[key] = struct{}{}
 		ret = append(ret, normalized)
+	}
+	return ret, nil
+}
+
+func (s *aIAgentService) normalizeGraphTools(input []string) ([]string, error) {
+	if len(input) == 0 {
+		return nil, nil
+	}
+	ret := make([]string, 0, len(input))
+	seen := make(map[string]struct{})
+	for _, item := range input {
+		toolCode := toolx.NormalizeToolCodeAlias(strings.TrimSpace(item))
+		if toolCode == "" {
+			continue
+		}
+		if !toolx.IsAgentDirectGraphToolCode(toolCode) {
+			return nil, errorsx.InvalidParam("Graph Tools 仅允许配置 Graph Tool")
+		}
+		if _, exists := seen[toolCode]; exists {
+			continue
+		}
+		seen[toolCode] = struct{}{}
+		ret = append(ret, toolCode)
 	}
 	return ret, nil
 }

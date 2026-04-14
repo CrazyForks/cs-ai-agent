@@ -131,6 +131,7 @@ func buildAIAgentResponse(item *models.AIAgent) response.AIAgentResponse {
 		Skills:              make([]response.AIAgentSkillResponse, 0),
 		Teams:               make([]response.AIAgentTeamResponse, 0),
 		DirectTools:         make([]response.AIAgentMCPToolResponse, 0),
+		GraphTools:          make([]string, 0),
 		SortNo:              item.SortNo,
 		Remark:              item.Remark,
 		CreatedAt:           item.CreatedAt.Format("2006-01-02 15:04:05"),
@@ -175,6 +176,10 @@ func buildAIAgentResponse(item *models.AIAgent) response.AIAgentResponse {
 				if toolx.IsAutoInjectedToolCode(toolCode) {
 					continue
 				}
+				if toolx.IsAgentDirectGraphToolCode(toolCode) {
+					ret.GraphTools = appendGraphToolCodeIfMissing(ret.GraphTools, toolCode)
+					continue
+				}
 				serverCode := strings.TrimSpace(tool.ServerCode)
 				toolName := strings.TrimSpace(tool.ToolName)
 				if registeredServerCode, registeredToolName, ok := toolx.GetRegisteredToolIdentity(toolCode); ok {
@@ -207,5 +212,30 @@ func buildAIAgentResponse(item *models.AIAgent) response.AIAgentResponse {
 			}
 		}
 	}
+	if raw := strings.TrimSpace(item.AllowedGraphTools); raw != "" {
+		var graphTools []string
+		if err := json.Unmarshal([]byte(raw), &graphTools); err == nil {
+			for _, toolCode := range graphTools {
+				toolCode = toolx.NormalizeToolCodeAlias(strings.TrimSpace(toolCode))
+				if !toolx.IsAgentDirectGraphToolCode(toolCode) {
+					continue
+				}
+				ret.GraphTools = appendGraphToolCodeIfMissing(ret.GraphTools, toolCode)
+			}
+		}
+	}
 	return ret
+}
+
+func appendGraphToolCodeIfMissing(items []string, toolCode string) []string {
+	toolCode = strings.TrimSpace(toolCode)
+	if toolCode == "" {
+		return items
+	}
+	for _, item := range items {
+		if strings.TrimSpace(item) == toolCode {
+			return items
+		}
+	}
+	return append(items, toolCode)
 }
