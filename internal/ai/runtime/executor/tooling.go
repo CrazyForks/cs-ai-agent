@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"strings"
 
-	"cs-agent/internal/ai/runtime/internal/impl/adapter"
 	"cs-agent/internal/ai/runtime/registry"
+	runtimetooling "cs-agent/internal/ai/runtime/tooling"
 	"cs-agent/internal/models"
 	"cs-agent/internal/pkg/toolx"
 
@@ -13,7 +13,7 @@ import (
 )
 
 type preparedTooling struct {
-	definitions         []adapter.MCPToolDefinition
+	definitions         []runtimetooling.MCPToolDefinition
 	toolCodes           []string
 	toolDefsByModelName map[string]string
 	staticToolCodes     []string
@@ -22,7 +22,7 @@ type preparedTooling struct {
 	staticToolMetadata  map[string]registry.ToolMetadata
 }
 
-func prepareTooling(defs []adapter.MCPToolDefinition, selectedSkill *models.SkillDefinition, toolSet *registry.ToolSet, includeSkillTool bool) preparedTooling {
+func prepareTooling(defs []runtimetooling.MCPToolDefinition, selectedSkill *models.SkillDefinition, toolSet *registry.ToolSet, includeSkillTool bool) preparedTooling {
 	filteredDefs := filterToolDefinitionsBySkill(defs, selectedSkill)
 	ret := preparedTooling{
 		definitions:         filteredDefs,
@@ -125,7 +125,7 @@ func staticToolCodeList(toolSet *registry.ToolSet) []string {
 	return ret
 }
 
-func definitionToolCodes(defs []adapter.MCPToolDefinition) []string {
+func definitionToolCodes(defs []runtimetooling.MCPToolDefinition) []string {
 	ret := make([]string, 0, len(defs))
 	for _, item := range defs {
 		code := strings.TrimSpace(item.ToolCode)
@@ -137,7 +137,7 @@ func definitionToolCodes(defs []adapter.MCPToolDefinition) []string {
 	return ret
 }
 
-func filterToolDefinitionsBySkill(defs []adapter.MCPToolDefinition, skill *models.SkillDefinition) []adapter.MCPToolDefinition {
+func filterToolDefinitionsBySkill(defs []runtimetooling.MCPToolDefinition, skill *models.SkillDefinition) []runtimetooling.MCPToolDefinition {
 	if skill == nil || strings.TrimSpace(skill.ToolWhitelist) == "" {
 		return defs
 	}
@@ -156,7 +156,7 @@ func filterToolDefinitionsBySkill(defs []adapter.MCPToolDefinition, skill *model
 	if len(allowedSet) == 0 {
 		return defs
 	}
-	ret := make([]adapter.MCPToolDefinition, 0, len(defs))
+	ret := make([]runtimetooling.MCPToolDefinition, 0, len(defs))
 	for _, item := range defs {
 		if _, ok := allowedSet[strings.TrimSpace(item.ToolCode)]; ok {
 			ret = append(ret, item)

@@ -3,9 +3,9 @@ package factory
 import (
 	"context"
 
-	einoadapter "cs-agent/internal/ai/runtime/internal/impl/adapter"
 	einocallbacks "cs-agent/internal/ai/runtime/internal/impl/callbacks"
 	"cs-agent/internal/ai/runtime/registry"
+	runtimetooling "cs-agent/internal/ai/runtime/tooling"
 	"cs-agent/internal/models"
 	"cs-agent/internal/pkg/toolx"
 
@@ -20,8 +20,8 @@ type AgentHandlerService struct {
 
 type BuildAgentHandlersInput struct {
 	SelectedSkill              *models.SkillDefinition
-	InstructionToolDefinitions []einoadapter.MCPToolDefinition
-	DynamicToolDefinitions     []einoadapter.MCPToolDefinition
+	InstructionToolDefinitions []runtimetooling.MCPToolDefinition
+	DynamicToolDefinitions     []runtimetooling.MCPToolDefinition
 	DynamicTools               []einobasetool.BaseTool
 	StaticToolMetadata         map[string]registry.ToolMetadata
 	Collector                  *einocallbacks.RuntimeTraceCollector

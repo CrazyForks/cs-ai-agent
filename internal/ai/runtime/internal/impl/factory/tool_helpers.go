@@ -3,9 +3,9 @@ package factory
 import (
 	"strings"
 
-	einoadapter "cs-agent/internal/ai/runtime/internal/impl/adapter"
 	einocallbacks "cs-agent/internal/ai/runtime/internal/impl/callbacks"
 	"cs-agent/internal/ai/runtime/registry"
+	runtimetooling "cs-agent/internal/ai/runtime/tooling"
 	"cs-agent/internal/models"
 	"cs-agent/internal/pkg/toolx"
 )
@@ -22,7 +22,7 @@ func buildInstructionTraceSummary(summary InstructionAssemblySummary) einocallba
 }
 
 func buildRuntimeTraceToolMetadata(
-	dynamicToolDefinitions []einoadapter.MCPToolDefinition,
+	dynamicToolDefinitions []runtimetooling.MCPToolDefinition,
 	staticToolMetadata map[string]registry.ToolMetadata,
 	selectedSkill *models.SkillDefinition,
 ) map[string]einocallbacks.ToolMetadata {

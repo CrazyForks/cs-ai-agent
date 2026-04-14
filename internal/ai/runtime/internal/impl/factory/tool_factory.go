@@ -6,6 +6,7 @@ import (
 
 	"cs-agent/internal/ai/mcps"
 	impladapter "cs-agent/internal/ai/runtime/internal/impl/adapter"
+	runtimetooling "cs-agent/internal/ai/runtime/tooling"
 	"cs-agent/internal/models"
 	"cs-agent/internal/pkg/toolx"
 
@@ -18,7 +19,7 @@ func NewToolFactory() *ToolFactory {
 	return &ToolFactory{}
 }
 
-func (f *ToolFactory) BuildMCPTools(aiAgent *models.AIAgent) ([]impladapter.MCPToolDefinition, error) {
+func (f *ToolFactory) BuildMCPTools(aiAgent *models.AIAgent) ([]runtimetooling.MCPToolDefinition, error) {
 	if aiAgent == nil || strings.TrimSpace(aiAgent.AllowedMCPTools) == "" {
 		return nil, nil
 	}
@@ -26,7 +27,7 @@ func (f *ToolFactory) BuildMCPTools(aiAgent *models.AIAgent) ([]impladapter.MCPT
 	if err != nil {
 		return nil, err
 	}
-	ret := make([]impladapter.MCPToolDefinition, 0, len(raw))
+	ret := make([]runtimetooling.MCPToolDefinition, 0, len(raw))
 	for _, item := range raw {
 		toolCode := strings.TrimSpace(item.ToolCode)
 		toolCode = toolx.NormalizeToolCodeAlias(toolCode)
@@ -37,7 +38,7 @@ func (f *ToolFactory) BuildMCPTools(aiAgent *models.AIAgent) ([]impladapter.MCPT
 		if serverCode == "" || toolName == "" {
 			continue
 		}
-		definition := impladapter.MCPToolDefinition{
+		definition := runtimetooling.MCPToolDefinition{
 			ToolCode:    toolCode,
 			ServerCode:  serverCode,
 			ToolName:    toolName,
@@ -45,7 +46,7 @@ func (f *ToolFactory) BuildMCPTools(aiAgent *models.AIAgent) ([]impladapter.MCPT
 			Description: strings.TrimSpace(item.Description),
 			FixedArgs:   cloneStringMap(item.Arguments),
 		}
-		definition.ModelName = impladapter.BuildModelToolName(definition)
+		definition.ModelName = runtimetooling.BuildModelToolName(definition)
 		ret = append(ret, definition)
 	}
 	return ret, nil
@@ -59,7 +60,7 @@ func (f *ToolFactory) BuildBaseTools(ctx context.Context, aiAgent *models.AIAgen
 	return f.BuildBaseToolsByDefinitions(ctx, definitions)
 }
 
-func (f *ToolFactory) BuildBaseToolsByDefinitions(ctx context.Context, definitions []impladapter.MCPToolDefinition) ([]einotool.BaseTool, error) {
+func (f *ToolFactory) BuildBaseToolsByDefinitions(ctx context.Context, definitions []runtimetooling.MCPToolDefinition) ([]einotool.BaseTool, error) {
 	if len(definitions) == 0 {
 		return nil, nil
 	}
@@ -74,7 +75,7 @@ func (f *ToolFactory) BuildBaseToolsByDefinitions(ctx context.Context, definitio
 	return ret, nil
 }
 
-func (f *ToolFactory) loadToolMetadata(ctx context.Context, definitions []impladapter.MCPToolDefinition) (map[string]*mcps.ToolInfo, error) {
+func (f *ToolFactory) loadToolMetadata(ctx context.Context, definitions []runtimetooling.MCPToolDefinition) (map[string]*mcps.ToolInfo, error) {
 	toolsByCode := make(map[string]*mcps.ToolInfo, len(definitions))
 	serverCodes := make(map[string]struct{})
 	for _, item := range definitions {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	einoadapter "cs-agent/internal/ai/runtime/internal/impl/adapter"
+	runtimetooling "cs-agent/internal/ai/runtime/tooling"
 	"cs-agent/internal/models"
 	"cs-agent/internal/pkg/toolx"
 )
@@ -26,7 +26,7 @@ func buildSelectedSkillActivationInstruction(skill *models.SkillDefinition) stri
 	return strings.TrimSpace(strings.Join(lines, "\n"))
 }
 
-func buildSelectedSkillDocument(skill *models.SkillDefinition, toolDefinitions []einoadapter.MCPToolDefinition) string {
+func buildSelectedSkillDocument(skill *models.SkillDefinition, toolDefinitions []runtimetooling.MCPToolDefinition) string {
 	if skill == nil {
 		return ""
 	}

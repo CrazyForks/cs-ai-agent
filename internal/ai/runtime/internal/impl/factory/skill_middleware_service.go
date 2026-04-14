@@ -3,7 +3,7 @@ package factory
 import (
 	"context"
 
-	einoadapter "cs-agent/internal/ai/runtime/internal/impl/adapter"
+	runtimetooling "cs-agent/internal/ai/runtime/tooling"
 	"cs-agent/internal/models"
 	"cs-agent/internal/pkg/toolx"
 
@@ -20,7 +20,7 @@ func NewSkillMiddlewareService() *SkillMiddlewareService {
 func (s *SkillMiddlewareService) Build(
 	ctx context.Context,
 	selectedSkill *models.SkillDefinition,
-	toolDefinitions []einoadapter.MCPToolDefinition,
+	toolDefinitions []runtimetooling.MCPToolDefinition,
 ) (adk.ChatModelAgentMiddleware, error) {
 	backend, err := newSelectedSkillBackend(selectedSkill, toolDefinitions)
 	if err != nil {

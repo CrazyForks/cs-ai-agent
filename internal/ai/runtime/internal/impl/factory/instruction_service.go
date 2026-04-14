@@ -3,7 +3,7 @@ package factory
 import (
 	"strings"
 
-	einoadapter "cs-agent/internal/ai/runtime/internal/impl/adapter"
+	runtimetooling "cs-agent/internal/ai/runtime/tooling"
 	"cs-agent/internal/models"
 )
 
@@ -49,7 +49,7 @@ func NewInstructionService(
 func (s *InstructionService) Build(
 	aiAgent *models.AIAgent,
 	selectedSkill *models.SkillDefinition,
-	toolDefinitions []einoadapter.MCPToolDefinition,
+	toolDefinitions []runtimetooling.MCPToolDefinition,
 	extraToolCodes map[string]string,
 ) InstructionAssemblyResult {
 	baseInstruction := ""

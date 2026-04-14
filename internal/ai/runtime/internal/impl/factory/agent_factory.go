@@ -4,10 +4,10 @@ import (
 	"context"
 	"strings"
 
-	einoadapter "cs-agent/internal/ai/runtime/internal/impl/adapter"
 	einoagents "cs-agent/internal/ai/runtime/internal/impl/agents"
 	einocallbacks "cs-agent/internal/ai/runtime/internal/impl/callbacks"
 	"cs-agent/internal/ai/runtime/registry"
+	runtimetooling "cs-agent/internal/ai/runtime/tooling"
 	"cs-agent/internal/models"
 
 	"github.com/cloudwego/eino/adk"
@@ -37,10 +37,10 @@ type BuildCustomerServiceAgentInput struct {
 	SelectedSkill *models.SkillDefinition
 	// InstructionToolDefinitions 用于生成 instruction 中的工具说明。
 	// 它描述“当前允许模型理解和使用的 MCP 工具范围”。
-	InstructionToolDefinitions []einoadapter.MCPToolDefinition
+	InstructionToolDefinitions []runtimetooling.MCPToolDefinition
 	// DynamicMCPToolDefinitions 用于接入 Eino tool_search middleware 的动态工具集合。
 	// 这些工具默认不直接挂在 ToolsNode 上，而是经 tool_search 选择后再暴露给模型。
-	DynamicMCPToolDefinitions []einoadapter.MCPToolDefinition
+	DynamicMCPToolDefinitions []runtimetooling.MCPToolDefinition
 	// StaticTools 为当前运行时直接挂载到 ToolsNode 的固定工具，例如 Graph Tool。
 	StaticTools []einobasetool.BaseTool
 	// StaticToolCodes 为固定工具的 modelName -> toolCode 映射，用于 trace 和运行日志归因。

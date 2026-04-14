@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	einoadapter "cs-agent/internal/ai/runtime/internal/impl/adapter"
+	runtimetooling "cs-agent/internal/ai/runtime/tooling"
 	"cs-agent/internal/models"
 
 	einoskill "github.com/cloudwego/eino/adk/middlewares/skill"
@@ -16,7 +16,7 @@ type selectedSkillBackend struct {
 	skill       einoskill.Skill
 }
 
-func newSelectedSkillBackend(selectedSkill *models.SkillDefinition, toolDefinitions []einoadapter.MCPToolDefinition) (*selectedSkillBackend, error) {
+func newSelectedSkillBackend(selectedSkill *models.SkillDefinition, toolDefinitions []runtimetooling.MCPToolDefinition) (*selectedSkillBackend, error) {
 	if selectedSkill == nil {
 		return nil, fmt.Errorf("selected skill is nil")
 	}

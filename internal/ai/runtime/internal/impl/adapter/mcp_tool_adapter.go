@@ -4,11 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"hash/crc32"
-	"regexp"
 	"strings"
 
 	"cs-agent/internal/ai/mcps"
+	runtimetooling "cs-agent/internal/ai/runtime/tooling"
 
 	einojsonschema "github.com/eino-contrib/jsonschema"
 
@@ -16,17 +15,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 )
 
-var toolNameSanitizer = regexp.MustCompile(`[^a-zA-Z0-9_]`)
-
-type MCPToolDefinition struct {
-	ToolCode    string
-	ServerCode  string
-	ToolName    string
-	ModelName   string
-	Title       string
-	Description string
-	FixedArgs   map[string]string
-}
+type MCPToolDefinition = runtimetooling.MCPToolDefinition
 
 type MCPTool struct {
 	definition MCPToolDefinition
@@ -83,7 +72,7 @@ func buildToolInfo(definition MCPToolDefinition, metadata *mcps.ToolInfo) *schem
 		desc = "Call MCP tool " + strings.TrimSpace(definition.ToolCode)
 	}
 	info := &schema.ToolInfo{
-		Name: BuildModelToolName(definition),
+		Name: runtimetooling.BuildModelToolName(definition),
 		Desc: desc,
 		Extra: map[string]any{
 			"toolCode":   definition.ToolCode,
@@ -144,18 +133,4 @@ func mergeFixedArguments(arguments map[string]any, fixedArgs map[string]string) 
 		ret[key] = strings.TrimSpace(value)
 	}
 	return ret
-}
-
-func BuildModelToolName(definition MCPToolDefinition) string {
-	if strings.TrimSpace(definition.ModelName) != "" {
-		return strings.TrimSpace(definition.ModelName)
-	}
-	base := "mcp_" + strings.TrimSpace(definition.ServerCode) + "_" + strings.TrimSpace(definition.ToolName)
-	base = toolNameSanitizer.ReplaceAllString(base, "_")
-	base = strings.Trim(base, "_")
-	if base == "" {
-		base = "mcp_tool"
-	}
-	checksum := crc32.ChecksumIEEE([]byte(definition.ToolCode))
-	return fmt.Sprintf("%s_%08x", base, checksum)
 }

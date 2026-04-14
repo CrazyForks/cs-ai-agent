@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	einoadapter "cs-agent/internal/ai/runtime/internal/impl/adapter"
+	runtimetooling "cs-agent/internal/ai/runtime/tooling"
 	"cs-agent/internal/models"
 	"cs-agent/internal/pkg/toolx"
 )
@@ -87,7 +87,7 @@ func (p *SkillInstructionProvider) Resolve(selectedSkill *models.SkillDefinition
 	return buildSelectedSkillActivationInstruction(selectedSkill)
 }
 
-func (p *ToolAppendixProvider) Build(toolDefinitions []einoadapter.MCPToolDefinition, extraToolCodes map[string]string) []string {
+func (p *ToolAppendixProvider) Build(toolDefinitions []runtimetooling.MCPToolDefinition, extraToolCodes map[string]string) []string {
 	appendixParts := make([]string, 0, 1)
 	toolCodes := make([]string, 0, len(toolDefinitions)+len(extraToolCodes))
 	for _, item := range toolDefinitions {
