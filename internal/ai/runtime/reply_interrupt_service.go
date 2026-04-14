@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	applicationruntime "cs-agent/internal/ai/application/runtime"
 	"cs-agent/internal/ai/runtime/graphs"
 	"cs-agent/internal/models"
 	svc "cs-agent/internal/services"
@@ -16,7 +17,7 @@ func newReplyInterruptService() *replyInterruptService {
 }
 
 func (s *replyInterruptService) ResumePendingInterrupt(ctx context.Context, owner *aiReplyService, conversation models.Conversation, message models.Message, aiAgent models.AIAgent,
-	pendingInterrupt *models.ConversationInterrupt, trace *aiReplyTraceData, summaryRef **Summary) error {
+	pendingInterrupt *models.ConversationInterrupt, trace *aiReplyTraceData, summaryRef **applicationruntime.Summary) error {
 	if pendingInterrupt == nil || owner == nil || owner.executor == nil {
 		return nil
 	}
@@ -64,7 +65,7 @@ func (s *replyInterruptService) ResumePendingInterrupt(ctx context.Context, owne
 }
 
 func (s *replyInterruptService) HandleInterruptedSummary(owner *aiReplyService, conversation models.Conversation, message models.Message, aiAgent models.AIAgent,
-	summary *Summary, trace *aiReplyTraceData) error {
+	summary *applicationruntime.Summary, trace *aiReplyTraceData) error {
 	if owner == nil {
 		return nil
 	}
@@ -85,7 +86,7 @@ func (s *replyInterruptService) HandleInterruptedSummary(owner *aiReplyService, 
 }
 
 func (s *replyInterruptService) HandleInterruptedResume(owner *aiReplyService, conversation models.Conversation, message models.Message, aiAgent models.AIAgent,
-	pendingInterrupt *models.ConversationInterrupt, summary *Summary, trace *aiReplyTraceData) error {
+	pendingInterrupt *models.ConversationInterrupt, summary *applicationruntime.Summary, trace *aiReplyTraceData) error {
 	if pendingInterrupt == nil || owner == nil {
 		return nil
 	}

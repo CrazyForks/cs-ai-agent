@@ -18,14 +18,14 @@ type service struct {
 	app *applicationruntime.Service
 }
 
-func (s *service) Run(ctx context.Context, req Request) (*Summary, error) {
+func (s *service) Run(ctx context.Context, req applicationruntime.Request) (*applicationruntime.Summary, error) {
 	if s == nil || s.app == nil {
 		return nil, nil
 	}
 	return s.app.Run(ctx, req)
 }
 
-func (s *service) Resume(ctx context.Context, req ResumeRequest) (*Summary, error) {
+func (s *service) Resume(ctx context.Context, req applicationruntime.ResumeRequest) (*applicationruntime.Summary, error) {
 	if s == nil || s.app == nil {
 		return nil, nil
 	}

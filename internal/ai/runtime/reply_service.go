@@ -3,6 +3,7 @@ package runtime
 import (
 	"strings"
 
+	applicationruntime "cs-agent/internal/ai/application/runtime"
 	svc "cs-agent/internal/services"
 )
 
@@ -30,7 +31,7 @@ type aiReplyService struct {
 	runlog      *replyRunLogService
 }
 
-func firstInvokedToolCode(summary *Summary) string {
+func firstInvokedToolCode(summary *applicationruntime.Summary) string {
 	if summary == nil {
 		return ""
 	}

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	applicationruntime "cs-agent/internal/ai/application/runtime"
 	"cs-agent/internal/models"
 	"cs-agent/internal/pkg/toolx"
 	svc "cs-agent/internal/services"
@@ -18,7 +19,7 @@ func newReplyRunLogService() *replyRunLogService {
 type replyRunLogService struct{}
 
 func (s *replyRunLogService) Write(startedAt time.Time, message models.Message, conversation models.Conversation, aiAgent models.AIAgent,
-	question string, runErr error, trace *aiReplyTraceData, summary *Summary) {
+	question string, runErr error, trace *aiReplyTraceData, summary *applicationruntime.Summary) {
 	errorMessage := ""
 	if runErr != nil {
 		errorMessage = runErr.Error()
@@ -73,7 +74,7 @@ func buildAIReplyTraceData(trace *aiReplyTraceData) string {
 	return string(data)
 }
 
-func buildRunLogPlan(summary *Summary) (plannedAction, plannedToolCode, planReason string) {
+func buildRunLogPlan(summary *applicationruntime.Summary) (plannedAction, plannedToolCode, planReason string) {
 	if summary == nil {
 		return "", "", ""
 	}
@@ -121,7 +122,7 @@ func buildRunLogPlan(summary *Summary) (plannedAction, plannedToolCode, planReas
 	return "fallback", "", "runtime produced empty reply"
 }
 
-func toRunLogFinalAction(summary *Summary) string {
+func toRunLogFinalAction(summary *applicationruntime.Summary) string {
 	if summary == nil {
 		return ""
 	}
@@ -147,28 +148,28 @@ func toRunLogFinalAction(summary *Summary) string {
 	}
 }
 
-func buildRunLogReplyText(summary *Summary) string {
+func buildRunLogReplyText(summary *applicationruntime.Summary) string {
 	if summary == nil {
 		return ""
 	}
 	return strings.TrimSpace(summary.ReplyText)
 }
 
-func summaryPlannedSkillCode(summary *Summary) string {
+func summaryPlannedSkillCode(summary *applicationruntime.Summary) string {
 	if summary == nil {
 		return ""
 	}
 	return strings.TrimSpace(summary.PlannedSkillCode)
 }
 
-func summaryPlannedSkillName(summary *Summary) string {
+func summaryPlannedSkillName(summary *applicationruntime.Summary) string {
 	if summary == nil {
 		return ""
 	}
 	return strings.TrimSpace(summary.PlannedSkillName)
 }
 
-func summarySkillRouteTrace(summary *Summary) string {
+func summarySkillRouteTrace(summary *applicationruntime.Summary) string {
 	if summary == nil {
 		return ""
 	}
@@ -182,14 +183,14 @@ func runLogResumeSource(trace *aiReplyTraceData) string {
 	return strings.TrimSpace(trace.ResumeSource)
 }
 
-func runLogFinalStatus(summary *Summary) string {
+func runLogFinalStatus(summary *applicationruntime.Summary) string {
 	if summary == nil {
 		return ""
 	}
 	return strings.TrimSpace(summary.Status)
 }
 
-func summaryPrimaryToolCode(summary *Summary) string {
+func summaryPrimaryToolCode(summary *applicationruntime.Summary) string {
 	if summary == nil {
 		return ""
 	}
@@ -203,7 +204,7 @@ func summaryPrimaryToolCode(summary *Summary) string {
 	return toolCode
 }
 
-func extractToolSearchTrace(summary *Summary) string {
+func extractToolSearchTrace(summary *applicationruntime.Summary) string {
 	if summary == nil {
 		return ""
 	}
@@ -218,7 +219,7 @@ func extractToolSearchTrace(summary *Summary) string {
 	return string(buf)
 }
 
-func extractGraphToolTrace(summary *Summary) string {
+func extractGraphToolTrace(summary *applicationruntime.Summary) string {
 	if summary == nil {
 		return ""
 	}
@@ -233,7 +234,7 @@ func extractGraphToolTrace(summary *Summary) string {
 	return string(buf)
 }
 
-func firstToolSearchTargetToolCode(summary *Summary) string {
+func firstToolSearchTargetToolCode(summary *applicationruntime.Summary) string {
 	trace := parseRuntimeTraceData(summary.TraceData)
 	for _, item := range trace.ToolSearch.Items {
 		toolCode := strings.TrimSpace(item.TargetToolCode)
@@ -250,7 +251,7 @@ func firstToolSearchTargetToolCode(summary *Summary) string {
 	return ""
 }
 
-func firstGraphToolCode(summary *Summary) string {
+func firstGraphToolCode(summary *applicationruntime.Summary) string {
 	trace := parseRuntimeTraceData(summary.TraceData)
 	for _, item := range trace.GraphTools.Items {
 		toolCode := strings.TrimSpace(item.ToolCode)
@@ -261,7 +262,7 @@ func firstGraphToolCode(summary *Summary) string {
 	return ""
 }
 
-func extractHandoffReason(summary *Summary) string {
+func extractHandoffReason(summary *applicationruntime.Summary) string {
 	trace := parseRuntimeTraceData(summary.TraceData)
 	for _, item := range trace.GraphTools.Items {
 		if strings.TrimSpace(item.ToolCode) != toolx.GraphHandoffConversation.Code {
@@ -279,7 +280,7 @@ func extractHandoffReason(summary *Summary) string {
 	return ""
 }
 
-func graphPlanReason(summary *Summary) string {
+func graphPlanReason(summary *applicationruntime.Summary) string {
 	trace := parseRuntimeTraceData(summary.TraceData)
 	for _, item := range trace.GraphTools.Items {
 		toolCode := strings.TrimSpace(item.ToolCode)

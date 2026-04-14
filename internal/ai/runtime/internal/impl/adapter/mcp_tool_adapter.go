@@ -7,29 +7,27 @@ import (
 	"strings"
 
 	"cs-agent/internal/ai/mcps"
-	runtimetooling "cs-agent/internal/ai/runtime/tooling"
+	"cs-agent/internal/ai/runtime/tooling"
 
-	einojsonschema "github.com/eino-contrib/jsonschema"
+	"github.com/eino-contrib/jsonschema"
 
-	einotool "github.com/cloudwego/eino/components/tool"
+	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"
 )
 
-type MCPToolDefinition = runtimetooling.MCPToolDefinition
-
 type MCPTool struct {
-	definition MCPToolDefinition
+	definition tooling.MCPToolDefinition
 	info       *schema.ToolInfo
 }
 
-func NewMCPTool(definition MCPToolDefinition, metadata *mcps.ToolInfo) *MCPTool {
+func NewMCPTool(definition tooling.MCPToolDefinition, metadata *mcps.ToolInfo) *MCPTool {
 	return &MCPTool{
 		definition: definition,
 		info:       buildToolInfo(definition, metadata),
 	}
 }
 
-var _ einotool.InvokableTool = (*MCPTool)(nil)
+var _ tool.InvokableTool = (*MCPTool)(nil)
 
 func (t *MCPTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 	if t == nil || t.info == nil {
@@ -38,7 +36,7 @@ func (t *MCPTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 	return t.info, nil
 }
 
-func (t *MCPTool) InvokableRun(ctx context.Context, argumentsInJSON string, opts ...einotool.Option) (string, error) {
+func (t *MCPTool) InvokableRun(ctx context.Context, argumentsInJSON string, opts ...tool.Option) (string, error) {
 	if t == nil {
 		return "", fmt.Errorf("mcp tool is nil")
 	}
@@ -54,7 +52,7 @@ func (t *MCPTool) InvokableRun(ctx context.Context, argumentsInJSON string, opts
 	return BuildReducedToolResultSummary(result), nil
 }
 
-func buildToolInfo(definition MCPToolDefinition, metadata *mcps.ToolInfo) *schema.ToolInfo {
+func buildToolInfo(definition tooling.MCPToolDefinition, metadata *mcps.ToolInfo) *schema.ToolInfo {
 	desc := strings.TrimSpace(definition.Description)
 	if desc == "" && metadata != nil {
 		desc = strings.TrimSpace(metadata.Description)
@@ -72,7 +70,7 @@ func buildToolInfo(definition MCPToolDefinition, metadata *mcps.ToolInfo) *schem
 		desc = "Call MCP tool " + strings.TrimSpace(definition.ToolCode)
 	}
 	info := &schema.ToolInfo{
-		Name: runtimetooling.BuildModelToolName(definition),
+		Name: tooling.BuildModelToolName(definition),
 		Desc: desc,
 		Extra: map[string]any{
 			"toolCode":   definition.ToolCode,
@@ -86,7 +84,7 @@ func buildToolInfo(definition MCPToolDefinition, metadata *mcps.ToolInfo) *schem
 	return info
 }
 
-func buildParamsSchema(metadata *mcps.ToolInfo) *einojsonschema.Schema {
+func buildParamsSchema(metadata *mcps.ToolInfo) *jsonschema.Schema {
 	if metadata == nil || metadata.InputSchema == nil {
 		return genericObjectSchema()
 	}
@@ -94,18 +92,18 @@ func buildParamsSchema(metadata *mcps.ToolInfo) *einojsonschema.Schema {
 	if err != nil || len(raw) == 0 {
 		return genericObjectSchema()
 	}
-	js := &einojsonschema.Schema{}
+	js := &jsonschema.Schema{}
 	if err := json.Unmarshal(raw, js); err != nil {
 		return genericObjectSchema()
 	}
 	return js
 }
 
-func genericObjectSchema() *einojsonschema.Schema {
-	return &einojsonschema.Schema{
-		Version:              einojsonschema.Version,
+func genericObjectSchema() *jsonschema.Schema {
+	return &jsonschema.Schema{
+		Version:              jsonschema.Version,
 		Type:                 "object",
-		AdditionalProperties: &einojsonschema.Schema{},
+		AdditionalProperties: &jsonschema.Schema{},
 	}
 }
 

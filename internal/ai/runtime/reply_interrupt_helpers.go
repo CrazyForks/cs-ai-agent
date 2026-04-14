@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	applicationruntime "cs-agent/internal/ai/application/runtime"
 	"cs-agent/internal/models"
 	svc "cs-agent/internal/services"
 )
@@ -13,7 +14,7 @@ type interruptMessagePreview struct {
 	Message string `json:"message"`
 }
 
-func buildConversationInterrupt(conversation models.Conversation, message models.Message, aiAgent models.AIAgent, summary *Summary) *models.ConversationInterrupt {
+func buildConversationInterrupt(conversation models.Conversation, message models.Message, aiAgent models.AIAgent, summary *applicationruntime.Summary) *models.ConversationInterrupt {
 	if summary == nil {
 		return nil
 	}
@@ -36,7 +37,7 @@ func buildConversationInterrupt(conversation models.Conversation, message models
 	return item
 }
 
-func resolveInterruptPrompt(summary *Summary) string {
+func resolveInterruptPrompt(summary *applicationruntime.Summary) string {
 	if summary == nil || len(summary.Interrupts) == 0 {
 		return "请继续补充信息后再试。"
 	}
@@ -61,14 +62,14 @@ func extractInterruptMessage(infoPreview string) string {
 	return strings.TrimSpace(payload.Message)
 }
 
-func firstInterruptID(summary *Summary) string {
+func firstInterruptID(summary *applicationruntime.Summary) string {
 	if summary == nil || len(summary.Interrupts) == 0 {
 		return ""
 	}
 	return strings.TrimSpace(summary.Interrupts[0].ID)
 }
 
-func firstInterruptType(summary *Summary) string {
+func firstInterruptType(summary *applicationruntime.Summary) string {
 	if summary == nil || len(summary.Interrupts) == 0 {
 		return ""
 	}

@@ -4,11 +4,12 @@ import (
 	"strings"
 	"testing"
 
+	applicationruntime "cs-agent/internal/ai/application/runtime"
 	"cs-agent/internal/pkg/toolx"
 )
 
 func TestSummaryPrimaryToolCodePrefersToolSearchTarget(t *testing.T) {
-	summary := &Summary{
+	summary := &applicationruntime.Summary{
 		InvokedToolCodes: []string{toolx.BuiltinToolSearch.Code},
 		TraceData: `{
 			"toolSearch": {
@@ -25,11 +26,11 @@ func TestSummaryPrimaryToolCodePrefersToolSearchTarget(t *testing.T) {
 }
 
 func TestToRunLogFinalAction(t *testing.T) {
-	if got := toRunLogFinalAction(&Summary{PlannedSkillCode: "refund", ReplyText: "ok"}); got != "skill" {
+	if got := toRunLogFinalAction(&applicationruntime.Summary{PlannedSkillCode: "refund", ReplyText: "ok"}); got != "skill" {
 		t.Fatalf("expected skill final action, got %q", got)
 	}
 
-	graphSummary := &Summary{
+	graphSummary := &applicationruntime.Summary{
 		ReplyText: "ok",
 		TraceData: `{
 			"graphTools": {
@@ -43,7 +44,7 @@ func TestToRunLogFinalAction(t *testing.T) {
 		t.Fatalf("expected graph final action, got %q", got)
 	}
 
-	if got := toRunLogFinalAction(&Summary{Status: "fallback"}); got != "fallback" {
+	if got := toRunLogFinalAction(&applicationruntime.Summary{Status: "fallback"}); got != "fallback" {
 		t.Fatalf("expected fallback final action, got %q", got)
 	}
 }
@@ -66,7 +67,7 @@ func TestExtractInterruptMessageAndCheckpointError(t *testing.T) {
 }
 
 func TestGraphPlanReason(t *testing.T) {
-	summary := &Summary{
+	summary := &applicationruntime.Summary{
 		TraceData: `{
 			"graphTools": {
 				"items": [
@@ -86,7 +87,7 @@ func TestGraphPlanReason(t *testing.T) {
 }
 
 func TestExtractHandoffReason(t *testing.T) {
-	summary := &Summary{
+	summary := &applicationruntime.Summary{
 		TraceData: `{
 			"graphTools": {
 				"items": [

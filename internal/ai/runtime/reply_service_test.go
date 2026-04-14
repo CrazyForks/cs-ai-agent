@@ -7,6 +7,8 @@ import (
 	"cs-agent/internal/models"
 	"cs-agent/internal/pkg/enums"
 	"cs-agent/internal/pkg/toolx"
+
+	applicationruntime "cs-agent/internal/ai/application/runtime"
 )
 
 func TestReplyEligibilityCanReply(t *testing.T) {
@@ -69,7 +71,7 @@ func TestResolveReplyTimeout(t *testing.T) {
 }
 
 func TestBuildRunLogPlan(t *testing.T) {
-	summary := &Summary{
+	summary := &applicationruntime.Summary{
 		PlannedSkillCode: "faq_router",
 		PlanReason:       "manual",
 	}
@@ -78,7 +80,7 @@ func TestBuildRunLogPlan(t *testing.T) {
 		t.Fatalf("unexpected skill plan result: action=%q toolCode=%q reason=%q", action, toolCode, reason)
 	}
 
-	summary = &Summary{
+	summary = &applicationruntime.Summary{
 		Interrupted: true,
 		TraceData: `{
 			"graphTools": {
@@ -97,7 +99,7 @@ func TestBuildRunLogPlan(t *testing.T) {
 		t.Fatalf("unexpected graph interrupt result: action=%q toolCode=%q reason=%q", action, toolCode, reason)
 	}
 
-	summary = &Summary{
+	summary = &applicationruntime.Summary{
 		InvokedToolCodes: []string{toolx.BuiltinToolSearch.Code},
 		TraceData: `{
 			"toolSearch": {
@@ -114,7 +116,7 @@ func TestBuildRunLogPlan(t *testing.T) {
 		t.Fatalf("unexpected dynamic tool result: action=%q toolCode=%q reason=%q", action, toolCode, reason)
 	}
 
-	summary = &Summary{ReplyText: "done"}
+	summary = &applicationruntime.Summary{ReplyText: "done"}
 	action, toolCode, reason = buildRunLogPlan(summary)
 	if action != "reply" || toolCode != "" || reason != "agent replied directly" {
 		t.Fatalf("unexpected reply result: action=%q toolCode=%q reason=%q", action, toolCode, reason)
@@ -122,8 +124,8 @@ func TestBuildRunLogPlan(t *testing.T) {
 }
 
 func TestResolveInterruptPrompt(t *testing.T) {
-	summary := &Summary{
-		Interrupts: []InterruptContextSummary{
+	summary := &applicationruntime.Summary{
+		Interrupts: []applicationruntime.InterruptContextSummary{
 			{
 				ID:          "interrupt-1",
 				Type:        "question",

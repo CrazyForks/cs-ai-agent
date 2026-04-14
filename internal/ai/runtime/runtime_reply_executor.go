@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	applicationruntime "cs-agent/internal/ai/application/runtime"
 	"cs-agent/internal/ai/runtime/graphs"
 	"cs-agent/internal/models"
 	svc "cs-agent/internal/services"
@@ -18,13 +19,13 @@ func newRuntimeReplyExecutor() *runtimeReplyExecutor {
 	return &runtimeReplyExecutor{}
 }
 
-func (e *runtimeReplyExecutor) Run(ctx context.Context, conversation models.Conversation, message models.Message, aiAgent models.AIAgent, trace *aiReplyTraceData) (*Summary, error) {
+func (e *runtimeReplyExecutor) Run(ctx context.Context, conversation models.Conversation, message models.Message, aiAgent models.AIAgent, trace *aiReplyTraceData) (*applicationruntime.Summary, error) {
 	aiConfig := svc.AIConfigService.Get(aiAgent.AIConfigID)
 	if aiConfig == nil {
 		return nil, fmt.Errorf("ai config is nil")
 	}
 	runtimeStartedAt := time.Now()
-	summary, err := Service.Run(ctx, Request{
+	summary, err := Service.Run(ctx, applicationruntime.Request{
 		Conversation: &conversation,
 		UserMessage:  &message,
 		AIAgent:      &aiAgent,
@@ -37,7 +38,7 @@ func (e *runtimeReplyExecutor) Run(ctx context.Context, conversation models.Conv
 	return summary, err
 }
 
-func (e *runtimeReplyExecutor) ResumePendingInterrupt(ctx context.Context, conversation models.Conversation, message models.Message, aiAgent models.AIAgent, pendingInterrupt *models.ConversationInterrupt, trace *aiReplyTraceData) (*Summary, error) {
+func (e *runtimeReplyExecutor) ResumePendingInterrupt(ctx context.Context, conversation models.Conversation, message models.Message, aiAgent models.AIAgent, pendingInterrupt *models.ConversationInterrupt, trace *aiReplyTraceData) (*applicationruntime.Summary, error) {
 	if pendingInterrupt == nil {
 		return nil, nil
 	}
@@ -49,7 +50,7 @@ func (e *runtimeReplyExecutor) ResumePendingInterrupt(ctx context.Context, conve
 	if trace != nil {
 		trace.ResumeSource = "pending_interrupt"
 	}
-	summary, err := Service.Resume(ctx, ResumeRequest{
+	summary, err := Service.Resume(ctx, applicationruntime.ResumeRequest{
 		Conversation: &conversation,
 		AIAgent:      &aiAgent,
 		AIConfig:     aiConfig,
@@ -65,7 +66,7 @@ func (e *runtimeReplyExecutor) ResumePendingInterrupt(ctx context.Context, conve
 	return summary, err
 }
 
-func (e *runtimeReplyExecutor) fillTraceFromSummary(trace *aiReplyTraceData, summary *Summary, runErr error) {
+func (e *runtimeReplyExecutor) fillTraceFromSummary(trace *aiReplyTraceData, summary *applicationruntime.Summary, runErr error) {
 	if trace == nil {
 		return
 	}
@@ -84,8 +85,8 @@ func (e *runtimeReplyExecutor) fillTraceFromSummary(trace *aiReplyTraceData, sum
 	}
 }
 
-func expiredInterruptSummary() *Summary {
-	return &Summary{
+func expiredInterruptSummary() *applicationruntime.Summary {
+	return &applicationruntime.Summary{
 		Status:    "expired",
 		ReplyText: graphs.ConfirmationExpiredReply,
 	}

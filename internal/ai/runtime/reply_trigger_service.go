@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	applicationruntime "cs-agent/internal/ai/application/runtime"
 	"cs-agent/internal/models"
 	"cs-agent/internal/pkg/enums"
 	svc "cs-agent/internal/services"
@@ -44,7 +45,7 @@ func (s *aiReplyService) TriggerReplyAsync(conversation models.Conversation, mes
 func (s *aiReplyService) TriggerReply(ctx context.Context, conversation models.Conversation, message models.Message, aiAgent models.AIAgent) (retErr error) {
 	startedAt := time.Now()
 	trace := &aiReplyTraceData{Status: "started"}
-	var summary *Summary
+	var summary *applicationruntime.Summary
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -61,7 +62,7 @@ func (s *aiReplyService) TriggerReply(ctx context.Context, conversation models.C
 }
 
 func (s *aiReplyService) resumePendingInterrupt(ctx context.Context, conversation models.Conversation, message models.Message, aiAgent models.AIAgent,
-	pendingInterrupt *models.ConversationInterrupt, trace *aiReplyTraceData, summaryRef **Summary) error {
+	pendingInterrupt *models.ConversationInterrupt, trace *aiReplyTraceData, summaryRef **applicationruntime.Summary) error {
 	if s == nil || s.interrupts == nil {
 		return nil
 	}
@@ -69,7 +70,7 @@ func (s *aiReplyService) resumePendingInterrupt(ctx context.Context, conversatio
 }
 
 func (s *aiReplyService) executeReply(ctx context.Context, conversation models.Conversation, message models.Message, aiAgent models.AIAgent,
-	trace *aiReplyTraceData, summaryRef **Summary) error {
+	trace *aiReplyTraceData, summaryRef **applicationruntime.Summary) error {
 	if s == nil || s.executor == nil {
 		return nil
 	}

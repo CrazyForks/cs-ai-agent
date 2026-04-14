@@ -1,12 +1,11 @@
 package runtime
 
 import (
+	"cs-agent/internal/ai/runtime/executor"
 	"strings"
-
-	runtimeeino "cs-agent/internal/ai/infra/eino"
 )
 
-func toSummary(summary *runtimeeino.RunResult) *Summary {
+func toSummary(summary *executor.RunResult) *Summary {
 	if summary == nil {
 		return nil
 	}

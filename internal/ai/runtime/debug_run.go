@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	applicationruntime "cs-agent/internal/ai/application/runtime"
 	"cs-agent/internal/ai/runtime/graphs"
 	"cs-agent/internal/models"
 	"cs-agent/internal/pkg/dto/request"
@@ -40,7 +41,7 @@ func DebugRunSkill(ctx context.Context, req request.SkillDebugRunRequest) (*resp
 		MessageType:    enums.IMMessageTypeText,
 		Content:        strings.TrimSpace(req.UserMessage),
 	}
-	summary, err := Service.Run(ctx, Request{
+	summary, err := Service.Run(ctx, applicationruntime.Request{
 		Conversation:    conversation,
 		UserMessage:     message,
 		AIAgent:         aiAgent,
@@ -88,7 +89,7 @@ func DebugResumeSkill(ctx context.Context, req request.SkillDebugResumeRequest) 
 		return nil, errorsx.InvalidParam("会话与 AI Agent 不匹配")
 	}
 	resumeText := strings.TrimSpace(req.UserMessage)
-	summary, err := Service.Resume(ctx, ResumeRequest{
+	summary, err := Service.Resume(ctx, applicationruntime.ResumeRequest{
 		Conversation: conversation,
 		AIAgent:      aiAgent,
 		AIConfig:     aiConfig,
@@ -99,7 +100,7 @@ func DebugResumeSkill(ctx context.Context, req request.SkillDebugResumeRequest) 
 	})
 	if err != nil {
 		if isCheckpointMissingError(err) {
-			summary = &Summary{
+			summary = &applicationruntime.Summary{
 				Status:    "expired",
 				ReplyText: graphs.ConfirmationExpiredReply,
 			}
@@ -122,7 +123,7 @@ func DebugResumeSkill(ctx context.Context, req request.SkillDebugResumeRequest) 
 	return buildSkillDebugResumeResponse(req, summary, conversationID), nil
 }
 
-func buildSkillDebugRunResponse(req request.SkillDebugRunRequest, summary *Summary, skill *models.SkillDefinition) *response.SkillDebugRunResponse {
+func buildSkillDebugRunResponse(req request.SkillDebugRunRequest, summary *applicationruntime.Summary, skill *models.SkillDefinition) *response.SkillDebugRunResponse {
 	resp := &response.SkillDebugRunResponse{
 		ConversationID: req.ConversationID,
 		AIAgentID:      req.AIAgentID,
@@ -154,7 +155,7 @@ func buildSkillDebugRunResponse(req request.SkillDebugRunRequest, summary *Summa
 	return resp
 }
 
-func buildSkillDebugResumeResponse(req request.SkillDebugResumeRequest, summary *Summary, conversationID int64) *response.SkillDebugRunResponse {
+func buildSkillDebugResumeResponse(req request.SkillDebugResumeRequest, summary *applicationruntime.Summary, conversationID int64) *response.SkillDebugRunResponse {
 	resp := &response.SkillDebugRunResponse{
 		ConversationID: conversationID,
 		AIAgentID:      req.AIAgentID,

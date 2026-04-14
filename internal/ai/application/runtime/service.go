@@ -4,6 +4,7 @@ import (
 	"context"
 
 	runtimeeino "cs-agent/internal/ai/infra/eino"
+	"cs-agent/internal/ai/runtime/executor"
 )
 
 type Service struct {
@@ -35,7 +36,7 @@ func (s *Service) Run(ctx context.Context, req Request) (*Summary, error) {
 	if err := s.prepare.prepareToolsForRun(&req); err != nil {
 		return nil, err
 	}
-	summary, err := s.runtime.ExecuteRun(ctx, runtimeeino.RunInput{
+	summary, err := s.runtime.ExecuteRun(ctx, executor.RunInput{
 		Conversation:     req.Conversation,
 		UserMessage:      req.UserMessage,
 		AIAgent:          req.AIAgent,
@@ -67,7 +68,7 @@ func (s *Service) Resume(ctx context.Context, req ResumeRequest) (*Summary, erro
 	if err := s.prepare.prepareToolsForResume(&req); err != nil {
 		return nil, err
 	}
-	summary, err := s.runtime.ExecuteResume(ctx, runtimeeino.ResumeInput{
+	summary, err := s.runtime.ExecuteResume(ctx, executor.ResumeInput{
 		Conversation: req.Conversation,
 		AIAgent:      req.AIAgent,
 		AIConfig:     req.AIConfig,
