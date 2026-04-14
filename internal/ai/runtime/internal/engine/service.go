@@ -3,16 +3,16 @@ package engine
 import (
 	"context"
 
-	"cs-agent/internal/ai/runtime/internal/executor"
+	runtimeeino "cs-agent/internal/ai/infra/eino"
 )
 
 type Service struct {
-	executor *executor.Service
+	executor *runtimeeino.RuntimeExecutor
 }
 
 func NewService() *Service {
 	return &Service{
-		executor: executor.NewService(),
+		executor: runtimeeino.NewRuntimeExecutor(),
 	}
 }
 
@@ -21,7 +21,7 @@ func (s *Service) Run(ctx context.Context, req Request) (*Summary, error) {
 }
 
 func (s *Service) ExecuteRun(ctx context.Context, req RunInput) (*RunResult, error) {
-	return s.executor.ExecuteRun(ctx, executor.RunInput(req))
+	return s.executor.ExecuteRun(ctx, runtimeeino.RunInput(req))
 }
 
 func (s *Service) Resume(ctx context.Context, req ResumeRequest) (*Summary, error) {
@@ -29,5 +29,5 @@ func (s *Service) Resume(ctx context.Context, req ResumeRequest) (*Summary, erro
 }
 
 func (s *Service) ExecuteResume(ctx context.Context, req ResumeInput) (*RunResult, error) {
-	return s.executor.ExecuteResume(ctx, executor.ResumeInput(req))
+	return s.executor.ExecuteResume(ctx, runtimeeino.ResumeInput(req))
 }

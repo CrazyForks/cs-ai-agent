@@ -3,10 +3,10 @@ package runtime
 import (
 	"strings"
 
-	runtimeexecutor "cs-agent/internal/ai/runtime/executor"
+	runtimeeino "cs-agent/internal/ai/infra/eino"
 )
 
-func toSummary(summary *runtimeexecutor.RunResult) *Summary {
+func toSummary(summary *runtimeeino.RunResult) *Summary {
 	if summary == nil {
 		return nil
 	}

@@ -3,11 +3,11 @@ package runtime
 import (
 	"context"
 
-	runtimeexecutor "cs-agent/internal/ai/runtime/executor"
+	runtimeeino "cs-agent/internal/ai/infra/eino"
 )
 
 type Service struct {
-	runtime *runtimeexecutor.Service
+	runtime *runtimeeino.RuntimeExecutor
 	catalog *toolCatalog
 	prepare *prepareService
 }
@@ -15,7 +15,7 @@ type Service struct {
 func NewService() *Service {
 	catalog := newToolCatalog()
 	return &Service{
-		runtime: runtimeexecutor.NewService(),
+		runtime: runtimeeino.NewRuntimeExecutor(),
 		catalog: catalog,
 		prepare: newPrepareService(catalog),
 	}
@@ -35,7 +35,7 @@ func (s *Service) Run(ctx context.Context, req Request) (*Summary, error) {
 	if err := s.prepare.prepareToolsForRun(&req); err != nil {
 		return nil, err
 	}
-	summary, err := s.runtime.ExecuteRun(ctx, runtimeexecutor.RunInput{
+	summary, err := s.runtime.ExecuteRun(ctx, runtimeeino.RunInput{
 		Conversation:     req.Conversation,
 		UserMessage:      req.UserMessage,
 		AIAgent:          req.AIAgent,
@@ -67,7 +67,7 @@ func (s *Service) Resume(ctx context.Context, req ResumeRequest) (*Summary, erro
 	if err := s.prepare.prepareToolsForResume(&req); err != nil {
 		return nil, err
 	}
-	summary, err := s.runtime.ExecuteResume(ctx, runtimeexecutor.ResumeInput{
+	summary, err := s.runtime.ExecuteResume(ctx, runtimeeino.ResumeInput{
 		Conversation: req.Conversation,
 		AIAgent:      req.AIAgent,
 		AIConfig:     req.AIConfig,
