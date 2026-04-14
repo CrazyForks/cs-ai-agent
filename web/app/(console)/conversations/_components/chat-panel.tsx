@@ -388,15 +388,15 @@ export function ChatPanel() {
   const bottomPanel = (
     <div className="h-full overflow-auto border-t border-border bg-background">
       {isClosedConversation ? (
-        <div className="bg-amber-500/10 px-4 py-3 text-sm text-amber-950 dark:bg-amber-500/15 dark:text-amber-100 h-full flex justify-center items-center">
+        <div className="h-full flex justify-center items-center">
           当前会话已关闭
         </div>
       ) : conversation?.status === 1 ? (
-        <div className="bg-violet-500/10 px-4 py-3 text-sm text-violet-950 dark:bg-violet-500/15 dark:text-violet-100 h-full flex justify-center items-center">
+        <div className="h-full flex justify-center items-center">
           当前会话由 AI 接待中，转人工后才能由客服发送消息
         </div>
       ) : isPendingConversation ? (
-        <div className="bg-blue-500/10 px-4 py-3 dark:bg-blue-500/15 h-full">
+        <div className="h-full">
           <div className="flex items-center gap-2 h-full">
             <Button
               onClick={() => setClaimDialogOpen(true)}
