@@ -2,8 +2,7 @@ package factory
 
 // DefaultProjectInstruction 为当前项目统一注入的全局项目规则。
 //
-// 当前阶段不再从文件系统读取 AGENTS.md，也不依赖 SystemConfig；
-// 所有客服 Agent 运行时默认使用本常量作为项目级规则来源。
+// 默认回退到内置常量；运行时优先由 ProjectInstructionProvider 读取仓库中的 AGENTS.md。
 // TODO 这个内容不合适，需要重新整理内容，内容需要面向客服系统
 const DefaultProjectInstruction = `# AGENTS.md
 
