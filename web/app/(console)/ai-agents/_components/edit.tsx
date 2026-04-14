@@ -743,114 +743,117 @@ function EditDialogBody({
             title="服务策略"
             description="控制 Graph Tool 转人工配置、兜底策略和自动回复边界。"
           >
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
-              <Field data-invalid={!!errors.handoffMode}>
-                <FieldLabel>转人工模式</FieldLabel>
-                <FieldContent>
-                  <Controller
-                    control={control}
-                    name="handoffMode"
-                    render={({ field }) => (
-                      <OptionCombobox
-                        value={field.value}
-                        options={handoffModeOptions}
-                        placeholder="请选择转人工模式"
-                        searchPlaceholder="搜索转人工模式"
-                        emptyText="未找到转人工模式"
-                        onChange={field.onChange}
-                      />
-                    )}
-                  />
-                  <FieldError errors={[errors.handoffMode]} />
-                </FieldContent>
-              </Field>
-              <Field data-invalid={!!errors.replyTimeoutSeconds}>
-                <FieldLabel
-                  htmlFor="ai-agent-reply-timeout-seconds"
-                  className="flex items-center gap-1"
-                >
-                  回复超时秒数
-                  <Popover>
-                    <PopoverTrigger
-                      render={
-                        <button
-                          type="button"
-                          className="inline-flex items-center justify-center text-muted-foreground hover:text-foreground"
-                        >
-                          <InfoIcon className="size-4" />
-                        </button>
-                      }
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,1.15fr)]">
+              <div className="space-y-4">
+                <Field data-invalid={!!errors.handoffMode}>
+                  <FieldLabel>转人工模式</FieldLabel>
+                  <FieldContent>
+                    <Controller
+                      control={control}
+                      name="handoffMode"
+                      render={({ field }) => (
+                        <OptionCombobox
+                          value={field.value}
+                          options={handoffModeOptions}
+                          placeholder="请选择转人工模式"
+                          searchPlaceholder="搜索转人工模式"
+                          emptyText="未找到转人工模式"
+                          onChange={field.onChange}
+                        />
+                      )}
                     />
-                    <PopoverContent side="top" align="start" className="max-w-xs">
-                      <PopoverDescription>
-                        AI 自动回复的异步执行超时时间。填 0 时使用系统默认值 180 秒。
-                      </PopoverDescription>
-                    </PopoverContent>
-                  </Popover>
-                </FieldLabel>
-                <FieldContent>
-                  <Input
-                    id="ai-agent-reply-timeout-seconds"
-                    type="number"
-                    min={0}
-                    step={1}
-                    {...register("replyTimeoutSeconds", { valueAsNumber: true })}
-                  />
-                  <FieldError errors={[errors.replyTimeoutSeconds]} />
-                </FieldContent>
-              </Field>
-            </div>
+                    <FieldError errors={[errors.handoffMode]} />
+                  </FieldContent>
+                </Field>
 
-            <div className="rounded-xl border bg-muted/10 p-4">
-              <div className="mb-1 text-sm font-medium">客服组</div>
-              <div className="mb-4 text-xs text-muted-foreground">
-                当前转人工模式：{selectedHandoffModeLabel}
-                {handoffMode ===
-                String(AIAgentHandoffMode.DefaultTeamPool)
-                  ? "。该模式要求至少配置一个客服组。"
-                  : "。仅在涉及转人工时生效。"}
-              </div>
-              <Field>
-                <FieldContent className="space-y-3">
-                  <OptionCombobox
-                    value={teamToAdd}
-                    options={addableTeamOptions}
-                    placeholder="请选择客服组"
-                    searchPlaceholder="搜索客服组"
-                    emptyText="未找到客服组"
-                    onChange={handleAddTeam}
-                  />
-                  <div className="flex flex-wrap gap-2">
-                    {selectedTeamOptions.length === 0 ? (
-                      <span className="text-sm text-muted-foreground">
-                        未配置客服组
-                      </span>
-                    ) : (
-                      selectedTeamOptions.map((option) => (
-                        <Badge
-                          key={option.value}
-                          variant="secondary"
-                          className="gap-1 pr-1"
-                        >
-                          {option.label}
-                          <Button
+                <Field data-invalid={!!errors.replyTimeoutSeconds}>
+                  <FieldLabel
+                    htmlFor="ai-agent-reply-timeout-seconds"
+                    className="flex items-center gap-1"
+                  >
+                    回复超时秒数
+                    <Popover>
+                      <PopoverTrigger
+                        render={
+                          <button
                             type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="size-5"
-                            onClick={() =>
-                              handleRemoveTeam(Number(option.value))
-                            }
-                            aria-label={`移除客服组 ${option.label}`}
+                            className="inline-flex items-center justify-center text-muted-foreground hover:text-foreground"
                           >
-                            <Trash2Icon className="size-3" />
-                          </Button>
-                        </Badge>
-                      ))
-                    )}
-                  </div>
-                </FieldContent>
-              </Field>
+                            <InfoIcon className="size-4" />
+                          </button>
+                        }
+                      />
+                      <PopoverContent side="top" align="start" className="max-w-xs">
+                        <PopoverDescription>
+                          AI 自动回复的异步执行超时时间。填 0 时使用系统默认值 180 秒。
+                        </PopoverDescription>
+                      </PopoverContent>
+                    </Popover>
+                  </FieldLabel>
+                  <FieldContent>
+                    <Input
+                      id="ai-agent-reply-timeout-seconds"
+                      type="number"
+                      min={0}
+                      step={1}
+                      {...register("replyTimeoutSeconds", { valueAsNumber: true })}
+                    />
+                    <FieldError errors={[errors.replyTimeoutSeconds]} />
+                  </FieldContent>
+                </Field>
+              </div>
+
+              <div className="rounded-lg border bg-muted/10 p-4">
+                <div className="mb-1 text-sm font-medium">客服组</div>
+                <div className="mb-4 text-xs text-muted-foreground">
+                  当前转人工模式：{selectedHandoffModeLabel}
+                  {handoffMode ===
+                  String(AIAgentHandoffMode.DefaultTeamPool)
+                    ? "。该模式要求至少配置一个客服组。"
+                    : "。仅在涉及转人工时生效。"}
+                </div>
+                <Field>
+                  <FieldContent className="space-y-3">
+                    <OptionCombobox
+                      value={teamToAdd}
+                      options={addableTeamOptions}
+                      placeholder="请选择客服组"
+                      searchPlaceholder="搜索客服组"
+                      emptyText="未找到客服组"
+                      onChange={handleAddTeam}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      {selectedTeamOptions.length === 0 ? (
+                        <span className="text-sm text-muted-foreground">
+                          未配置客服组
+                        </span>
+                      ) : (
+                        selectedTeamOptions.map((option) => (
+                          <Badge
+                            key={option.value}
+                            variant="secondary"
+                            className="gap-1 pr-1"
+                          >
+                            {option.label}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="size-5"
+                              onClick={() =>
+                                handleRemoveTeam(Number(option.value))
+                              }
+                              aria-label={`移除客服组 ${option.label}`}
+                            >
+                              <Trash2Icon className="size-3" />
+                            </Button>
+                          </Badge>
+                        ))
+                      )}
+                    </div>
+                  </FieldContent>
+                </Field>
+              </div>
             </div>
           </SectionCard>
 
