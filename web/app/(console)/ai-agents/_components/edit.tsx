@@ -130,8 +130,7 @@ function buildForm(item: AIAgent | null): EditForm {
       welcomeMessage: "",
       replyTimeoutSeconds: 180,
       handoffMode: String(AIAgentHandoffMode.WaitPool),
-      fallbackMessage:
-        "我暂时没有找到足够准确的信息。你可以补充订单号、产品名或更具体的问题，我再继续帮你查。",
+      fallbackMessage: "",
       remark: "",
     };
   }
