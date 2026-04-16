@@ -421,7 +421,7 @@ return web.JsonData(&web.PageResult{Results: results, Page: paging})
 
 - 系统中的常量统一定义到 `/internal/pkg/enums` 包下
 - 模型的状态优先使用 `/internal/pkg/enums/enums.go` 中的 `Status`，只有不满足需求的时候在考虑新增状态枚举
-- 前后端共用枚举必须遵循文档 [docs/backend-frontend-enum-ast-spec.md](docs/backend-frontend-enum-ast-spec.md)
+- 前后端共用枚举必须遵循文档 [docs/design/specs/backend-frontend-enum-ast-spec.md](docs/design/specs/backend-frontend-enum-ast-spec.md)
 - 前后端共用枚举只允许在后端定义，前端必须使用 `make enums` 生成结果，禁止手写重复业务枚举
 
 ## 9. Go 代码规范
@@ -484,7 +484,7 @@ return web.JsonData(&web.PageResult{Results: results, Page: paging})
 
 ### 10.6 后台列表与表单基线
 
-- 后台类 CRUD 页面优先参考：`docs/frontend-list-form-best-practice.md`
+- 后台类 CRUD 页面优先参考：`docs/design/specs/frontend-list-form-best-practice.md`
 - 基线案例：`web/app/dashboard/quick-replies`
 - 默认采用“`page.tsx` 管列表与状态，`_components/edit.tsx` 管弹窗表单”的两层结构
 - 表单默认采用：`react-hook-form` + `zod` + `web/components/ui/field.tsx`
