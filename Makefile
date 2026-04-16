@@ -1,4 +1,4 @@
-.PHONY: install run run-server run-dashboard run-widget build build-all build-assets build-dashboard build-widget \
+.PHONY: help install run run-server run-dashboard run-widget build build-all build-assets build-dashboard build-widget \
 	package-current package-platform build-server-linux-amd64 clean-dist clean-temp generator enums migration testdata
 
 DIST_DIR ?= dist
@@ -12,6 +12,29 @@ CURRENT_GOOS := $(shell go env GOOS)
 CURRENT_GOARCH := $(shell go env GOARCH)
 CURRENT_PLATFORM := $(CURRENT_GOOS)-$(CURRENT_GOARCH)
 PLATFORM ?= $(CURRENT_PLATFORM)
+
+help:
+	@echo "Available targets:"
+	@echo "  make help                 Show this help message"
+	@echo "  make install              Install Go, dashboard, and widget dependencies"
+	@echo "  make run                  Run server, dashboard, and widget"
+	@echo "  make run-server           Run Go server"
+	@echo "  make run-dashboard        Run dashboard app"
+	@echo "  make run-widget           Run widget app"
+	@echo "  make build                Build assets and package current platform"
+	@echo "  make build-all            Build and package all platforms"
+	@echo "  make build-assets         Build dashboard and widget assets"
+	@echo "  make build-dashboard      Build dashboard app"
+	@echo "  make build-widget         Build widget sdk and app"
+	@echo "  make package-current      Package current platform"
+	@echo "  make package-platform     Package specified PLATFORM"
+	@echo "  make build-server-linux-amd64 Build linux amd64 server binary"
+	@echo "  make clean-dist           Remove dist directory"
+	@echo "  make clean-temp           Remove temporary packaging files"
+	@echo "  make generator            Run code generator"
+	@echo "  make enums                Generate frontend enums"
+	@echo "  make migration            Run migration command"
+	@echo "  make testdata             Run testdata generator"
 
 install:
 	go mod download
