@@ -1,4 +1,4 @@
-.PHONY: run run-server run-dashboard build build-all build-assets build-dashboard build-widget \
+.PHONY: install run run-server run-dashboard run-widget build build-all build-assets build-dashboard build-widget \
 	package-current package-platform build-server-linux-amd64 clean-dist clean-temp test tidy generator enums migration testdata
 
 DIST_DIR ?= dist
@@ -13,21 +13,31 @@ CURRENT_GOARCH := $(shell go env GOARCH)
 CURRENT_PLATFORM := $(CURRENT_GOOS)-$(CURRENT_GOARCH)
 PLATFORM ?= $(CURRENT_PLATFORM)
 
+install:
+	go mod download
+	cd dashboard && pnpm install
+	cd widget && pnpm install
+	@echo "[install] done"
+
 run:
 	@server_pid=0; \
 	dashboard_pid=0; \
-	trap 'kill $$server_pid $$dashboard_pid 2>/dev/null || true' INT TERM EXIT; \
+	widget_pid=0; \
+	trap 'kill $$server_pid $$dashboard_pid $$widget_pid 2>/dev/null || true' INT TERM EXIT; \
 	$(MAKE) run-server & \
 	server_pid=$$!; \
 	$(MAKE) run-dashboard & \
 	dashboard_pid=$$!; \
-	while kill -0 $$server_pid 2>/dev/null && kill -0 $$dashboard_pid 2>/dev/null; do \
+	$(MAKE) run-widget & \
+	widget_pid=$$!; \
+	while kill -0 $$server_pid 2>/dev/null && kill -0 $$dashboard_pid 2>/dev/null && kill -0 $$widget_pid 2>/dev/null; do \
 		sleep 1; \
 	done; \
 	status=0; \
 	wait $$server_pid || status=$$?; \
 	wait $$dashboard_pid || status=$$?; \
-	kill $$server_pid $$dashboard_pid 2>/dev/null || true; \
+	wait $$widget_pid || status=$$?; \
+	kill $$server_pid $$dashboard_pid $$widget_pid 2>/dev/null || true; \
 	exit $$status
 
 run-server:
@@ -35,6 +45,9 @@ run-server:
 
 run-dashboard:
 	cd dashboard && pnpm dev
+
+run-widget:
+	cd widget && pnpm dev
 
 build: clean-dist build-assets package-current clean-temp
 	@echo "[build] done"
