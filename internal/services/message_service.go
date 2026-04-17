@@ -1,24 +1,21 @@
 package services
 
 import (
-	"bytes"
 	"cs-agent/internal/models"
 	"cs-agent/internal/pkg/dto"
 	"cs-agent/internal/pkg/enums"
 	"cs-agent/internal/pkg/errorsx"
 	"cs-agent/internal/pkg/openidentity"
+	"cs-agent/internal/pkg/utils"
 	"cs-agent/internal/repositories"
-	"cs-agent/internal/services/storage"
 	"log/slog"
 	"slices"
 	"strings"
 	"time"
 
-	"github.com/microcosm-cc/bluemonday"
 	"github.com/mlogclub/simple/common/strs"
 	"github.com/mlogclub/simple/sqls"
 	"github.com/mlogclub/simple/web/params"
-	"golang.org/x/net/html"
 )
 
 var MessageService = newMessageService()
@@ -194,11 +191,11 @@ func (s *messageService) RecallAgentMessage(messageID int64, operator *dto.AuthP
 		message.UpdateUserName = operator.Username
 
 		agentReadState, customerReadState := ConversationReadStateService.getConversationReadStates(ctx.Tx, conversation.ID)
-		agentUnreadCount, err := ConversationReadStateService.CountUnreadMessages(ctx, conversation.ID, readSeqNo(agentReadState), enums.IMSenderTypeCustomer)
+		agentUnreadCount, err := ConversationReadStateService.CountUnreadMessages(ctx, conversation.ID, s.readSeqNo(agentReadState), enums.IMSenderTypeCustomer)
 		if err != nil {
 			return err
 		}
-		customerUnreadCount, err := ConversationReadStateService.CountUnreadMessages(ctx, conversation.ID, readSeqNo(customerReadState), enums.IMSenderTypeAgent, enums.IMSenderTypeAI)
+		customerUnreadCount, err := ConversationReadStateService.CountUnreadMessages(ctx, conversation.ID, s.readSeqNo(customerReadState), enums.IMSenderTypeAgent, enums.IMSenderTypeAI)
 		if err != nil {
 			return err
 		}
@@ -354,11 +351,11 @@ func (s *messageService) sendMessage(conversationID int64, senderType enums.IMSe
 			}
 		}
 		agentReadState, customerReadState := ConversationReadStateService.getConversationReadStates(ctx.Tx, conversationID)
-		agentUnreadCount, err := ConversationReadStateService.CountUnreadMessages(ctx, conversationID, readSeqNo(agentReadState), enums.IMSenderTypeCustomer)
+		agentUnreadCount, err := ConversationReadStateService.CountUnreadMessages(ctx, conversationID, s.readSeqNo(agentReadState), enums.IMSenderTypeCustomer)
 		if err != nil {
 			return err
 		}
-		customerUnreadCount, err := ConversationReadStateService.CountUnreadMessages(ctx, conversationID, readSeqNo(customerReadState), enums.IMSenderTypeAgent, enums.IMSenderTypeAI)
+		customerUnreadCount, err := ConversationReadStateService.CountUnreadMessages(ctx, conversationID, s.readSeqNo(customerReadState), enums.IMSenderTypeAgent, enums.IMSenderTypeAI)
 		if err != nil {
 			return err
 		}
@@ -448,7 +445,7 @@ func buildMessageSummary(messageType enums.IMMessageType, content string) string
 	case enums.IMMessageTypeAttachment:
 		return "[附件]"
 	case enums.IMMessageTypeHTML:
-		return buildHTMLSummary(content)
+		return utils.BuildHTMLSummary(content)
 	case "":
 		return ""
 	default:
@@ -459,8 +456,8 @@ func buildMessageSummary(messageType enums.IMMessageType, content string) string
 func (s *messageService) normalizeMessageContent(conversationID int64, messageType enums.IMMessageType, content, payload string) (string, string, string, error) {
 	switch messageType {
 	case enums.IMMessageTypeHTML:
-		sanitized := sanitizeMessageHTML(content)
-		summary := buildHTMLSummary(sanitized)
+		sanitized := utils.SanitizeMessageHTML(content)
+		summary := utils.BuildHTMLSummary(sanitized)
 		if summary == "" {
 			return "", "", "", errorsx.InvalidParam("消息内容不能为空")
 		}
@@ -483,7 +480,7 @@ func (s *messageService) normalizeMessageContent(conversationID int64, messageTy
 			summary = "[图片]"
 		}
 		content = strings.TrimSpace(asset.Filename)
-		return content, canonicalPayload, summary + suffixFilenameForSummary(asset.Filename), nil
+		return content, canonicalPayload, summary + s.suffixFilenameForSummary(asset.Filename), nil
 	default:
 		content = strings.TrimSpace(content)
 		if content == "" && strings.TrimSpace(payload) == "" {
@@ -516,7 +513,7 @@ func (s *messageService) ValidateConversationSender(conversationID int64, sender
 		if operator == nil {
 			return nil, errorsx.Unauthorized("未登录或登录已过期")
 		}
-		if conversation.Status != enums.IMConversationStatusAIServing && !allowAIMessageOnPendingHandoff(conversation) {
+		if conversation.Status != enums.IMConversationStatusAIServing && !s.allowAIMessageOnPendingHandoff(conversation) {
 			return nil, errorsx.Forbidden("当前会话不处于 AI 接待状态")
 		}
 		if conversation.CurrentAssigneeID != 0 {
@@ -532,7 +529,7 @@ func (s *messageService) ValidateConversationSender(conversationID int64, sender
 	return conversation, nil
 }
 
-func allowAIMessageOnPendingHandoff(conversation *models.Conversation) bool {
+func (s *messageService) allowAIMessageOnPendingHandoff(conversation *models.Conversation) bool {
 	if conversation == nil {
 		return false
 	}
@@ -541,7 +538,7 @@ func allowAIMessageOnPendingHandoff(conversation *models.Conversation) bool {
 		conversation.CurrentAssigneeID == 0
 }
 
-func suffixFilenameForSummary(filename string) string {
+func (s *messageService) suffixFilenameForSummary(filename string) string {
 	filename = strings.TrimSpace(filename)
 	if filename == "" {
 		return ""
@@ -549,206 +546,9 @@ func suffixFilenameForSummary(filename string) string {
 	return " " + filename
 }
 
-func readSeqNo(state *models.ConversationReadState) int64 {
+func (s *messageService) readSeqNo(state *models.ConversationReadState) int64 {
 	if state == nil {
 		return 0
 	}
 	return state.LastReadSeqNo
-}
-
-func sanitizeMessageHTML(content string) string {
-	policy := bluemonday.UGCPolicy()
-	policy.AllowElements("img")
-	policy.AllowAttrs("src", "alt", "title", "data-provider", "data-storage-key").OnElements("img")
-	policy.AllowURLSchemes("http", "https")
-	policy.AllowStandardURLs()
-	policy.AllowElements("p", "br")
-	return stripHTMLImageSrcIfBound(strings.TrimSpace(policy.Sanitize(content)))
-}
-
-func buildHTMLSummary(content string) string {
-	if strings.TrimSpace(content) == "" {
-		return ""
-	}
-	doc, err := html.Parse(strings.NewReader("<div>" + content + "</div>"))
-	if err != nil {
-		return strings.TrimSpace(content)
-	}
-	parts := make([]string, 0, 8)
-	var walk func(*html.Node)
-	walk = func(node *html.Node) {
-		if node == nil {
-			return
-		}
-		if node.Type == html.TextNode {
-			text := strings.TrimSpace(node.Data)
-			if text != "" {
-				parts = append(parts, text)
-			}
-		}
-		if node.Type == html.ElementNode && node.Data == "img" {
-			parts = append(parts, "[图片]")
-		}
-		for child := node.FirstChild; child != nil; child = child.NextSibling {
-			walk(child)
-		}
-	}
-	walk(doc)
-	return strings.TrimSpace(strings.Join(parts, " "))
-}
-
-func BuildRenderableMessage(item *models.Message) (content, payload string) {
-	if item == nil {
-		return "", ""
-	}
-	if item.RecalledAt != nil {
-		return "该消息已撤回", ""
-	}
-	if item.SendStatus == enums.IMMessageStatusRecalled {
-		return "该消息已撤回", ""
-	}
-
-	content = item.Content
-	payload = item.Payload
-	switch item.MessageType {
-	case enums.IMMessageTypeImage, enums.IMMessageTypeAttachment:
-		payload = buildIMMessageAssetPayloadForResponse(item.Payload)
-	case enums.IMMessageTypeHTML:
-		content = buildMessageHTMLForResponse(item.Content)
-	}
-	return content, payload
-}
-
-func buildMessageHTMLForResponse(content string) string {
-	content = strings.TrimSpace(content)
-	if content == "" {
-		return ""
-	}
-	doc, err := html.Parse(strings.NewReader("<div>" + content + "</div>"))
-	if err != nil {
-		return content
-	}
-	var walk func(*html.Node)
-	walk = func(node *html.Node) {
-		if node == nil {
-			return
-		}
-		if node.Type == html.ElementNode && node.Data == "img" {
-			provider := enums.AssetProvider(strings.TrimSpace(findHTMLAttr(node, "data-provider")))
-			storageKey := strings.TrimSpace(findHTMLAttr(node, "data-storage-key"))
-			if provider != "" && storageKey != "" {
-				if storageProvider, err := storage.NewProvider(provider); err == nil {
-					setHTMLAttr(node, "src", storageProvider.GetSignedURL(storageKey))
-				}
-			}
-		}
-		for child := node.FirstChild; child != nil; child = child.NextSibling {
-			walk(child)
-		}
-	}
-	walk(doc)
-	return renderHTMLFragment(doc)
-}
-
-func stripHTMLImageSrcIfBound(content string) string {
-	content = strings.TrimSpace(content)
-	if content == "" {
-		return ""
-	}
-	doc, err := html.Parse(strings.NewReader("<div>" + content + "</div>"))
-	if err != nil {
-		return content
-	}
-	var walk func(*html.Node)
-	walk = func(node *html.Node) {
-		if node == nil {
-			return
-		}
-		if node.Type == html.ElementNode && node.Data == "img" {
-			provider := strings.TrimSpace(findHTMLAttr(node, "data-provider"))
-			storageKey := strings.TrimSpace(findHTMLAttr(node, "data-storage-key"))
-			if provider != "" && storageKey != "" {
-				removeHTMLAttr(node, "src")
-			}
-		}
-		for child := node.FirstChild; child != nil; child = child.NextSibling {
-			walk(child)
-		}
-	}
-	walk(doc)
-	return renderHTMLFragment(doc)
-}
-
-func renderHTMLFragment(doc *html.Node) string {
-	if doc == nil {
-		return ""
-	}
-	root := findHTMLRoot(doc)
-	if root == nil {
-		return ""
-	}
-	var buf bytes.Buffer
-	for child := root.FirstChild; child != nil; child = child.NextSibling {
-		if err := html.Render(&buf, child); err != nil {
-			return ""
-		}
-	}
-	return strings.TrimSpace(buf.String())
-}
-
-func findHTMLRoot(doc *html.Node) *html.Node {
-	var walk func(*html.Node) *html.Node
-	walk = func(node *html.Node) *html.Node {
-		if node == nil {
-			return nil
-		}
-		if node.Type == html.ElementNode && node.Data == "div" {
-			return node
-		}
-		for child := node.FirstChild; child != nil; child = child.NextSibling {
-			if found := walk(child); found != nil {
-				return found
-			}
-		}
-		return nil
-	}
-	return walk(doc)
-}
-
-func findHTMLAttr(node *html.Node, key string) string {
-	if node == nil {
-		return ""
-	}
-	for _, attr := range node.Attr {
-		if attr.Key == key {
-			return attr.Val
-		}
-	}
-	return ""
-}
-
-func setHTMLAttr(node *html.Node, key, value string) {
-	if node == nil {
-		return
-	}
-	for i := range node.Attr {
-		if node.Attr[i].Key == key {
-			node.Attr[i].Val = value
-			return
-		}
-	}
-	node.Attr = append(node.Attr, html.Attribute{Key: key, Val: value})
-}
-
-func removeHTMLAttr(node *html.Node, key string) {
-	if node == nil {
-		return
-	}
-	dst := node.Attr[:0]
-	for _, attr := range node.Attr {
-		if attr.Key != key {
-			dst = append(dst, attr)
-		}
-	}
-	node.Attr = dst
 }

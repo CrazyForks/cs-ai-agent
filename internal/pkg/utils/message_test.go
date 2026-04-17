@@ -1,4 +1,4 @@
-package services
+package utils
 
 import (
 	"cs-agent/internal/models"
@@ -35,7 +35,7 @@ func TestBuildIMMessageAssetPayloadForResponseAddsSignedURL(t *testing.T) {
 func TestSanitizeMessageHTMLStripsStoredSrcForManagedImages(t *testing.T) {
 	html := `<p><img src="https://files.example.com/demo.png" data-provider="local" data-storage-key="attachments/demo.png" alt="demo"></p>`
 
-	got := sanitizeMessageHTML(html)
+	got := SanitizeMessageHTML(html)
 
 	if strings.Contains(got, `src=`) {
 		t.Fatalf("expected src removed from stored html, got: %s", got)
@@ -59,7 +59,7 @@ func TestBuildMessageHTMLForResponseAddsSignedURL(t *testing.T) {
 	})
 
 	html := `<p><img data-provider="local" data-storage-key="attachments/demo.png" alt="demo"></p>`
-	got := buildMessageHTMLForResponse(html)
+	got := BuildMessageHTMLForResponse(html)
 
 	if !strings.Contains(got, `src="https://files.example.com/attachments/demo.png"`) {
 		t.Fatalf("expected signed src in response html, got: %s", got)

@@ -14,12 +14,12 @@ func TestAllowAIMessageOnPendingHandoff(t *testing.T) {
 		CurrentAssigneeID: 0,
 		HandoffAt:         ptrTime(time.Now()),
 	}
-	if !allowAIMessageOnPendingHandoff(conversation) {
+	if !MessageService.allowAIMessageOnPendingHandoff(conversation) {
 		t.Fatalf("expected pending handoff conversation to allow ai handoff notice")
 	}
 
 	conversation.Status = enums.IMConversationStatusAIServing
-	if allowAIMessageOnPendingHandoff(conversation) {
+	if MessageService.allowAIMessageOnPendingHandoff(conversation) {
 		t.Fatalf("expected ai serving conversation not to use pending handoff allowance")
 	}
 }

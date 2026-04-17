@@ -238,7 +238,7 @@ func (s *wsService) PublishMessageCreated(conversation *models.Conversation, mes
 	if conversation == nil || message == nil {
 		return
 	}
-	content, payload := BuildRenderableMessage(message)
+	content, payload := utils.BuildRenderableMessage(message)
 
 	event := s.newEvent(s.conversationTopic(conversation.ID), RealtimeMessageCreatedEvent{
 		Payload: RealtimeMessageCreatedPayload{

@@ -101,7 +101,7 @@ func BuildMessage(item *models.Message) response.MessageResponse {
 }
 
 func BuildMessageWithReadStates(item *models.Message, agentReadState, customerReadState *models.ConversationReadState, aiSenderNames, userSenderNames map[int64]string, agentProfiles map[int64]*models.AgentProfile) response.MessageResponse {
-	content, payload := services.BuildRenderableMessage(item)
+	content, payload := utils.BuildRenderableMessage(item)
 	ret := response.MessageResponse{
 		ID:              item.ID,
 		ConversationID:  item.ConversationID,
