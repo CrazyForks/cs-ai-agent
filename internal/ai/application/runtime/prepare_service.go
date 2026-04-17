@@ -22,7 +22,8 @@ func (s *prepareService) selectSkill(ctx context.Context, req Request) (*models.
 		return nil, "", "", nil
 	}
 	result, err := skills.Select(ctx, skills.RuntimeContext{
-		AIAgentID:       req.AIAgent.ID,
+		AIAgent:         req.AIAgent,
+		AIConfig:        req.AIConfig,
 		UserMessage:     strings.TrimSpace(req.UserMessage.Content),
 		ConversationID:  req.Conversation.ID,
 		ManualSkillCode: strings.TrimSpace(req.ManualSkillCode),

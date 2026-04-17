@@ -4,11 +4,12 @@ import "cs-agent/internal/models"
 
 // RuntimeContext 表示一次 Skill 运行的输入上下文。
 type RuntimeContext struct {
-	AIAgentID       int64  // AIAgentID 为当前请求所属的 AI Agent ID，必填。
-	UserMessage     string // UserMessage 为当前用户输入。
-	ConversationID  int64  // ConversationID 为当前会话 ID，无会话上下文时为 0。
-	ManualSkillCode string // ManualSkillCode 为显式指定的 Skill 编码。
-	IntentCode      string // IntentCode 为上游识别出的意图编码。
+	AIAgent         *models.AIAgent  // AIAgent 为当前请求所属的 AI Agent，必填。
+	AIConfig        *models.AIConfig // AIConfig 为当前请求实际使用的模型配置，必填。
+	UserMessage     string           // UserMessage 为当前用户输入。
+	ConversationID  int64            // ConversationID 为当前会话 ID，无会话上下文时为 0。
+	ManualSkillCode string           // ManualSkillCode 为显式指定的 Skill 编码。
+	IntentCode      string           // IntentCode 为上游识别出的意图编码。
 }
 
 // ExecutionPlan 表示 Skill Runtime 计算出的最终路由结果。

@@ -3,33 +3,32 @@ package skills
 import (
 	"context"
 	"strings"
+
+	"cs-agent/internal/pkg/errorsx"
 )
 
 func newPlanService() *planService {
-	return &planService{
-		loader: newContextLoader(),
-	}
+	return &planService{}
 }
 
-type planService struct {
-	loader *contextLoader
-}
+type planService struct{}
 
 // BuildExecutionPlan 构建当前请求的 Skill 执行计划。
 func (s *planService) BuildExecutionPlan(execCtx context.Context, ctx RuntimeContext) (*ExecutionPlan, error) {
-	if s.loader == nil {
-		s.loader = newContextLoader()
+	if ctx.AIAgent == nil {
+		return nil, errorsx.InvalidParam("AIAgent不能为空")
 	}
-	aiAgent, aiConfig, err := s.loader.loadAIAgentWithConfig(ctx.AIAgentID)
-
-	skill, matchReason, routeTrace, err := MatchSkill(execCtx, ctx, aiAgent, aiConfig)
+	if ctx.AIConfig == nil {
+		return nil, errorsx.InvalidParam("AIConfig不能为空")
+	}
+	skill, matchReason, routeTrace, err := MatchSkill(execCtx, ctx, ctx.AIAgent, ctx.AIConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ExecutionPlan{
-		AIAgent:     aiAgent,
-		AIConfig:    aiConfig,
+		AIAgent:     ctx.AIAgent,
+		AIConfig:    ctx.AIConfig,
 		Skill:       skill,
 		MatchReason: strings.TrimSpace(matchReason),
 		RouteTrace:  routeTrace,

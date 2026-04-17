@@ -20,7 +20,7 @@ type RunLogService struct{}
 func (s *RunLogService) Build(ctx RuntimeContext, plan *ExecutionPlan, trace *ExecutionTrace, err error) *models.SkillRunLog {
 	log := &models.SkillRunLog{
 		ConversationID:  ctx.ConversationID,
-		AIAgentID:       ctx.AIAgentID,
+		AIAgentID:       resolveRuntimeAIAgentID(ctx, plan),
 		ManualSkillCode: ctx.ManualSkillCode,
 		IntentCode:      ctx.IntentCode,
 		UserMessage:     ctx.UserMessage,
@@ -51,6 +51,16 @@ func (s *RunLogService) Build(ctx RuntimeContext, plan *ExecutionPlan, trace *Ex
 		}
 	}
 	return log
+}
+
+func resolveRuntimeAIAgentID(ctx RuntimeContext, plan *ExecutionPlan) int64 {
+	if ctx.AIAgent != nil {
+		return ctx.AIAgent.ID
+	}
+	if plan != nil && plan.AIAgent != nil {
+		return plan.AIAgent.ID
+	}
+	return 0
 }
 
 // Write 写入 Skill 路由日志。
