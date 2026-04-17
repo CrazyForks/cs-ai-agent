@@ -3,6 +3,8 @@ package builders
 import (
 	"cs-agent/internal/models"
 	"cs-agent/internal/pkg/dto/response"
+	"cs-agent/internal/services/storage"
+	"log/slog"
 )
 
 func BuildAsset(item *models.Asset) response.AssetResponse {
@@ -23,5 +25,12 @@ func BuildAsset(item *models.Asset) response.AssetResponse {
 		UpdateUserID:   item.UpdateUserID,
 		UpdateUserName: item.UpdateUserName,
 	}
+
+	if provider, err := storage.GetProvider(item.Provider); err != nil {
+		slog.Error("get storage provider failed", "provider", item.Provider, "error", err)
+	} else {
+		ret.URL = provider.GetSignedURL(item.StorageKey)
+	}
+
 	return ret
 }

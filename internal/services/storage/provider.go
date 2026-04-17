@@ -7,6 +7,8 @@ import (
 	"io"
 )
 
+var providers = make(map[enums.AssetProvider]FileStorageProvider)
+
 type FileStorageProvider interface {
 	ProviderType() enums.AssetProvider
 	Upload(reader io.Reader, key string, info UploadInfo) (*StoredFile, error)
@@ -18,6 +20,20 @@ type FileStorageProvider interface {
 
 func GetDefault() (FileStorageProvider, error) {
 	return NewProvider(config.Current().Storage.Default)
+}
+
+func GetProvider(providerType enums.AssetProvider) (FileStorageProvider, error) {
+	if provider, exists := providers[providerType]; exists {
+		return provider, nil
+	}
+	provider, err := NewProvider(providerType)
+	if err != nil {
+		return nil, err
+	}
+
+	providers[providerType] = provider
+
+	return provider, nil
 }
 
 func NewProvider(provider enums.AssetProvider) (FileStorageProvider, error) {
