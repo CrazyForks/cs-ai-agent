@@ -53,12 +53,6 @@ func MatchSkill(execCtx context.Context, ctx RuntimeContext, aiAgent *models.AIA
 		}
 	}
 
-	if len(candidates) == 1 {
-		trace.Status = "single_candidate"
-		trace.SelectedSkillCode = candidates[0].Code
-		return &candidates[0], "single_candidate", trace, nil
-	}
-
 	selected, routeTrace, err := routeSkillWithLLM(execCtx, aiConfig, ctx.UserMessage, candidates)
 	if routeTrace != nil {
 		trace.Status = routeTrace.Status
