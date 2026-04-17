@@ -37,22 +37,28 @@ func SanitizeMessageHTML(content string) string {
 	return stripHTMLImageSrcIfBound(strings.TrimSpace(policy.Sanitize(content)))
 }
 
-func NormalizeMessageHTMLAssets(content string) string {
+func NormalizeMessageHTMLAssets(content string) (string, error) {
 	content = strings.TrimSpace(content)
 	if content == "" {
-		return ""
+		return "", nil
 	}
 	doc, err := html.Parse(strings.NewReader("<div>" + content + "</div>"))
 	if err != nil {
-		return content
+		return content, nil
 	}
+	var walkErr error
 	var walk func(*html.Node)
 	walk = func(node *html.Node) {
-		if node == nil {
+		if node == nil || walkErr != nil {
 			return
 		}
 		if node.Type == html.ElementNode && node.Data == "img" {
-			if asset := findImageAsset(node); asset != nil {
+			asset, err := normalizeHTMLImageAsset(node)
+			if err != nil {
+				walkErr = err
+				return
+			}
+			if asset != nil {
 				setHTMLAttr(node, "data-asset-id", strings.TrimSpace(asset.AssetID))
 				setHTMLAttr(node, "data-provider", strings.TrimSpace(string(asset.Provider)))
 				setHTMLAttr(node, "data-storage-key", strings.TrimSpace(asset.StorageKey))
@@ -64,7 +70,10 @@ func NormalizeMessageHTMLAssets(content string) string {
 		}
 	}
 	walk(doc)
-	return renderHTMLFragment(doc)
+	if walkErr != nil {
+		return "", walkErr
+	}
+	return renderHTMLFragment(doc), nil
 }
 
 func BuildHTMLSummary(content string) string {
@@ -319,27 +328,39 @@ func hydrateIMMessageAssetPayload(payload *imMessageAssetPayload) *imMessageAsse
 	return payload
 }
 
-func findImageAsset(node *html.Node) *models.Asset {
+func normalizeHTMLImageAsset(node *html.Node) (*models.Asset, error) {
 	if node == nil {
-		return nil
+		return nil, nil
 	}
-	if assetID := strings.TrimSpace(findHTMLAttr(node, "data-asset-id")); assetID != "" {
-		if asset := repositories.AssetRepository.GetByAssetID(sqls.DB(), assetID); asset != nil {
-			return asset
-		}
-	}
+	assetID := strings.TrimSpace(findHTMLAttr(node, "data-asset-id"))
 	provider := enums.AssetProvider(strings.TrimSpace(findHTMLAttr(node, "data-provider")))
 	storageKey := strings.TrimSpace(findHTMLAttr(node, "data-storage-key"))
-	if provider != "" && storageKey != "" {
-		if asset := repositories.AssetRepository.GetByStorageKey(sqls.DB(), storageKey); asset != nil {
-			return asset
-		}
-	}
 	src := strings.TrimSpace(findHTMLAttr(node, "src"))
-	if src == "" {
-		return nil
+
+	hasAssetID := assetID != ""
+	hasProvider := provider != ""
+	hasStorageKey := storageKey != ""
+	if hasAssetID || hasProvider || hasStorageKey {
+		if !(hasAssetID && hasProvider && hasStorageKey) {
+			return nil, fmt.Errorf("html message image asset attributes are incomplete")
+		}
+		asset := repositories.AssetRepository.GetByAssetID(sqls.DB(), assetID)
+		if asset == nil {
+			return nil, fmt.Errorf("html message image asset not found")
+		}
+		if asset.Provider != provider || strings.TrimSpace(asset.StorageKey) != storageKey {
+			return nil, fmt.Errorf("html message image asset attributes mismatch")
+		}
+		return asset, nil
 	}
-	return findAssetByMessageImageURL(src)
+	if src == "" {
+		return nil, fmt.Errorf("html message image is missing asset metadata")
+	}
+	asset := findAssetByMessageImageURL(src)
+	if asset == nil {
+		return nil, fmt.Errorf("html message image must reference an uploaded asset")
+	}
+	return asset, nil
 }
 
 func findAssetByMessageImageURL(rawURL string) *models.Asset {

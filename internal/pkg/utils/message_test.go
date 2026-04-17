@@ -120,7 +120,10 @@ func TestNormalizeMessageHTMLAssetsEnrichesImageDataAttrs(t *testing.T) {
 		Status:     enums.AssetStatusSuccess,
 	})
 
-	got := NormalizeMessageHTMLAssets(`<p><img src="https://files.example.com/images/demo.png" alt="demo"></p>`)
+	got, err := NormalizeMessageHTMLAssets(`<p><img src="https://files.example.com/images/demo.png" alt="demo"></p>`)
+	if err != nil {
+		t.Fatalf("expected normalization success, got error: %v", err)
+	}
 
 	if !strings.Contains(got, `data-asset-id="asset_local_1"`) {
 		t.Fatalf("expected data-asset-id added, got: %s", got)
@@ -147,13 +150,52 @@ func TestNormalizeMessageHTMLAssetsKeepsUnknownImageSrc(t *testing.T) {
 		},
 	})
 
-	got := NormalizeMessageHTMLAssets(`<p><img src="https://unknown.example.com/demo.png" alt="demo"></p>`)
-
-	if !strings.Contains(got, `src="https://unknown.example.com/demo.png"`) {
-		t.Fatalf("expected unknown image src kept, got: %s", got)
+	_, err := NormalizeMessageHTMLAssets(`<p><img src="https://unknown.example.com/demo.png" alt="demo"></p>`)
+	if err == nil {
+		t.Fatalf("expected unknown image src rejected")
 	}
-	if strings.Contains(got, `data-asset-id=`) || strings.Contains(got, `data-provider=`) || strings.Contains(got, `data-storage-key=`) {
-		t.Fatalf("expected no asset attrs added for unknown image, got: %s", got)
+}
+
+func TestNormalizeMessageHTMLAssetsRejectsIncompleteAttrs(t *testing.T) {
+	setupMessageTestDB(t)
+	config.SetCurrent(&config.Config{
+		Storage: config.StorageConfig{
+			Default: enums.AssetProviderLocal,
+			Local: config.LocalStorageConfig{
+				BaseURL: "https://files.example.com",
+			},
+		},
+	})
+
+	_, err := NormalizeMessageHTMLAssets(`<p><img data-asset-id="asset1" data-provider="local" alt="demo"></p>`)
+	if err == nil {
+		t.Fatalf("expected incomplete asset attrs rejected")
+	}
+}
+
+func TestNormalizeMessageHTMLAssetsRejectsMismatchedAttrs(t *testing.T) {
+	setupMessageTestDB(t)
+	config.SetCurrent(&config.Config{
+		Storage: config.StorageConfig{
+			Default: enums.AssetProviderLocal,
+			Local: config.LocalStorageConfig{
+				BaseURL: "https://files.example.com",
+			},
+		},
+	})
+	createTestAsset(t, &models.Asset{
+		AssetID:    "asset_local_2",
+		Provider:   enums.AssetProviderLocal,
+		StorageKey: "images/real.png",
+		Filename:   "real.png",
+		FileSize:   456,
+		MimeType:   "image/png",
+		Status:     enums.AssetStatusSuccess,
+	})
+
+	_, err := NormalizeMessageHTMLAssets(`<p><img data-asset-id="asset_local_2" data-provider="local" data-storage-key="images/wrong.png" alt="demo"></p>`)
+	if err == nil {
+		t.Fatalf("expected mismatched asset attrs rejected")
 	}
 }
 
