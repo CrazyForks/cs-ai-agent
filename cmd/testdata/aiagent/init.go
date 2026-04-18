@@ -91,7 +91,6 @@ func buildSeedItems(aiConfigID int64, knowledgeIDs []int64, defaultTeamIDs strin
 			KnowledgeIDs:        utils.JoinInt64s(knowledgeIDs),
 			SkillIDs:            defaultSkillIDs,
 			SortNo:              10,
-			Remark:              "Local testdata seed",
 			AuditFields: models.AuditFields{
 				CreatedAt:      now,
 				CreateUserID:   0,

@@ -106,7 +106,6 @@ func (s *aIAgentService) UpdateAIAgent(req request.UpdateAIAgentRequest, operato
 		"skill_ids":             item.SkillIDs,
 		"allowed_mcp_tools":     item.AllowedMCPTools,
 		"allowed_graph_tools":   item.AllowedGraphTools,
-		"remark":                item.Remark,
 		"update_user_id":        operator.UserID,
 		"update_user_name":      operator.Username,
 		"updated_at":            time.Now(),
@@ -215,7 +214,6 @@ func (s *aIAgentService) buildAIAgentModel(id int64, req request.CreateAIAgentRe
 		SkillIDs:            utils.JoinInt64s(skillIDs),
 		AllowedMCPTools:     directToolsJSON,
 		AllowedGraphTools:   graphToolsJSON,
-		Remark:              strings.TrimSpace(req.Remark),
 	}, nil
 }
 

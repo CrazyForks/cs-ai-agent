@@ -94,7 +94,6 @@ const schema = z.object({
     .min(0, "回复超时秒数必须是大于等于 0 的整数"),
   handoffMode: z.string().trim().min(1, "请选择转人工模式"),
   fallbackMessage: z.string().trim(),
-  remark: z.string().trim(),
 });
 
 type EditForm = z.infer<typeof schema>;
@@ -131,7 +130,6 @@ function buildForm(item: AIAgent | null): EditForm {
       replyTimeoutSeconds: 180,
       handoffMode: String(AIAgentHandoffMode.WaitPool),
       fallbackMessage: "",
-      remark: "",
     };
   }
   return {
@@ -144,7 +142,6 @@ function buildForm(item: AIAgent | null): EditForm {
     replyTimeoutSeconds: item.replyTimeoutSeconds ?? 180,
     handoffMode: String(item.handoffMode),
     fallbackMessage: item.fallbackMessage || "",
-    remark: item.remark || "",
   };
 }
 
@@ -171,7 +168,6 @@ function buildPayload(
     skillIds,
     directTools,
     graphTools,
-    remark: form.remark.trim(),
   };
 }
 
@@ -729,15 +725,6 @@ function EditDialogBody({
                 <FieldError errors={[errors.description]} />
               </FieldContent>
             </Field>
-
-            <Field data-invalid={!!errors.remark}>
-              <FieldLabel htmlFor="ai-agent-remark">内部备注</FieldLabel>
-              <FieldContent>
-                <Textarea id="ai-agent-remark" rows={3} {...register("remark")} />
-                <FieldError errors={[errors.remark]} />
-              </FieldContent>
-            </Field>
-
             <Field data-invalid={!!errors.welcomeMessage}>
               <FieldLabel htmlFor="ai-agent-welcome-message">欢迎语</FieldLabel>
               <FieldContent>

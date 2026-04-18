@@ -223,7 +223,6 @@ export type AIAgent = {
   }[]
   graphTools: string[]
   sortNo: number
-  remark: string
   createdAt: string
   updatedAt: string
   createUserName: string
@@ -252,7 +251,6 @@ export type CreateAIAgentPayload = {
     arguments?: Record<string, string>
   }[]
   graphTools: string[]
-  remark: string
 }
 
 export type UpdateAIAgentPayload = CreateAIAgentPayload & {

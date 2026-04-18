@@ -133,7 +133,6 @@ func buildAIAgentResponse(item *models.AIAgent) response.AIAgentResponse {
 		DirectTools:         make([]response.AIAgentMCPToolResponse, 0),
 		GraphTools:          make([]string, 0),
 		SortNo:              item.SortNo,
-		Remark:              item.Remark,
 		CreatedAt:           item.CreatedAt.Format("2006-01-02 15:04:05"),
 		UpdatedAt:           item.UpdatedAt.Format("2006-01-02 15:04:05"),
 		CreateUserName:      item.CreateUserName,

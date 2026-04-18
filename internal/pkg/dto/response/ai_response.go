@@ -91,7 +91,6 @@ type AIAgentResponse struct {
 	DirectTools         []AIAgentMCPToolResponse        `json:"directTools"`
 	GraphTools          []string                        `json:"graphTools"`
 	SortNo              int                             `json:"sortNo"`
-	Remark              string                          `json:"remark"`
 	CreatedAt           string                          `json:"createdAt"`
 	UpdatedAt           string                          `json:"updatedAt"`
 	CreateUserName      string                          `json:"createUserName"`
