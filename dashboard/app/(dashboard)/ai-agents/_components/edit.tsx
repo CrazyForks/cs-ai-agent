@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
+  ChevronDownIcon,
   InfoIcon,
   PlusIcon,
   Trash2Icon,
@@ -667,7 +668,7 @@ function EditDialogBody({
         >
           <SectionCard
             title="基础信息"
-            description="定义这个 Agent 是谁、使用哪个模型、以什么服务模式工作。"
+            description="定义这个 Agent 是谁、使用哪个模型、以什么服务模式工作，并配置基础话术。"
           >
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
               <Field data-invalid={!!errors.name}>
@@ -736,7 +737,51 @@ function EditDialogBody({
                 <FieldError errors={[errors.remark]} />
               </FieldContent>
             </Field>
+
+            <Field data-invalid={!!errors.welcomeMessage}>
+              <FieldLabel htmlFor="ai-agent-welcome-message">欢迎语</FieldLabel>
+              <FieldContent>
+                <Textarea
+                  id="ai-agent-welcome-message"
+                  rows={5}
+                  {...register("welcomeMessage")}
+                />
+                <FieldError errors={[errors.welcomeMessage]} />
+              </FieldContent>
+            </Field>
+
+            <Field data-invalid={!!errors.fallbackMessage}>
+              <FieldLabel htmlFor="ai-agent-fallback-message">
+                兜底文案
+              </FieldLabel>
+              <FieldContent>
+                <div className="text-xs text-muted-foreground mb-1">
+                  仅在兜底模式为“直接声明无答案”或“引导补充信息”时使用。转人工已统一改为 AI Graph Tool，不再通过兜底模式直接触发。
+                </div>
+                <Textarea
+                  id="ai-agent-fallback-message"
+                  rows={5}
+                  {...register("fallbackMessage")}
+                />
+                <FieldError errors={[errors.fallbackMessage]} />
+              </FieldContent>
+            </Field>
+
+            <Field data-invalid={!!errors.systemPrompt}>
+              <FieldLabel htmlFor="ai-agent-system-prompt">
+                系统提示词
+              </FieldLabel>
+              <FieldContent>
+                <Textarea
+                  id="ai-agent-system-prompt"
+                  rows={8}
+                  {...register("systemPrompt")}
+                />
+                <FieldError errors={[errors.systemPrompt]} />
+              </FieldContent>
+            </Field>
           </SectionCard>
+
           <SectionCard
             title="服务策略"
             description="控制 Graph Tool 转人工配置、兜底策略和自动回复边界。"
@@ -853,54 +898,6 @@ function EditDialogBody({
                 </Field>
               </div>
             </div>
-          </SectionCard>
-
-          <SectionCard
-            title="话术配置"
-            description="配置用户能直接看到的欢迎语、兜底文案，以及影响整体回复风格的系统提示词。"
-          >
-            <Field data-invalid={!!errors.welcomeMessage}>
-              <FieldLabel htmlFor="ai-agent-welcome-message">欢迎语</FieldLabel>
-              <FieldContent>
-                <Textarea
-                  id="ai-agent-welcome-message"
-                  rows={5}
-                  {...register("welcomeMessage")}
-                />
-                <FieldError errors={[errors.welcomeMessage]} />
-              </FieldContent>
-            </Field>
-
-            <Field data-invalid={!!errors.fallbackMessage}>
-              <FieldLabel htmlFor="ai-agent-fallback-message">
-                兜底文案
-              </FieldLabel>
-              <FieldContent>
-                <div className="text-xs text-muted-foreground mb-1">
-                  仅在兜底模式为“直接声明无答案”或“引导补充信息”时使用。转人工已统一改为 AI Graph Tool，不再通过兜底模式直接触发。
-                </div>
-                <Textarea
-                  id="ai-agent-fallback-message"
-                  rows={5}
-                  {...register("fallbackMessage")}
-                />
-                <FieldError errors={[errors.fallbackMessage]} />
-              </FieldContent>
-            </Field>
-
-            <Field data-invalid={!!errors.systemPrompt}>
-              <FieldLabel htmlFor="ai-agent-system-prompt">
-                系统提示词
-              </FieldLabel>
-              <FieldContent>
-                <Textarea
-                  id="ai-agent-system-prompt"
-                  rows={8}
-                  {...register("systemPrompt")}
-                />
-                <FieldError errors={[errors.systemPrompt]} />
-              </FieldContent>
-            </Field>
           </SectionCard>
 
           <SectionCard
@@ -1231,18 +1228,40 @@ function SectionCard({
   title,
   description,
   children,
+  defaultOpen = true,
 }: {
   title: string;
   description?: string;
   children: ReactNode;
+  defaultOpen?: boolean;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
+
   return (
     <section className="rounded-lg border bg-card p-5">
-      <div className="mb-3">
-        <div className="text-base font-semibold">{title}</div>
-        {description && <div className="mt-1 text-sm text-muted-foreground">{description}</div>}
-      </div>
-      <div className="space-y-4">{children}</div>
+      <button
+        type="button"
+        className="flex w-full items-start justify-between gap-4 text-left"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-expanded={open}
+      >
+        <div className="min-w-0">
+          <div className="text-base font-semibold">{title}</div>
+          {description ? (
+            <div className="mt-1 text-sm text-muted-foreground">
+              {description}
+            </div>
+          ) : null}
+        </div>
+        <span className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-full border bg-muted/30 text-muted-foreground transition-colors hover:bg-muted/50">
+          <ChevronDownIcon
+            className={`size-4 transition-transform duration-200 ${
+              open ? "rotate-180" : "rotate-0"
+            }`}
+          />
+        </span>
+      </button>
+      {open ? <div className="mt-3 space-y-4">{children}</div> : null}
     </section>
   );
 }
