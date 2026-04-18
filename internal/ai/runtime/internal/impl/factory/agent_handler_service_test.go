@@ -14,8 +14,8 @@ func TestAgentHandlerServiceBuildWithCollectorOnly(t *testing.T) {
 	handlers, err := service.Build(context.Background(), BuildAgentHandlersInput{
 		Collector: collector,
 		InstructionSummary: einocallbacks.InstructionTraceSummary{
-			SectionTitles:     []string{"系统治理规则"},
-			HasGovernanceRule: true,
+			SectionTitles: []string{"Agent 规则"},
+			HasAgentRule:  true,
 		},
 	})
 	if err != nil {
@@ -24,7 +24,7 @@ func TestAgentHandlerServiceBuildWithCollectorOnly(t *testing.T) {
 	if len(handlers) != 1 {
 		t.Fatalf("expected 1 handler, got %d", len(handlers))
 	}
-	if !collector.Data.Instruction.HasGovernanceRule {
+	if !collector.Data.Instruction.HasAgentRule {
 		t.Fatalf("instruction summary was not written to collector: %#v", collector.Data.Instruction)
 	}
 	if len(collector.Data.Instruction.SectionTitles) != 1 {

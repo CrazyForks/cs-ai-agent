@@ -5,18 +5,16 @@ import "strings"
 type Assembler struct{}
 
 type AssemblerInput struct {
-	AgentInstruction      string
-	GovernanceInstruction string
-	SkillInstruction      string
-	ToolAppendices        []string
+	AgentInstruction string
+	SkillInstruction string
+	ToolAppendices   []string
 }
 
 type AssemblySummary struct {
-	SectionTitles     []string
-	HasGovernanceRule bool
-	HasAgentRule      bool
-	HasSkillRule      bool
-	HasToolRule       bool
+	SectionTitles []string
+	HasAgentRule  bool
+	HasSkillRule  bool
+	HasToolRule   bool
 }
 
 type AssemblyResult struct {
@@ -33,14 +31,8 @@ func (a *Assembler) Build(input AssemblerInput) string {
 }
 
 func (a *Assembler) Assemble(input AssemblerInput) AssemblyResult {
-	parts := make([]string, 0, 4)
-	summary := AssemblySummary{SectionTitles: make([]string, 0, 4)}
-	governanceInstruction := strings.TrimSpace(input.GovernanceInstruction)
-	if governanceInstruction != "" {
-		parts = append(parts, buildInstructionSection("系统治理规则", governanceInstruction))
-		summary.HasGovernanceRule = true
-		summary.SectionTitles = append(summary.SectionTitles, "系统治理规则")
-	}
+	parts := make([]string, 0, 3)
+	summary := AssemblySummary{SectionTitles: make([]string, 0, 3)}
 	if agentInstruction := strings.TrimSpace(input.AgentInstruction); agentInstruction != "" {
 		parts = append(parts, buildInstructionSection("Agent 规则", agentInstruction))
 		summary.HasAgentRule = true

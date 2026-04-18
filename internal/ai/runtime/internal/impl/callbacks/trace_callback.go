@@ -70,11 +70,10 @@ type RetrieverPolicyTraceItem struct {
 }
 
 type InstructionTraceSummary struct {
-	SectionTitles     []string
-	HasGovernanceRule bool
-	HasAgentRule      bool
-	HasSkillRule      bool
-	HasToolRule       bool
+	SectionTitles []string
+	HasAgentRule  bool
+	HasSkillRule  bool
+	HasToolRule   bool
 }
 
 type RuntimeTraceData struct {
@@ -91,11 +90,10 @@ type RuntimeTraceData struct {
 		Name     string `json:"name,omitempty"`
 	} `json:"model"`
 	Instruction struct {
-		SectionTitles     []string `json:"sectionTitles,omitempty"`
-		HasGovernanceRule bool     `json:"hasGovernanceRule,omitempty"`
-		HasAgentRule      bool     `json:"hasAgentRule,omitempty"`
-		HasSkillRule      bool     `json:"hasSkillRule,omitempty"`
-		HasToolRule       bool     `json:"hasToolRule,omitempty"`
+		SectionTitles []string `json:"sectionTitles,omitempty"`
+		HasAgentRule  bool     `json:"hasAgentRule,omitempty"`
+		HasSkillRule  bool     `json:"hasSkillRule,omitempty"`
+		HasToolRule   bool     `json:"hasToolRule,omitempty"`
 	} `json:"instruction"`
 	Input struct {
 		HistoryMessageCount       int      `json:"historyMessageCount,omitempty"`

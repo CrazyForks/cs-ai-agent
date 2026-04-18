@@ -3,38 +3,45 @@ package instruction
 import (
 	"strings"
 
-	"cs-agent/internal/ai/runtime/tooling"
+	runtimetooling "cs-agent/internal/ai/runtime/tooling"
 	"cs-agent/internal/models"
 )
 
 type Service struct {
-	assembler                     *Assembler
-	governanceInstructionProvider *GovernanceInstructionProvider
-	skillInstructionProvider      *SkillInstructionProvider
-	toolAppendixProvider          *ToolAppendixProvider
+	assembler                *Assembler
+	skillInstructionProvider *SkillInstructionProvider
+	toolAppendixProvider     *ToolAppendixProvider
 }
 
-func NewService() *Service {
+func NewService(
+	assembler *Assembler,
+	skillProvider *SkillInstructionProvider,
+	toolProvider *ToolAppendixProvider,
+) *Service {
+	if assembler == nil {
+		assembler = NewAssembler()
+	}
+	if skillProvider == nil {
+		skillProvider = NewSkillInstructionProvider()
+	}
+	if toolProvider == nil {
+		toolProvider = NewToolAppendixProvider()
+	}
 	return &Service{
-		assembler:                     NewAssembler(),
-		governanceInstructionProvider: NewGovernanceInstructionProvider(),
-		skillInstructionProvider:      NewSkillInstructionProvider(),
-		toolAppendixProvider:          NewToolAppendixProvider(),
+		assembler:                assembler,
+		skillInstructionProvider: skillProvider,
+		toolAppendixProvider:     toolProvider,
 	}
 }
 
 func (s *Service) Build(
 	aiAgent models.AIAgent,
 	selectedSkill *models.SkillDefinition,
-	toolDefinitions []tooling.MCPToolDefinition,
+	toolDefinitions []runtimetooling.MCPToolDefinition,
 	extraToolCodes map[string]string,
 ) AssemblyResult {
-	governanceInstruction := ""
 	skillInstruction := ""
 	toolAppendices := make([]string, 0)
-	if s != nil && s.governanceInstructionProvider != nil {
-		governanceInstruction = s.governanceInstructionProvider.Resolve()
-	}
 	if s != nil && s.skillInstructionProvider != nil {
 		skillInstruction = s.skillInstructionProvider.Resolve(selectedSkill)
 	}
@@ -46,9 +53,8 @@ func (s *Service) Build(
 		assembler = s.assembler
 	}
 	return assembler.Assemble(AssemblerInput{
-		AgentInstruction:      strings.TrimSpace(aiAgent.SystemPrompt),
-		GovernanceInstruction: governanceInstruction,
-		SkillInstruction:      skillInstruction,
-		ToolAppendices:        toolAppendices,
+		AgentInstruction: strings.TrimSpace(aiAgent.SystemPrompt),
+		SkillInstruction: skillInstruction,
+		ToolAppendices:   toolAppendices,
 	})
 }
