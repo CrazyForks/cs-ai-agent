@@ -14,7 +14,6 @@ type CreateKnowledgeBaseRequest struct {
 	ChunkMaxTokens        int     `json:"chunkMaxTokens"`
 	ChunkOverlapTokens    int     `json:"chunkOverlapTokens"`
 	AnswerMode            int     `json:"answerMode"`
-	FallbackMode          int     `json:"fallbackMode"`
 	Remark                string  `json:"remark"`
 }
 
@@ -71,7 +70,6 @@ type KnowledgeAnswerRequest struct {
 	SessionID        string  `json:"sessionId"`
 	ConversationID   int64   `json:"conversationId"`
 	AnswerMode       int     `json:"answerMode"`
-	FallbackMode     int     `json:"fallbackMode"`
 }
 
 type CreateKnowledgeFeedbackRequest struct {

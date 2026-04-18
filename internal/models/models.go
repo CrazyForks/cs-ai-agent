@@ -509,6 +509,7 @@ type AIAgent struct {
 	ReplyTimeoutSeconds int                             `gorm:"type:int;not null;default:180"`               // ReplyTimeoutSeconds 为异步自动回复超时秒数。
 	TeamIDs             string                          `gorm:"type:varchar(500);not null;default:''"`       // TeamIDs 为转人工时可路由的客服组ID列表，多个之间使用逗号分隔。
 	HandoffMode         enums.AIAgentHandoffMode        `gorm:"type:int;not null;default:1"`                 // HandoffMode 为转人工模式，如进入待接入池、进入默认客服组待接入池。
+	FallbackMode        enums.AIAgentFallbackMode       `gorm:"type:int;not null;default:1"`                 // FallbackMode 为知识库未命中时的兜底策略。
 	FallbackMessage     string                          `gorm:"type:text"`                                   // FallbackMessage 为兜底回复文案。
 	KnowledgeIDs        string                          `gorm:"type:varchar(500);not null;default:''"`       // KnowledgeIDs 为绑定的知识库ID列表，按顺序表示优先级。
 	SkillIDs            string                          `gorm:"type:varchar(500);not null;default:''"`       // SkillIDs 为绑定的技能ID列表，按顺序表示允许路由的范围。
@@ -775,7 +776,6 @@ type KnowledgeBase struct {
 	ChunkMaxTokens        int          `gorm:"type:int;not null;default:400"`                      // ChunkMaxTokens 为单 chunk 最大 token 数。
 	ChunkOverlapTokens    int          `gorm:"type:int;not null;default:40"`                       // ChunkOverlapTokens 为相邻 chunk 重叠 token 数。
 	AnswerMode            int          `gorm:"type:int;not null;default:1"`                        // AnswerMode 为回答模式：1严格知识库模式 2辅助解释模式。
-	FallbackMode          int          `gorm:"type:int;not null;default:1"`                        // FallbackMode 为兜底模式：1声明无答案 2引导换问法 3转人工。
 	SortNo                int          `gorm:"type:int;not null;default:0;index"`                  // SortNo 为排序号，用于后台展示和知识库的人工排序管理。
 	Remark                string       `gorm:"type:text"`                                          // Remark 为备注。
 	AuditFields

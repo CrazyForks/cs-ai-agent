@@ -101,6 +101,7 @@ func (s *aIAgentService) UpdateAIAgent(req request.UpdateAIAgentRequest, operato
 		"reply_timeout_seconds": item.ReplyTimeoutSeconds,
 		"team_ids":              item.TeamIDs,
 		"handoff_mode":          item.HandoffMode,
+		"fallback_mode":         item.FallbackMode,
 		"fallback_message":      item.FallbackMessage,
 		"knowledge_ids":         item.KnowledgeIDs,
 		"skill_ids":             item.SkillIDs,
@@ -157,6 +158,12 @@ func (s *aIAgentService) buildAIAgentModel(id int64, req request.CreateAIAgentRe
 	if !slices.Contains(enums.AIAgentHandoffModeValues, enums.AIAgentHandoffMode(req.HandoffMode)) {
 		return nil, errorsx.InvalidParam("转人工模式不合法")
 	}
+	if req.FallbackMode == 0 {
+		req.FallbackMode = enums.AIAgentFallbackModeNoAnswer
+	}
+	if !slices.Contains(enums.AIAgentFallbackModeValues, enums.AIAgentFallbackMode(req.FallbackMode)) {
+		return nil, errorsx.InvalidParam("兜底策略不合法")
+	}
 	if enums.AIAgentHandoffMode(req.HandoffMode) == enums.AIAgentHandoffModeDefaultTeamPool && len(teamIDs) == 0 {
 		return nil, errorsx.InvalidParam("默认客服组待接入池模式必须至少选择一个客服组")
 	}
@@ -209,6 +216,7 @@ func (s *aIAgentService) buildAIAgentModel(id int64, req request.CreateAIAgentRe
 		ReplyTimeoutSeconds: req.ReplyTimeoutSeconds,
 		TeamIDs:             utils.JoinInt64s(teamIDs),
 		HandoffMode:         req.HandoffMode,
+		FallbackMode:        req.FallbackMode,
 		FallbackMessage:     strings.TrimSpace(req.FallbackMessage),
 		KnowledgeIDs:        utils.JoinInt64s(knowledgeIDs),
 		SkillIDs:            utils.JoinInt64s(skillIDs),

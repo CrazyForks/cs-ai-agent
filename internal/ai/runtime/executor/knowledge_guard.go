@@ -19,7 +19,7 @@ func buildKnowledgeGuardDecision(aiAgent models.AIAgent, retrieveResult *retriev
 	if retrieveResult == nil || len(retrieveResult.KnowledgeBaseIDs) == 0 {
 		return knowledgeGuardDecision{}
 	}
-	fallbackReply := resolveKnowledgeFallbackReply(aiAgent, retrieveResult.FallbackMode)
+	fallbackReply := resolveKnowledgeFallbackReply(aiAgent)
 	if len(retrieveResult.Hits) == 0 {
 		return knowledgeGuardDecision{FallbackReply: fallbackReply}
 	}
@@ -32,15 +32,13 @@ func buildKnowledgeGuardDecision(aiAgent models.AIAgent, retrieveResult *retriev
 	}
 }
 
-func resolveKnowledgeFallbackReply(aiAgent models.AIAgent, fallbackMode enums.KnowledgeFallbackMode) string {
+func resolveKnowledgeFallbackReply(aiAgent models.AIAgent) string {
 	if reply := strings.TrimSpace(aiAgent.FallbackMessage); reply != "" {
 		return reply
 	}
-	switch fallbackMode {
-	case enums.KnowledgeFallbackModeSuggestRetry:
+	switch aiAgent.FallbackMode {
+	case enums.AIAgentFallbackModeSuggestRetry:
 		return "当前知识库里没有找到足够明确的信息，你可以换个更具体的问法再试一次。"
-	case enums.KnowledgeFallbackModeTransferHuman:
-		return "当前知识库里没有找到足够明确的信息，建议转人工进一步处理。"
 	default:
 		return "当前知识库暂无明确信息。"
 	}

@@ -25,8 +25,6 @@ func BuildKnowledgeBase(item *models.KnowledgeBase) response.KnowledgeBaseRespon
 		ChunkOverlapTokens:    item.ChunkOverlapTokens,
 		AnswerMode:            item.AnswerMode,
 		AnswerModeName:        enums.GetKnowledgeAnswerModeLabel(enums.KnowledgeAnswerMode(item.AnswerMode)),
-		FallbackMode:          item.FallbackMode,
-		FallbackModeName:      enums.GetKnowledgeFallbackModeLabel(enums.KnowledgeFallbackMode(item.FallbackMode)),
 		Remark:                item.Remark,
 		CreatedAt:             item.CreatedAt,
 		UpdatedAt:             item.UpdatedAt,

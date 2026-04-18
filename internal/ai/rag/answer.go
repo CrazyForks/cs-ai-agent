@@ -112,15 +112,7 @@ func (s *answer) DebugAnswer(ctx context.Context, req request.KnowledgeAnswerReq
 		}
 	}
 
-	fallbackMode := enums.KnowledgeFallbackMode(req.FallbackMode)
-	if fallbackMode == 0 {
-		if knowledgeBase != nil {
-			fallbackMode = enums.KnowledgeFallbackMode(knowledgeBase.FallbackMode)
-		}
-		if fallbackMode == 0 {
-			fallbackMode = enums.KnowledgeFallbackModeNoAnswer
-		}
-	}
+	fallbackMode := enums.AIAgentFallbackModeNoAnswer
 
 	answerStatus := enums.KnowledgeAnswerStatusNormal
 	answer := ""
@@ -391,12 +383,10 @@ func buildAnswerSystemPrompt(answerMode enums.KnowledgeAnswerMode) string {
 	return "你是严格的客服知识库助手。只能依据提供的知识片段回答；如果资料不足，请明确说明知识库暂无明确信息。"
 }
 
-func buildFallbackAnswer(fallbackMode enums.KnowledgeFallbackMode) string {
+func buildFallbackAnswer(fallbackMode enums.AIAgentFallbackMode) string {
 	switch fallbackMode {
-	case enums.KnowledgeFallbackModeSuggestRetry:
+	case enums.AIAgentFallbackModeSuggestRetry:
 		return "当前知识库里没有找到足够明确的信息，你可以换个更具体的问法再试一次。"
-	case enums.KnowledgeFallbackModeTransferHuman:
-		return "当前知识库里没有找到足够明确的信息，建议转人工进一步处理。"
 	default:
 		return "当前知识库暂无明确信息。"
 	}

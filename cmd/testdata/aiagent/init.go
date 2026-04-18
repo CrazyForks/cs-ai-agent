@@ -87,6 +87,7 @@ func buildSeedItems(aiConfigID int64, knowledgeIDs []int64, defaultTeamIDs strin
 			ReplyTimeoutSeconds: 180,
 			TeamIDs:             defaultTeamIDs,
 			HandoffMode:         enums.AIAgentHandoffModeWaitPool,
+			FallbackMode:        enums.AIAgentFallbackModeSuggestRetry,
 			FallbackMessage:     "我暂时没有找到足够准确的信息。你可以补充具体的问题，我再继续帮你查。",
 			KnowledgeIDs:        utils.JoinInt64s(knowledgeIDs),
 			SkillIDs:            defaultSkillIDs,

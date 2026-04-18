@@ -214,21 +214,3 @@ var knowledgeAnswerModeLabelMap = map[KnowledgeAnswerMode]string{
 func GetKnowledgeAnswerModeLabel(mode KnowledgeAnswerMode) string {
 	return knowledgeAnswerModeLabelMap[mode]
 }
-
-type KnowledgeFallbackMode int
-
-const (
-	KnowledgeFallbackModeNoAnswer      KnowledgeFallbackMode = 1
-	KnowledgeFallbackModeSuggestRetry  KnowledgeFallbackMode = 2
-	KnowledgeFallbackModeTransferHuman KnowledgeFallbackMode = 3
-)
-
-var knowledgeFallbackModeLabelMap = map[KnowledgeFallbackMode]string{
-	KnowledgeFallbackModeNoAnswer:      "直接声明无答案",
-	KnowledgeFallbackModeSuggestRetry:  "建议重试",
-	KnowledgeFallbackModeTransferHuman: "转人工",
-}
-
-func GetKnowledgeFallbackModeLabel(mode KnowledgeFallbackMode) string {
-	return knowledgeFallbackModeLabelMap[mode]
-}

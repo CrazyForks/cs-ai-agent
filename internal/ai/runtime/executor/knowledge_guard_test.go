@@ -12,9 +12,9 @@ import (
 
 func TestBuildKnowledgeGuardDecisionFallsBackWhenKnowledgeMisses(t *testing.T) {
 	agent := newKnowledgeGuardAgentFixture()
+	agent.FallbackMode = enums.AIAgentFallbackModeSuggestRetry
 	decision := buildKnowledgeGuardDecision(agent, &retrievers.KnowledgeRetrieveResult{
 		KnowledgeBaseIDs: []int64{1},
-		FallbackMode:     enums.KnowledgeFallbackModeSuggestRetry,
 	})
 
 	if decision.FallbackReply != "当前知识库里没有找到足够明确的信息，你可以换个更具体的问法再试一次。" {
@@ -30,7 +30,6 @@ func TestBuildKnowledgeGuardDecisionUsesAgentFallbackMessage(t *testing.T) {
 	agent.FallbackMessage = "请联系人工客服"
 	decision := buildKnowledgeGuardDecision(agent, &retrievers.KnowledgeRetrieveResult{
 		KnowledgeBaseIDs: []int64{1},
-		FallbackMode:     enums.KnowledgeFallbackModeNoAnswer,
 	})
 
 	if decision.FallbackReply != "请联系人工客服" {
@@ -45,8 +44,7 @@ func TestBuildKnowledgeGuardDecisionInjectsStrictInstructionOnHit(t *testing.T) 
 		Hits: []rag.RetrieveResult{
 			{KnowledgeBaseID: 1, Score: 0.88},
 		},
-		AnswerMode:   enums.KnowledgeAnswerModeStrict,
-		FallbackMode: enums.KnowledgeFallbackModeNoAnswer,
+		AnswerMode: enums.KnowledgeAnswerModeStrict,
 	})
 
 	if decision.FallbackReply != "" {
@@ -65,5 +63,7 @@ func TestBuildKnowledgeGuardDecisionInjectsStrictInstructionOnHit(t *testing.T) 
 }
 
 func newKnowledgeGuardAgentFixture() models.AIAgent {
-	return models.AIAgent{}
+	return models.AIAgent{
+		FallbackMode: enums.AIAgentFallbackModeNoAnswer,
+	}
 }

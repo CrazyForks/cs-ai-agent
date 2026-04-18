@@ -215,6 +215,27 @@ func GetAIAgentHandoffModeLabel(mode AIAgentHandoffMode) string {
 	return aiAgentHandoffModeLabelMap[mode]
 }
 
+type AIAgentFallbackMode int
+
+const (
+	AIAgentFallbackModeNoAnswer     AIAgentFallbackMode = 1
+	AIAgentFallbackModeSuggestRetry AIAgentFallbackMode = 2
+)
+
+var AIAgentFallbackModeValues = []AIAgentFallbackMode{
+	AIAgentFallbackModeNoAnswer,
+	AIAgentFallbackModeSuggestRetry,
+}
+
+var aiAgentFallbackModeLabelMap = map[AIAgentFallbackMode]string{
+	AIAgentFallbackModeNoAnswer:     "直接声明无答案",
+	AIAgentFallbackModeSuggestRetry: "建议补充信息",
+}
+
+func GetAIAgentFallbackModeLabel(mode AIAgentFallbackMode) string {
+	return aiAgentFallbackModeLabelMap[mode]
+}
+
 const (
 	IMRealtimeEventConnected               = "connected"
 	IMRealtimeEventPong                    = "pong"

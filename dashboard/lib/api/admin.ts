@@ -208,6 +208,8 @@ export type AIAgent = {
   teams: { id: number; name: string }[]
   handoffMode: number
   handoffModeName: string
+  fallbackMode: number
+  fallbackModeName: string
   fallbackMessage: string
   knowledgeIds: number[]
   knowledgeBaseNames: string[]
@@ -239,6 +241,7 @@ export type CreateAIAgentPayload = {
   replyTimeoutSeconds: number
   teamIds: number[]
   handoffMode: number
+  fallbackMode: number
   fallbackMessage: string
   knowledgeIds: number[]
   skillIds: number[]
@@ -1189,8 +1192,6 @@ export type KnowledgeBase = {
   chunkOverlapTokens: number
   answerMode: number
   answerModeName: string
-  fallbackMode: number
-  fallbackModeName: string
   documentCount: number
   faqCount: number
   remark: string
@@ -1212,7 +1213,6 @@ export type CreateKnowledgeBasePayload = {
   chunkMaxTokens: number
   chunkOverlapTokens: number
   answerMode: number
-  fallbackMode: number
   remark: string
 }
 
@@ -1400,7 +1400,6 @@ export type KnowledgeSearchPayload = {
 
 export type KnowledgeAnswerPayload = KnowledgeSearchPayload & {
   answerMode?: number
-  fallbackMode?: number
 }
 
 export type CreateKnowledgeDocumentPayload = {

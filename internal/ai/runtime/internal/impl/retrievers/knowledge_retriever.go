@@ -46,7 +46,6 @@ type KnowledgeRetrieveResult struct {
 	ContextText      string
 	TopScore         float64
 	AnswerMode       enums.KnowledgeAnswerMode
-	FallbackMode     enums.KnowledgeFallbackMode
 	Trace            *rag.RetrieveTrace
 	TraceItems       []callbacks.RetrieverTraceItem
 	TraceSummary     callbacks.RetrieverTraceSummary
@@ -127,7 +126,7 @@ func (r *KnowledgeRetriever) RetrieveContextByOptions(ctx context.Context, opts 
 	ret.ContextResults = limitContextResults(ret.ContextResults, maxContextItems)
 	ret.ContextText = strings.TrimSpace(buildContextText(ret.ContextResults))
 	ret.TopScore = resolveTopScore(results)
-	ret.AnswerMode, ret.FallbackMode = resolveRuntimeAnswerSettings(knowledgeBaseIDs, results)
+	ret.AnswerMode = resolveRuntimeAnswerMode(knowledgeBaseIDs, results)
 	ret.TraceItems = buildRetrieverTraceItems(queryPreview, results, trace)
 	ret.TraceSummary = buildRetrieverTraceSummary(ret.Options, ret.Policies, ret.ContextResults, results, trace)
 	return ret, nil
@@ -188,34 +187,30 @@ func (r *KnowledgeRetriever) resolvePolicies(knowledgeBaseIDs []int64, opts Know
 	return ret
 }
 
-func resolveRuntimeAnswerSettings(knowledgeBaseIDs []int64, results []rag.RetrieveResult) (enums.KnowledgeAnswerMode, enums.KnowledgeFallbackMode) {
+func resolveRuntimeAnswerMode(knowledgeBaseIDs []int64, results []rag.RetrieveResult) enums.KnowledgeAnswerMode {
 	knowledgeBases := loadRuntimeKnowledgeBases(knowledgeBaseIDs)
 	if len(knowledgeBases) == 0 {
-		return enums.KnowledgeAnswerModeStrict, enums.KnowledgeFallbackModeNoAnswer
+		return enums.KnowledgeAnswerModeStrict
 	}
 	if len(results) > 0 {
 		if knowledgeBase, ok := knowledgeBases[results[0].KnowledgeBaseID]; ok {
-			return normalizeRuntimeAnswerSettings(knowledgeBase)
+			return normalizeRuntimeAnswerMode(knowledgeBase)
 		}
 	}
 	for _, knowledgeBaseID := range knowledgeBaseIDs {
 		if knowledgeBase, ok := knowledgeBases[knowledgeBaseID]; ok {
-			return normalizeRuntimeAnswerSettings(knowledgeBase)
+			return normalizeRuntimeAnswerMode(knowledgeBase)
 		}
 	}
-	return enums.KnowledgeAnswerModeStrict, enums.KnowledgeFallbackModeNoAnswer
+	return enums.KnowledgeAnswerModeStrict
 }
 
-func normalizeRuntimeAnswerSettings(knowledgeBase models.KnowledgeBase) (enums.KnowledgeAnswerMode, enums.KnowledgeFallbackMode) {
+func normalizeRuntimeAnswerMode(knowledgeBase models.KnowledgeBase) enums.KnowledgeAnswerMode {
 	answerMode := enums.KnowledgeAnswerMode(knowledgeBase.AnswerMode)
 	if answerMode == 0 {
 		answerMode = enums.KnowledgeAnswerModeStrict
 	}
-	fallbackMode := enums.KnowledgeFallbackMode(knowledgeBase.FallbackMode)
-	if fallbackMode == 0 {
-		fallbackMode = enums.KnowledgeFallbackModeNoAnswer
-	}
-	return answerMode, fallbackMode
+	return answerMode
 }
 
 func loadRuntimeKnowledgeBases(ids []int64) map[int64]models.KnowledgeBase {

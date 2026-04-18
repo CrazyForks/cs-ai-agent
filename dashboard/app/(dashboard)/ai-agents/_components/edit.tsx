@@ -50,6 +50,8 @@ import {
 } from "@/lib/api/admin";
 import { getEnumOptions } from "@/lib/enums";
 import {
+  AIAgentFallbackMode,
+  AIAgentFallbackModeLabels,
   AIAgentHandoffMode,
   AIAgentHandoffModeLabels,
   AIModelType,
@@ -93,6 +95,7 @@ const schema = z.object({
     .number()
     .min(0, "回复超时秒数必须是大于等于 0 的整数"),
   handoffMode: z.string().trim().min(1, "请选择转人工模式"),
+  fallbackMode: z.string().trim().min(1, "请选择兜底策略"),
   fallbackMessage: z.string().trim(),
 });
 
@@ -118,6 +121,13 @@ const handoffModeOptions = getEnumOptions(AIAgentHandoffModeLabels).map(
   }),
 );
 
+const fallbackModeOptions = getEnumOptions(AIAgentFallbackModeLabels).map(
+  (option) => ({
+    value: String(option.value),
+    label: option.label,
+  }),
+);
+
 function buildForm(item: AIAgent | null): EditForm {
   if (!item) {
     return {
@@ -129,6 +139,7 @@ function buildForm(item: AIAgent | null): EditForm {
       welcomeMessage: "",
       replyTimeoutSeconds: 180,
       handoffMode: String(AIAgentHandoffMode.WaitPool),
+      fallbackMode: String(AIAgentFallbackMode.NoAnswer),
       fallbackMessage: "",
     };
   }
@@ -141,6 +152,7 @@ function buildForm(item: AIAgent | null): EditForm {
     welcomeMessage: item.welcomeMessage || "",
     replyTimeoutSeconds: item.replyTimeoutSeconds ?? 180,
     handoffMode: String(item.handoffMode),
+    fallbackMode: String(item.fallbackMode),
     fallbackMessage: item.fallbackMessage || "",
   };
 }
@@ -163,6 +175,7 @@ function buildPayload(
     replyTimeoutSeconds: Number(form.replyTimeoutSeconds),
     teamIds,
     handoffMode: Number(form.handoffMode),
+    fallbackMode: Number(form.fallbackMode),
     fallbackMessage: form.fallbackMessage.trim(),
     knowledgeIds,
     skillIds,
@@ -737,13 +750,34 @@ function EditDialogBody({
               </FieldContent>
             </Field>
 
+            <Field data-invalid={!!errors.fallbackMode}>
+              <FieldLabel>知识库兜底策略</FieldLabel>
+              <FieldContent className="space-y-3">
+                <Controller
+                  control={control}
+                  name="fallbackMode"
+                  render={({ field }) => (
+                    <OptionCombobox
+                      value={field.value}
+                      options={fallbackModeOptions}
+                      placeholder="请选择兜底策略"
+                      searchPlaceholder="搜索兜底策略"
+                      emptyText="未找到兜底策略"
+                      onChange={field.onChange}
+                    />
+                  )}
+                />
+                <FieldError errors={[errors.fallbackMode]} />
+              </FieldContent>
+            </Field>
+
             <Field data-invalid={!!errors.fallbackMessage}>
               <FieldLabel htmlFor="ai-agent-fallback-message">
                 兜底文案
               </FieldLabel>
               <FieldContent>
                 <div className="text-xs text-muted-foreground mb-1">
-                  仅在兜底模式为“直接声明无答案”或“引导补充信息”时使用。转人工已统一改为 AI Graph Tool，不再通过兜底模式直接触发。
+                  知识库未命中或命中证据不足时，会按这里的策略和文案进行兜底回复。转人工请通过 Graph Tool 配合转人工模式实现。
                 </div>
                 <Textarea
                   id="ai-agent-fallback-message"

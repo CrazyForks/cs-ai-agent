@@ -118,7 +118,6 @@ func ensureKnowledgeBase(db *gorm.DB) (*models.KnowledgeBase, error) {
 			ChunkMaxTokens:        400,
 			ChunkOverlapTokens:    40,
 			AnswerMode:            int(enums.KnowledgeAnswerModeStrict),
-			FallbackMode:          int(enums.KnowledgeFallbackModeNoAnswer),
 			AuditFields: models.AuditFields{
 				CreatedAt:      now,
 				CreateUserID:   constants.SystemAuditUserID,
@@ -168,7 +167,6 @@ func ensureFAQKnowledgeBase(db *gorm.DB) (*models.KnowledgeBase, error) {
 			ChunkMaxTokens:        0,
 			ChunkOverlapTokens:    0,
 			AnswerMode:            int(enums.KnowledgeAnswerModeStrict),
-			FallbackMode:          int(enums.KnowledgeFallbackModeNoAnswer),
 			Remark:                "测试数据初始化自动生成",
 			AuditFields: models.AuditFields{
 				CreatedAt:      now,
@@ -197,7 +195,6 @@ func ensureFAQKnowledgeBase(db *gorm.DB) (*models.KnowledgeBase, error) {
 		"chunk_max_tokens":        0,
 		"chunk_overlap_tokens":    0,
 		"answer_mode":             int(enums.KnowledgeAnswerModeStrict),
-		"fallback_mode":           int(enums.KnowledgeFallbackModeNoAnswer),
 		"remark":                  "测试数据初始化自动生成",
 		"update_user_id":          constants.SystemAuditUserID,
 		"update_user_name":        constants.SystemAuditUserName,

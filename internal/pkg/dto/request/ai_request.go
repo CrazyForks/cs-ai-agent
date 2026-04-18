@@ -52,6 +52,7 @@ type CreateAIAgentRequest struct {
 	ReplyTimeoutSeconds int                             `json:"replyTimeoutSeconds"`
 	TeamIDs             []int64                         `json:"teamIds"`
 	HandoffMode         enums.AIAgentHandoffMode        `json:"handoffMode"`
+	FallbackMode        enums.AIAgentFallbackMode       `json:"fallbackMode"`
 	FallbackMessage     string                          `json:"fallbackMessage"`
 	KnowledgeIDs        []int64                         `json:"knowledgeIds"`
 	SkillIDs            []int64                         `json:"skillIds"`

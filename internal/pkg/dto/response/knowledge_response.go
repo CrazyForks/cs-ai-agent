@@ -22,8 +22,6 @@ type KnowledgeBaseResponse struct {
 	ChunkOverlapTokens    int          `json:"chunkOverlapTokens"`
 	AnswerMode            int          `json:"answerMode"`
 	AnswerModeName        string       `json:"answerModeName"`
-	FallbackMode          int          `json:"fallbackMode"`
-	FallbackModeName      string       `json:"fallbackModeName"`
 	DocumentCount         int64        `json:"documentCount"`
 	FAQCount              int64        `json:"faqCount"`
 	Remark                string       `json:"remark"`

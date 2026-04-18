@@ -35,8 +35,6 @@ import {
   KnowledgeChunkProviderLabels,
   KnowledgeAnswerMode,
   KnowledgeAnswerModeLabels,
-  KnowledgeFallbackMode,
-  KnowledgeFallbackModeLabels,
 } from "@/lib/generated/enums";
 import { getEnumLabel, getEnumOptions } from "@/lib/enums";
 
@@ -60,7 +58,6 @@ const emptyForm: EditForm = {
   chunkMaxTokens: "400",
   chunkOverlapTokens: "40",
   answerMode: String(KnowledgeAnswerMode.Strict),
-  fallbackMode: String(KnowledgeFallbackMode.NoAnswer),
   remark: "",
 };
 
@@ -76,7 +73,6 @@ const knowledgeBaseFormSchema = z.object({
   chunkMaxTokens: z.string().trim().min(1, "请输入最大 token 数"),
   chunkOverlapTokens: z.string().trim().min(1, "请输入重叠 token 数"),
   answerMode: z.string().trim().min(1, "请选择回答模式"),
-  fallbackMode: z.string().trim().min(1, "请选择回退模式"),
   remark: z.string().trim().max(500, "备注最多500个字符"),
 });
 
@@ -106,7 +102,6 @@ function buildForm(item: KnowledgeBase | null): EditForm {
     chunkMaxTokens: String(item.chunkMaxTokens),
     chunkOverlapTokens: String(item.chunkOverlapTokens),
     answerMode: String(item.answerMode),
-    fallbackMode: String(item.fallbackMode),
     remark: item.remark || "",
   };
 }
@@ -124,7 +119,6 @@ function buildPayload(form: EditForm): CreateKnowledgeBasePayload {
     chunkMaxTokens: Number(form.chunkMaxTokens),
     chunkOverlapTokens: Number(form.chunkOverlapTokens),
     answerMode: Number(form.answerMode),
-    fallbackMode: Number(form.fallbackMode),
     remark: form.remark.trim(),
   };
 }
@@ -475,43 +469,6 @@ function KnowledgeBaseFormDialogBody({
                   )}
                 />
                 <FieldError errors={[errors.answerMode]} />
-              </FieldContent>
-            </Field>
-            <Field data-invalid={!!errors.fallbackMode}>
-              <FieldLabel htmlFor="kb-fallback-mode">回退模式</FieldLabel>
-              <FieldContent>
-                <Controller
-                  control={control}
-                  name="fallbackMode"
-                  render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger
-                        id="kb-fallback-mode"
-                        aria-invalid={!!errors.fallbackMode}
-                      >
-                        <SelectValue placeholder="选择回退模式">
-                          {field.value
-                            ? getEnumLabel(
-                                KnowledgeFallbackModeLabels,
-                                Number(field.value),
-                              )
-                            : undefined}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {getEnumOptions(KnowledgeFallbackModeLabels).map((option) => (
-                          <SelectItem
-                            key={option.value}
-                            value={String(option.value)}
-                          >
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                <FieldError errors={[errors.fallbackMode]} />
               </FieldContent>
             </Field>
           </div>

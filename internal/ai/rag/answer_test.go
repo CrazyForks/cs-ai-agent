@@ -11,23 +11,18 @@ import (
 func TestBuildFallbackAnswer(t *testing.T) {
 	tests := []struct {
 		name     string
-		mode     enums.KnowledgeFallbackMode
+		mode     enums.AIAgentFallbackMode
 		expected string
 	}{
 		{
 			name:     "no answer",
-			mode:     enums.KnowledgeFallbackModeNoAnswer,
+			mode:     enums.AIAgentFallbackModeNoAnswer,
 			expected: "当前知识库暂无明确信息。",
 		},
 		{
 			name:     "suggest retry",
-			mode:     enums.KnowledgeFallbackModeSuggestRetry,
+			mode:     enums.AIAgentFallbackModeSuggestRetry,
 			expected: "当前知识库里没有找到足够明确的信息，你可以换个更具体的问法再试一次。",
-		},
-		{
-			name:     "transfer human",
-			mode:     enums.KnowledgeFallbackModeTransferHuman,
-			expected: "当前知识库里没有找到足够明确的信息，建议转人工进一步处理。",
 		},
 	}
 

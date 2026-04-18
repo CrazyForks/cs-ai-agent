@@ -124,6 +124,8 @@ func buildAIAgentResponse(item *models.AIAgent) response.AIAgentResponse {
 		ReplyTimeoutSeconds: item.ReplyTimeoutSeconds,
 		HandoffMode:         item.HandoffMode,
 		HandoffModeName:     enums.GetAIAgentHandoffModeLabel(item.HandoffMode),
+		FallbackMode:        item.FallbackMode,
+		FallbackModeName:    enums.GetAIAgentFallbackModeLabel(item.FallbackMode),
 		FallbackMessage:     item.FallbackMessage,
 		KnowledgeIDs:        utils.SplitInt64s(item.KnowledgeIDs),
 		SkillIDs:            utils.SplitInt64s(item.SkillIDs),

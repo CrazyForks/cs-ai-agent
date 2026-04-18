@@ -112,7 +112,6 @@ func (s *knowledgeBaseService) UpdateKnowledgeBase(req request.UpdateKnowledgeBa
 		"chunk_max_tokens":        item.ChunkMaxTokens,
 		"chunk_overlap_tokens":    item.ChunkOverlapTokens,
 		"answer_mode":             item.AnswerMode,
-		"fallback_mode":           item.FallbackMode,
 		"remark":                  item.Remark,
 		"update_user_id":          operator.UserID,
 		"update_user_name":        operator.Username,
@@ -161,7 +160,6 @@ func (s *knowledgeBaseService) buildKnowledgeBaseModel(req request.CreateKnowled
 		ChunkMaxTokens:        req.ChunkMaxTokens,
 		ChunkOverlapTokens:    req.ChunkOverlapTokens,
 		AnswerMode:            req.AnswerMode,
-		FallbackMode:          req.FallbackMode,
 		Remark:                req.Remark,
 	}
 	if item.DefaultTopK == 0 {
@@ -207,9 +205,6 @@ func (s *knowledgeBaseService) buildKnowledgeBaseModel(req request.CreateKnowled
 	}
 	if item.AnswerMode == 0 {
 		item.AnswerMode = 1
-	}
-	if item.FallbackMode == 0 {
-		item.FallbackMode = 1
 	}
 	return item, nil
 }
