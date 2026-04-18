@@ -32,6 +32,12 @@ import {
 } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  fetchAIAgent,
+  fetchAIConfigsAll,
+  fetchAgentTeamsAll,
+  fetchKnowledgeBasesAll,
+  fetchMCPCatalog,
+  fetchSkillDefinitionsAll,
   type AIAgent,
   type AIConfig,
   type AdminAgentTeam,
@@ -40,13 +46,8 @@ import {
   type MCPToolCatalogItem,
   type MCPToolSourceType,
   type SkillDefinition,
-  fetchAIAgent,
-  fetchAIConfigsAll,
-  fetchAgentTeamsAll,
-  fetchMCPCatalog,
-  fetchKnowledgeBasesAll,
-  fetchSkillDefinitionsAll,
 } from "@/lib/api/admin";
+import { getEnumOptions } from "@/lib/enums";
 import {
   AIAgentHandoffMode,
   AIAgentHandoffModeLabels,
@@ -55,8 +56,6 @@ import {
   IMConversationServiceModeLabels,
   Status,
 } from "@/lib/generated/enums";
-import { getEnumOptions } from "@/lib/enums";
-import { FieldDescription } from "@base-ui/react";
 
 type DirectToolItem = CreateAIAgentPayload["directTools"][number];
 
@@ -731,7 +730,7 @@ function EditDialogBody({
             </Field>
 
             <Field data-invalid={!!errors.remark}>
-              <FieldLabel htmlFor="ai-agent-remark">备注</FieldLabel>
+              <FieldLabel htmlFor="ai-agent-remark">内部备注</FieldLabel>
               <FieldContent>
                 <Textarea id="ai-agent-remark" rows={3} {...register("remark")} />
                 <FieldError errors={[errors.remark]} />
@@ -807,7 +806,7 @@ function EditDialogBody({
                 <div className="mb-4 text-xs text-muted-foreground">
                   当前转人工模式：{selectedHandoffModeLabel}
                   {handoffMode ===
-                  String(AIAgentHandoffMode.DefaultTeamPool)
+                    String(AIAgentHandoffMode.DefaultTeamPool)
                     ? "。该模式要求至少配置一个客服组。"
                     : "。仅在涉及转人工时生效。"}
                 </div>
@@ -872,19 +871,19 @@ function EditDialogBody({
               </FieldContent>
             </Field>
 
-              <Field data-invalid={!!errors.fallbackMessage}>
-                <FieldLabel htmlFor="ai-agent-fallback-message">
-                  兜底文案
-                </FieldLabel>
-                <FieldContent>
-                  <div className="text-xs text-muted-foreground mb-1">
-                    仅在兜底模式为“直接声明无答案”或“引导补充信息”时使用。转人工已统一改为 AI Graph Tool，不再通过兜底模式直接触发。
-                  </div>
-                  <Textarea
-                    id="ai-agent-fallback-message"
-                    rows={5}
-                    {...register("fallbackMessage")}
-                  />
+            <Field data-invalid={!!errors.fallbackMessage}>
+              <FieldLabel htmlFor="ai-agent-fallback-message">
+                兜底文案
+              </FieldLabel>
+              <FieldContent>
+                <div className="text-xs text-muted-foreground mb-1">
+                  仅在兜底模式为“直接声明无答案”或“引导补充信息”时使用。转人工已统一改为 AI Graph Tool，不再通过兜底模式直接触发。
+                </div>
+                <Textarea
+                  id="ai-agent-fallback-message"
+                  rows={5}
+                  {...register("fallbackMessage")}
+                />
                 <FieldError errors={[errors.fallbackMessage]} />
               </FieldContent>
             </Field>
@@ -1234,14 +1233,14 @@ function SectionCard({
   children,
 }: {
   title: string;
-  description: string;
+  description?: string;
   children: ReactNode;
 }) {
   return (
     <section className="rounded-lg border bg-card p-5">
       <div className="mb-3">
         <div className="text-base font-semibold">{title}</div>
-        <div className="mt-1 text-sm text-muted-foreground">{description}</div>
+        {description && <div className="mt-1 text-sm text-muted-foreground">{description}</div>}
       </div>
       <div className="space-y-4">{children}</div>
     </section>
