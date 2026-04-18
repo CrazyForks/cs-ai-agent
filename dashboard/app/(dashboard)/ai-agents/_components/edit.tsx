@@ -31,6 +31,12 @@ import {
   PopoverDescription,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
   fetchAIAgent,
@@ -883,13 +889,18 @@ function EditDialogBody({
 
           <SectionCard
             title="能力配置"
-            description="知识库用于 RAG，Skills 用于业务流程，Direct Tools 用于外部 MCP 查询，Graph Tools 用于内置业务流程。"
           >
-            <div className="space-y-4">
-              <div className="rounded-xl border bg-muted/10 p-4">
-                <div className="mb-1 text-sm font-medium">知识库</div>
-                <div className="mb-4 text-xs text-muted-foreground">
-                  至少选择一个知识库，可拖动调整优先级。
+            <Tabs defaultValue="knowledge" className="gap-4">
+              <TabsList className="w-fit">
+                <TabsTrigger value="knowledge">知识库</TabsTrigger>
+                <TabsTrigger value="skills">Skills</TabsTrigger>
+                <TabsTrigger value="direct-tools">Direct Tools</TabsTrigger>
+                <TabsTrigger value="graph-tools">Graph Tools</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="knowledge" className="space-y-4">
+                <div className="text-xs text-muted-foreground">
+                  至少选择一个知识库，可调整知识库优先级。
                 </div>
                 <Field data-invalid={selectedKnowledgeIds.length === 0}>
                   <FieldContent className="space-y-3">
@@ -921,10 +932,7 @@ function EditDialogBody({
                     ) : (
                       <div className="space-y-2 rounded-md border p-3">
                         {selectedKnowledgeOptions.map((option, index) => (
-                          <div
-                            key={option.value}
-                            className="flex items-center gap-2"
-                          >
+                          <div key={option.value} className="flex items-center gap-2">
                             <Badge
                               variant="secondary"
                               className="min-w-8 justify-center"
@@ -972,7 +980,7 @@ function EditDialogBody({
                   </FieldContent>
                 </Field>
 
-                <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-1">
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-1">
                   <Field data-invalid={!!errors.fallbackMode}>
                     <FieldLabel>兜底策略</FieldLabel>
                     <FieldContent className="space-y-3">
@@ -1011,11 +1019,10 @@ function EditDialogBody({
                     </FieldContent>
                   </Field>
                 </div>
-              </div>
+              </TabsContent>
 
-              <div className="rounded-xl border bg-muted/10 p-4">
-                <div className="mb-1 text-sm font-medium">Skills</div>
-                <div className="mb-4 text-xs text-muted-foreground">
+              <TabsContent value="skills" className="space-y-4">
+                <div className="text-xs text-muted-foreground">
                   用于固定业务流程和多步任务编排。
                 </div>
                 <Field>
@@ -1072,11 +1079,10 @@ function EditDialogBody({
                     </div>
                   </FieldContent>
                 </Field>
-              </div>
+              </TabsContent>
 
-              <div className="rounded-xl border bg-muted/10 p-4">
-                <div className="mb-1 text-sm font-medium">Direct Tools</div>
-                <div className="mb-4 text-xs text-muted-foreground">
+              <TabsContent value="direct-tools" className="space-y-4">
+                <div className="text-xs text-muted-foreground">
                   仅用于外部 MCP 工具的低风险、原子化查询。
                 </div>
                 <Field>
@@ -1108,9 +1114,7 @@ function EditDialogBody({
                       <Button
                         type="button"
                         variant="outline"
-                        disabled={
-                          !directToolGroupToAdd || !directToolToAdd
-                        }
+                        disabled={!directToolGroupToAdd || !directToolToAdd}
                         onClick={() => handleAddDirectTool(directToolToAdd)}
                       >
                         <PlusIcon />
@@ -1124,10 +1128,7 @@ function EditDialogBody({
                         </span>
                       ) : (
                         directToolsGrouped.map(([groupLabel, tools]) => (
-                          <div
-                            key={groupLabel}
-                            className="rounded-md border p-3"
-                          >
+                          <div key={groupLabel} className="rounded-md border p-3">
                             <div className="mb-2 text-xs font-medium text-muted-foreground">
                               {groupLabel}
                             </div>
@@ -1169,11 +1170,10 @@ function EditDialogBody({
                     </div>
                   </FieldContent>
                 </Field>
-              </div>
+              </TabsContent>
 
-              <div className="rounded-xl border bg-muted/10 p-4">
-                <div className="mb-1 text-sm font-medium">Graph Tools</div>
-                <div className="mb-4 text-xs text-muted-foreground">
+              <TabsContent value="graph-tools" className="space-y-4">
+                <div className="text-xs text-muted-foreground">
                   用于建单、转人工等系统内置流程，不再混放到 Direct Tools 中。
                 </div>
                 <Field>
@@ -1236,8 +1236,8 @@ function EditDialogBody({
                     </div>
                   </FieldContent>
                 </Field>
-              </div>
-            </div>
+              </TabsContent>
+            </Tabs>
           </SectionCard>
         </form>
       )}
