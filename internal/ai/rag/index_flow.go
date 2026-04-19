@@ -10,37 +10,37 @@ import (
 	"github.com/mlogclub/simple/sqls"
 )
 
-func (s *index) loadDocumentByID(documentID int64) (models.KnowledgeDocument, error) {
+func (s *index) loadDocumentByID(documentID int64) (*models.KnowledgeDocument, error) {
 	document := repositories.KnowledgeDocumentRepository.Get(sqls.DB(), documentID)
 	if document == nil {
-		return models.KnowledgeDocument{}, fmt.Errorf("document not found: %d", documentID)
+		return nil, fmt.Errorf("document not found: %d", documentID)
 	}
-	return *document, nil
+	return document, nil
 }
 
-func (s *index) loadFAQByID(faqID int64) (models.KnowledgeFAQ, error) {
+func (s *index) loadFAQByID(faqID int64) (*models.KnowledgeFAQ, error) {
 	faq := repositories.KnowledgeFAQRepository.Get(sqls.DB(), faqID)
 	if faq == nil {
-		return models.KnowledgeFAQ{}, fmt.Errorf("faq not found: %d", faqID)
+		return nil, fmt.Errorf("faq not found: %d", faqID)
 	}
-	return *faq, nil
+	return faq, nil
 }
 
-func (s *index) loadDocumentKnowledgeBase(document models.KnowledgeDocument) (models.KnowledgeBase, error) {
+func (s *index) loadDocumentKnowledgeBase(document models.KnowledgeDocument) (*models.KnowledgeBase, error) {
 	knowledgeBase := repositories.KnowledgeBaseRepository.Get(sqls.DB(), document.KnowledgeBaseID)
 	if knowledgeBase == nil {
-		return models.KnowledgeBase{}, fmt.Errorf("knowledge base not found: %d", document.KnowledgeBaseID)
+		return nil, fmt.Errorf("knowledge base not found: %d", document.KnowledgeBaseID)
 	}
-	return *knowledgeBase, nil
+	return knowledgeBase, nil
 }
 
-func (s *index) loadFAQKnowledgeBase(faq models.KnowledgeFAQ) (models.KnowledgeBase, error) {
+func (s *index) loadFAQKnowledgeBase(faq models.KnowledgeFAQ) (*models.KnowledgeBase, error) {
 	knowledgeBase := repositories.KnowledgeBaseRepository.Get(sqls.DB(), faq.KnowledgeBaseID)
 	if knowledgeBase == nil {
-		return models.KnowledgeBase{}, fmt.Errorf("knowledge base not found: %d", faq.KnowledgeBaseID)
+		return nil, fmt.Errorf("knowledge base not found: %d", faq.KnowledgeBaseID)
 	}
 	if knowledgeBase.KnowledgeType != string(enums.KnowledgeBaseTypeFAQ) {
-		return models.KnowledgeBase{}, fmt.Errorf("knowledge base %d is not faq type", knowledgeBase.ID)
+		return nil, fmt.Errorf("knowledge base %d is not faq type", knowledgeBase.ID)
 	}
-	return *knowledgeBase, nil
+	return knowledgeBase, nil
 }

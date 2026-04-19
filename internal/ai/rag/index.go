@@ -51,7 +51,7 @@ func (s *index) IndexDocumentByID(ctx context.Context, documentID int64) error {
 	if err != nil {
 		return err
 	}
-	return s.IndexDocument(ctx, document)
+	return s.IndexDocument(ctx, *document)
 }
 
 func (s *index) IndexDocument(ctx context.Context, document models.KnowledgeDocument) error {
@@ -72,7 +72,7 @@ func (s *index) IndexDocument(ctx context.Context, document models.KnowledgeDocu
 	if err != nil {
 		return fail(err)
 	}
-	vectors, chunkCount, err := s.runDocumentIndex(ctx, document, knowledgeBase)
+	vectors, chunkCount, err := s.runDocumentIndex(ctx, document, *knowledgeBase)
 	if err != nil {
 		return fail(err)
 	}
@@ -105,11 +105,11 @@ func (s *index) IndexFAQByID(ctx context.Context, faqID int64) error {
 		}
 		return err
 	}
-	knowledgeBase, err := s.loadFAQKnowledgeBase(faq)
+	knowledgeBase, err := s.loadFAQKnowledgeBase(*faq)
 	if err != nil {
 		return fail(err)
 	}
-	if err := s.runFAQIndex(ctx, faq, knowledgeBase); err != nil {
+	if err := s.runFAQIndex(ctx, *faq, *knowledgeBase); err != nil {
 		return fail(err)
 	}
 	if err := s.markFAQIndexIndexed(faq.ID); err != nil {
