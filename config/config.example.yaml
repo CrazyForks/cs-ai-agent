@@ -52,8 +52,8 @@ mcp:
       headers: {}
 
 wxWork:
-  # 是否启用企业微信登录能力。
-  # false 时不会初始化企业微信 SDK，/api/auth/wxwork/* 接口不可用。
+  # 是否启用企业微信能力。
+  # false 时不会初始化企业微信 SDK，登录、客服回调、应用通知都不可用。
   enabled: false
   # 企业微信公司 ID。
   # 例如：wwxxxxxxxxxxxxxxxx，来自企业微信管理后台。
@@ -82,3 +82,19 @@ wxWork:
   # 企业微信消息加解密 EncodingAESKey。
   # 当前登录流程未使用，保留给消息回调等场景。
   encodingAESKey: ""
+
+  notify:
+    # 是否启用企业微信应用消息通知。
+    enabled: false
+    # 默认接收通知的成员ID列表；如业务目标用户已绑定企业微信身份，会优先发给目标用户。
+    toUsers: []
+    # 默认接收通知的部门ID列表。
+    toParties: []
+    # 默认接收通知的标签ID列表。
+    toTags: []
+    # 是否发送保密消息。
+    safe: false
+    # 是否开启重复消息检查。
+    enableDuplicateCheck: true
+    # 重复消息检查时间窗口，单位秒。
+    duplicateCheckInterval: 1800

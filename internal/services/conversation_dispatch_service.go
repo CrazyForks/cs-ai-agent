@@ -121,6 +121,7 @@ func (s *conversationDispatchService) DispatchPendingConversation(conversation *
 				"requested_team_ids", report.RequestedTeamIDs,
 			)
 			WsService.PublishConversationChanged(dispatched, enums.IMRealtimeEventConversationAssigned)
+			WxWorkNotifyService.NotifyConversationAssigned(dispatched.ID, dispatched.CurrentAssigneeID, "自动分配")
 			return dispatched, nil
 		}
 	}

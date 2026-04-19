@@ -199,6 +199,7 @@ func (s *conversationService) AssignConversation(req request.AssignConversationR
 	if conversation := s.Get(req.ConversationID); conversation != nil {
 		WsService.PublishConversationChanged(conversation, enums.IMRealtimeEventConversationAssigned)
 	}
+	WxWorkNotifyService.NotifyConversationAssigned(req.ConversationID, req.AssigneeID, req.Reason)
 	return nil
 }
 
@@ -285,6 +286,7 @@ func (s *conversationService) TransferConversation(conversationID, toUserID int6
 	if conversation := s.Get(conversationID); conversation != nil {
 		WsService.PublishConversationChanged(conversation, enums.IMRealtimeEventConversationTransferred)
 	}
+	WxWorkNotifyService.NotifyConversationAssigned(conversationID, toUserID, reason)
 	return nil
 }
 

@@ -831,7 +831,9 @@ func (s *ticketService) CreateTicket(req request.CreateTicketRequest, operator *
 	}); err != nil {
 		return nil, err
 	}
-	return s.Get(ticket.ID), nil
+	current := s.Get(ticket.ID)
+	WxWorkNotifyService.NotifyTicketCreated(ticket.ID)
+	return current, nil
 }
 
 func (s *ticketService) CreateFromConversation(req request.CreateTicketFromConversationRequest, operator *dto.AuthPrincipal) (*models.Ticket, error) {
@@ -981,9 +983,13 @@ func (s *ticketService) LinkTicketCustomer(ticketID, customerID int64, operator 
 }
 
 func (s *ticketService) AssignTicket(req request.AssignTicketRequest, operator *dto.AuthPrincipal) error {
-	return sqls.WithTransaction(func(ctx *sqls.TxContext) error {
+	if err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
 		return s.assignTicketTx(ctx.Tx, req, operator)
-	})
+	}); err != nil {
+		return err
+	}
+	WxWorkNotifyService.NotifyTicketAssigned(req.TicketID, req.ToUserID, req.Reason)
+	return nil
 }
 
 func (s *ticketService) assignTicketTx(tx *gorm.DB, req request.AssignTicketRequest, operator *dto.AuthPrincipal) error {

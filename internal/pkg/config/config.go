@@ -19,6 +19,16 @@ type Config struct {
 	WxWork   WxWorkConfig   `yaml:"wxWork"`
 }
 
+type WxWorkNotifyConfig struct {
+	Enabled                bool     `yaml:"enabled"`
+	ToUsers                []string `yaml:"toUsers"`
+	ToParties              []string `yaml:"toParties"`
+	ToTags                 []string `yaml:"toTags"`
+	Safe                   bool     `yaml:"safe"`
+	EnableDuplicateCheck   bool     `yaml:"enableDuplicateCheck"`
+	DuplicateCheckInterval int      `yaml:"duplicateCheckInterval"`
+}
+
 type ServerConfig struct {
 	Port int `yaml:"port"`
 }
@@ -140,6 +150,8 @@ type WxWorkConfig struct {
 	// EncodingAESKey 为企业微信消息加解密密钥。
 	// 当前登录流程未使用，保留给消息回调等场景。
 	EncodingAESKey string `yaml:"encodingAESKey"`
+	// Notify 为企业微信应用消息通知配置。
+	Notify WxWorkNotifyConfig `yaml:"notify"`
 }
 
 func Load(path string) (*Config, error) {
