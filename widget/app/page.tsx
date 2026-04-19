@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 
-import type { WidgetHostConfig } from "@/lib/widget/config";
 import { generateUUID } from "@/lib/utils";
+import type { WidgetHostConfig } from "@/lib/widget/config";
 
 const STORAGE_KEY = "cs-agent-widget-test-config";
+const GITHUB_URL = "https://github.com/huabeitech/cs-ai-agent";
+const GITEE_URL = "https://gitee.com/huabeitech/cs-ai-agent";
+const OFFICIAL_SITE_URL = "https://aiagent.huabei.pro";
 
 type TestConfig = WidgetHostConfig;
 
@@ -165,168 +168,378 @@ function WidgetTestPageInner() {
 <script async src="${sdkUrl}"></script>`;
 
   return (
-    <main className="min-h-screen px-4 py-6 md:px-6 md:py-7">
-      <div className="mx-auto grid w-full max-w-6xl gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-        <section className="rounded-lg border border-white/70 bg-white/80 p-4 backdrop-blur md:p-5">
-          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-            <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600">
-              {status}
+    <main className="h-screen overflow-y-auto overflow-x-hidden scroll-smooth">
+      <div className="relative isolate">
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.18),transparent_45%),radial-gradient(circle_at_20%_20%,rgba(14,165,233,0.10),transparent_30%)]" />
+
+        <header className="sticky top-0 z-20 border-b border-white/60 bg-white/75 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-6">
+            <a
+              href={OFFICIAL_SITE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-3 text-slate-950"
+            >
+              <img
+                src="/images/logo.png"
+                alt="贝壳 AI 客服"
+                className="h-11 w-11 rounded-2xl object-contain shadow-[0_14px_30px_rgba(15,23,42,0.18)]"
+              />
+              <span>
+                <span className="block text-base font-semibold">
+                  贝壳 AI 客服
+                </span>
+              </span>
+            </a>
+
+            <nav className="hidden items-center gap-7 text-sm text-slate-600 md:flex">
+              <a
+                href={GITHUB_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition hover:text-slate-950"
+              >
+                GitHub
+              </a>
+              <a
+                href={GITEE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition hover:text-slate-950"
+              >
+                Gitee
+              </a>
+              <a
+                href={OFFICIAL_SITE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition hover:text-slate-950"
+              >
+                官网
+              </a>
+            </nav>
+
+            <a
+              href={OFFICIAL_SITE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-full bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+            >
+              访问官网
+            </a>
+          </div>
+        </header>
+
+        <section id="playground" className="px-4 pb-8 pt-8 md:px-6 md:pb-10 md:pt-10">
+          <div className="mx-auto grid w-full max-w-6xl gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+            <section className="rounded-[28px] border border-white/70 bg-white/82 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur md:p-6">
+              <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="text-xs font-semibold tracking-[0.16em] text-sky-700 uppercase">
+                    Widget Playground
+                  </div>
+                  <div className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-slate-950 md:text-3xl">
+                    插件配置
+                  </div>
+                  <div className="mt-1 text-sm text-slate-500">
+                    这里是首页主体。先填渠道和展示参数，再直接挂载 Widget 验证效果。
+                  </div>
+                </div>
+                <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600">
+                  {status}
+                </div>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <label className="block">
+                  <div className="mb-1.5 text-xs font-medium text-slate-700">
+                    channelId
+                  </div>
+                  <input
+                    value={currentConfig.channelId}
+                    onChange={(event) => updateField("channelId", event.target.value)}
+                    placeholder="请输入后台渠道 channelId"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-400"
+                  />
+                </label>
+                <label className="block">
+                  <div className="mb-1.5 text-xs font-medium text-slate-700">
+                    baseUrl
+                  </div>
+                  <input
+                    value={currentConfig.baseUrl}
+                    onChange={(event) => updateField("baseUrl", event.target.value)}
+                    placeholder="Widget 地址，例如 http://localhost:3001"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-400"
+                  />
+                </label>
+                <label className="block">
+                  <div className="mb-1.5 text-xs font-medium text-slate-700">
+                    apiBaseUrl
+                  </div>
+                  <input
+                    value={currentConfig.apiBaseUrl ?? ""}
+                    onChange={(event) =>
+                      updateField("apiBaseUrl", event.target.value)
+                    }
+                    placeholder="后端地址，例如 http://localhost:8080"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-400"
+                  />
+                </label>
+                <label className="block">
+                  <div className="mb-1.5 text-xs font-medium text-slate-700">
+                    标题
+                  </div>
+                  <input
+                    value={currentConfig.title ?? ""}
+                    onChange={(event) => updateField("title", event.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-400"
+                  />
+                </label>
+                <label className="block">
+                  <div className="mb-1.5 text-xs font-medium text-slate-700">
+                    副标题
+                  </div>
+                  <input
+                    value={currentConfig.subtitle ?? ""}
+                    onChange={(event) =>
+                      updateField("subtitle", event.target.value)
+                    }
+                    placeholder="例如：通常几分钟内回复，支持连续会话记录"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-400"
+                  />
+                </label>
+                <label className="block">
+                  <div className="mb-1.5 text-xs font-medium text-slate-700">
+                    主题色
+                  </div>
+                  <input
+                    value={currentConfig.themeColor ?? ""}
+                    onChange={(event) =>
+                      updateField("themeColor", event.target.value)
+                    }
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-400"
+                  />
+                </label>
+                <label className="block">
+                  <div className="mb-1.5 text-xs font-medium text-slate-700">
+                    宽度
+                  </div>
+                  <input
+                    value={currentConfig.width ?? ""}
+                    onChange={(event) =>
+                      updateField("width", event.target.value)
+                    }
+                    placeholder="例如 680px、50vw"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-400"
+                  />
+                </label>
+                <label className="block">
+                  <div className="mb-1.5 text-xs font-medium text-slate-700">
+                    会话主题
+                  </div>
+                  <input
+                    value={currentConfig.subject ?? ""}
+                    onChange={(event) =>
+                      updateField("subject", event.target.value)
+                    }
+                    placeholder="可选，例如：张三的咨询、订单#12345"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-400"
+                  />
+                </label>
+                <label className="block">
+                  <div className="mb-1.5 text-xs font-medium text-slate-700">
+                    悬浮位置
+                  </div>
+                  <select
+                    value={currentConfig.position ?? "right"}
+                    onChange={(event) =>
+                      updateField(
+                        "position",
+                        event.target.value as "left" | "right",
+                      )
+                    }
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-400"
+                  >
+                    <option value="right">右侧</option>
+                    <option value="left">左侧</option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleApply}
+                  className="rounded-full bg-(--primary) px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-92"
+                >
+                  挂载 Widget
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextConfig = {
+                      ...currentConfig,
+                      subject: generateRandomSubject(),
+                    };
+                    setConfig(nextConfig);
+                    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextConfig));
+                    window.localStorage.removeItem("cs-agent:external-id");
+                    removeMountedWidget();
+                    setStatus("已重置");
+                  }}
+                  className="rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300"
+                >
+                  重置
+                </button>
+              </div>
+            </section>
+
+            <aside className="space-y-4">
+              <section className="rounded-[28px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(241,245,249,0.88))] p-5 shadow-[0_24px_80px_rgba(15,23,42,0.06)] backdrop-blur md:p-6">
+                <div className="text-xs font-semibold tracking-[0.16em] text-sky-700 uppercase">
+                  简单介绍
+                </div>
+                <div className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-slate-950">
+                  AI 优先接待，人工无缝协同
+                </div>
+                <p className="mt-3 text-sm leading-7 text-slate-600">
+                  贝壳 AI 客服不是单纯的聊天插件，它背后对应的是一套客服系统：
+                  在线会话承接用户咨询，AI Agent 优先处理常见问题，必要时可以带着上下文转人工，并继续衔接知识库检索和工单闭环。
+                </p>
+                <div className="mt-5 grid gap-3">
+                  <div className="rounded-2xl border border-slate-200 bg-white/90 p-4">
+                    <div className="text-sm font-semibold text-slate-950">
+                      会话入口
+                    </div>
+                    <div className="mt-1 text-sm leading-6 text-slate-600">
+                      通过 Widget 接入业务页面，承接访客咨询与消息收发。
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white/90 p-4">
+                    <div className="text-sm font-semibold text-slate-950">
+                      AI + 知识库
+                    </div>
+                    <div className="mt-1 text-sm leading-6 text-slate-600">
+                      利用知识库检索与 Agent 运行时先处理重复问题和标准流程。
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white/90 p-4">
+                    <div className="text-sm font-semibold text-slate-950">
+                      人工与工单
+                    </div>
+                    <div className="mt-1 text-sm leading-6 text-slate-600">
+                      AI 无法继续时平滑转人工，复杂问题还能进一步转入工单流程。
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section
+                id="integration"
+                className="rounded-[28px] border border-slate-200 bg-slate-50/95 p-5 text-slate-800 shadow-[0_24px_80px_rgba(15,23,42,0.06)] md:p-6"
+              >
+                <div className="text-sm font-semibold text-slate-950">
+                  宿主页面接入脚本
+                </div>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  这段脚本就是外部业务系统接入时需要放到宿主页面里的最小配置。
+                </p>
+                <pre className="mt-4 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-4 text-xs leading-5 text-slate-700">
+                  <code>{snippet}</code>
+                </pre>
+              </section>
+            </aside>
+          </div>
+        </section>
+
+        <section id="overview" className="px-4 py-2 md:px-6 md:py-4">
+          <div className="mx-auto max-w-6xl">
+            <div className="rounded-[32px] border border-white/70 bg-white/78 p-5 shadow-[0_20px_70px_rgba(15,23,42,0.05)] backdrop-blur md:p-6">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                <div className="max-w-2xl">
+                  <div className="text-xs font-semibold tracking-[0.16em] text-sky-700 uppercase">
+                    产品说明
+                  </div>
+                  <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-slate-950">
+                    不是一个聊天壳子，而是客服系统的前端入口。
+                  </h2>
+                  <p className="mt-3 text-sm leading-7 text-slate-600">
+                    这个页面主要用于配置和演示客服插件，但插件本身承接的是完整客服链路中的前端接入层。
+                    它把用户消息带入统一会话，再由后端串联 AI 回复、知识库检索、人工接管和后续工单处理。
+                  </p>
+                </div>
+
+                <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                    <div className="text-xs text-slate-500">接待模式</div>
+                    <div className="mt-2 text-sm font-semibold text-slate-950">
+                      AI + 人工协同
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                    <div className="text-xs text-slate-500">回答方式</div>
+                    <div className="mt-2 text-sm font-semibold text-slate-950">
+                      知识库 RAG 驱动
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                    <div className="text-xs text-slate-500">后续处理</div>
+                    <div className="mt-2 text-sm font-semibold text-slate-950">
+                      支持工单闭环
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
+        </section>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            <label className="block">
-              <div className="mb-1.5 text-xs font-medium text-slate-700">
-                channelId
-              </div>
-              <input
-                value={currentConfig.channelId}
-                onChange={(event) => updateField("channelId", event.target.value)}
-                placeholder="请输入后台渠道 channelId"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-400"
+        <footer className="border-t border-white/60 bg-white/70 px-4 py-8 backdrop-blur-xl md:px-6">
+          <div className="mx-auto flex max-w-6xl flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <div className="flex items-start gap-3">
+              <img
+                src="/images/logo.png"
+                alt="贝壳 AI 客服"
+                className="mt-0.5 h-10 w-10 rounded-2xl object-contain"
               />
-            </label>
-            <label className="block">
-              <div className="mb-1.5 text-xs font-medium text-slate-700">
-                baseUrl
+              <div>
+                <div className="text-lg font-semibold text-slate-950">
+                  贝壳 AI 客服插件
+                </div>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                  首页以插件配置和接入为主，补充最少必要的产品说明，便于演示、联调和对外交付。
+                </p>
               </div>
-              <input
-                value={currentConfig.baseUrl}
-                onChange={(event) => updateField("baseUrl", event.target.value)}
-                placeholder="Widget 地址，例如 http://localhost:3001"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-400"
-              />
-            </label>
-            <label className="block">
-              <div className="mb-1.5 text-xs font-medium text-slate-700">
-                apiBaseUrl
-              </div>
-              <input
-                value={currentConfig.apiBaseUrl ?? ""}
-                onChange={(event) =>
-                  updateField("apiBaseUrl", event.target.value)
-                }
-                placeholder="后端地址，例如 http://localhost:8080"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-400"
-              />
-            </label>
-            <label className="block">
-              <div className="mb-1.5 text-xs font-medium text-slate-700">
-                标题
-              </div>
-              <input
-                value={currentConfig.title ?? ""}
-                onChange={(event) => updateField("title", event.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-400"
-              />
-            </label>
-            <label className="block">
-              <div className="mb-1.5 text-xs font-medium text-slate-700">
-                副标题
-              </div>
-              <input
-                value={currentConfig.subtitle ?? ""}
-                onChange={(event) =>
-                  updateField("subtitle", event.target.value)
-                }
-                placeholder="例如：通常几分钟内回复，支持连续会话记录"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-400"
-              />
-            </label>
-            <label className="block">
-              <div className="mb-1.5 text-xs font-medium text-slate-700">
-                主题色
-              </div>
-              <input
-                value={currentConfig.themeColor ?? ""}
-                onChange={(event) =>
-                  updateField("themeColor", event.target.value)
-                }
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-400"
-              />
-            </label>
-            <label className="block">
-              <div className="mb-1.5 text-xs font-medium text-slate-700">
-                宽度
-              </div>
-              <input
-                value={currentConfig.width ?? ""}
-                onChange={(event) =>
-                  updateField("width", event.target.value)
-                }
-                placeholder="例如 680px、50vw"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-400"
-              />
-            </label>
-            <label className="block">
-              <div className="mb-1.5 text-xs font-medium text-slate-700">
-                会话主题
-              </div>
-              <input
-                value={currentConfig.subject ?? ""}
-                onChange={(event) =>
-                  updateField("subject", event.target.value)
-                }
-                placeholder="可选，例如：张三的咨询、订单#12345"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-400"
-              />
-            </label>
-            <label className="block">
-              <div className="mb-1.5 text-xs font-medium text-slate-700">
-                悬浮位置
-              </div>
-              <select
-                value={currentConfig.position ?? "right"}
-                onChange={(event) =>
-                  updateField(
-                    "position",
-                    event.target.value as "left" | "right",
-                  )
-                }
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-400"
+            </div>
+            <div className="flex flex-wrap gap-6 text-sm text-slate-500">
+              <a
+                href={GITHUB_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition hover:text-slate-900"
               >
-                <option value="right">右侧</option>
-                <option value="left">左侧</option>
-              </select>
-            </label>
+                GitHub
+              </a>
+              <a
+                href={GITEE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition hover:text-slate-900"
+              >
+                Gitee
+              </a>
+              <a
+                href={OFFICIAL_SITE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition hover:text-slate-900"
+              >
+                官网
+              </a>
+            </div>
           </div>
-
-          <div className="mt-3 flex flex-wrap gap-2.5">
-            <button
-              type="button"
-              onClick={handleApply}
-              className="rounded-md bg-(--primary) px-4 py-2 text-sm text-white transition hover:opacity-92"
-            >
-              挂载 Widget
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const nextConfig = {
-                  ...currentConfig,
-                  subject: generateRandomSubject(),
-                };
-                setConfig(nextConfig);
-                window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextConfig));
-                window.localStorage.removeItem("cs-agent:external-id");
-                removeMountedWidget();
-                setStatus("已重置");
-              }}
-              className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:border-slate-300"
-            >
-              重置
-            </button>
-          </div>
-        </section>
-
-        <section className="rounded-lg border border-slate-200 bg-slate-50/95 p-4 text-slate-800 md:p-5">
-          <p className="mt-1 text-sm leading-6 text-slate-600">
-            这段脚本就是外部业务系统接入时需要放到宿主页面里的最小配置。
-          </p>
-          <pre className="mt-3 overflow-x-auto rounded-md border border-slate-200 bg-white p-3 text-xs leading-5 text-slate-700">
-            <code>{snippet}</code>
-          </pre>
-        </section>
+        </footer>
       </div>
     </main>
   );
