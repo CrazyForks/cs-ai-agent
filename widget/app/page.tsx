@@ -232,12 +232,9 @@ function WidgetTestPageInner() {
 
         <section id="playground" className="px-4 pb-8 pt-8 md:px-6 md:pb-10 md:pt-10">
           <div className="mx-auto grid w-full max-w-6xl gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-            <section className="rounded-[28px] border border-white/70 bg-white/82 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur md:p-6">
+            <section className="rounded-lg border border-white/70 bg-white/82 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur md:p-6">
               <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <div className="text-xs font-semibold tracking-[0.16em] text-sky-700 uppercase">
-                    Widget Playground
-                  </div>
                   <div className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-slate-950 md:text-3xl">
                     插件配置
                   </div>
@@ -245,9 +242,9 @@ function WidgetTestPageInner() {
                     这里是首页主体。先填渠道和展示参数，再直接挂载 Widget 验证效果。
                   </div>
                 </div>
-                <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600">
+                {/* <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600">
                   {status}
-                </div>
+                </div> */}
               </div>
 
               <div className="grid gap-3 md:grid-cols-2">
@@ -395,123 +392,26 @@ function WidgetTestPageInner() {
               </div>
             </section>
 
-            <aside className="space-y-4">
-              <section className="rounded-[28px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(241,245,249,0.88))] p-5 shadow-[0_24px_80px_rgba(15,23,42,0.06)] backdrop-blur md:p-6">
-                <div className="text-xs font-semibold tracking-[0.16em] text-sky-700 uppercase">
-                  简单介绍
-                </div>
-                <div className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-slate-950">
-                  AI 优先接待，人工无缝协同
-                </div>
-                <p className="mt-3 text-sm leading-7 text-slate-600">
-                  贝壳 AI 客服不是单纯的聊天插件，它背后对应的是一套客服系统：
-                  在线会话承接用户咨询，AI Agent 优先处理常见问题，必要时可以带着上下文转人工，并继续衔接知识库检索和工单闭环。
-                </p>
-                <div className="mt-5 grid gap-3">
-                  <div className="rounded-2xl border border-slate-200 bg-white/90 p-4">
-                    <div className="text-sm font-semibold text-slate-950">
-                      会话入口
-                    </div>
-                    <div className="mt-1 text-sm leading-6 text-slate-600">
-                      通过 Widget 接入业务页面，承接访客咨询与消息收发。
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-slate-200 bg-white/90 p-4">
-                    <div className="text-sm font-semibold text-slate-950">
-                      AI + 知识库
-                    </div>
-                    <div className="mt-1 text-sm leading-6 text-slate-600">
-                      利用知识库检索与 Agent 运行时先处理重复问题和标准流程。
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-slate-200 bg-white/90 p-4">
-                    <div className="text-sm font-semibold text-slate-950">
-                      人工与工单
-                    </div>
-                    <div className="mt-1 text-sm leading-6 text-slate-600">
-                      AI 无法继续时平滑转人工，复杂问题还能进一步转入工单流程。
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <section
-                id="integration"
-                className="rounded-[28px] border border-slate-200 bg-slate-50/95 p-5 text-slate-800 shadow-[0_24px_80px_rgba(15,23,42,0.06)] md:p-6"
-              >
-                <div className="text-sm font-semibold text-slate-950">
-                  宿主页面接入脚本
-                </div>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  这段脚本就是外部业务系统接入时需要放到宿主页面里的最小配置。
-                </p>
-                <pre className="mt-4 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-4 text-xs leading-5 text-slate-700">
-                  <code>{snippet}</code>
-                </pre>
-              </section>
-            </aside>
-          </div>
-        </section>
-
-        <section id="overview" className="px-4 py-2 md:px-6 md:py-4">
-          <div className="mx-auto max-w-6xl">
-            <div className="rounded-[32px] border border-white/70 bg-white/78 p-5 shadow-[0_20px_70px_rgba(15,23,42,0.05)] backdrop-blur md:p-6">
-              <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-                <div className="max-w-2xl">
-                  <div className="text-xs font-semibold tracking-[0.16em] text-sky-700 uppercase">
-                    产品说明
-                  </div>
-                  <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-slate-950">
-                    不是一个聊天壳子，而是客服系统的前端入口。
-                  </h2>
-                  <p className="mt-3 text-sm leading-7 text-slate-600">
-                    这个页面主要用于配置和演示客服插件，但插件本身承接的是完整客服链路中的前端接入层。
-                    它把用户消息带入统一会话，再由后端串联 AI 回复、知识库检索、人工接管和后续工单处理。
-                  </p>
-                </div>
-
-                <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
-                    <div className="text-xs text-slate-500">接待模式</div>
-                    <div className="mt-2 text-sm font-semibold text-slate-950">
-                      AI + 人工协同
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
-                    <div className="text-xs text-slate-500">回答方式</div>
-                    <div className="mt-2 text-sm font-semibold text-slate-950">
-                      知识库 RAG 驱动
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
-                    <div className="text-xs text-slate-500">后续处理</div>
-                    <div className="mt-2 text-sm font-semibold text-slate-950">
-                      支持工单闭环
-                    </div>
-                  </div>
-                </div>
+            <section
+              id="integration"
+              className="rounded-lg border border-slate-200 bg-slate-50/95 p-5 text-slate-800 shadow-[0_24px_80px_rgba(15,23,42,0.06)] md:p-6"
+            >
+              <div className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-slate-950 md:text-3xl">
+                宿主页面接入脚本
               </div>
-            </div>
+              <div className="mt-1 text-sm text-slate-500">
+                这段脚本就是外部业务系统接入时需要放到宿主页面里的最小配置。 Widget 验证效果。
+              </div>
+              <pre className="mt-4 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-4 text-xs leading-5 text-slate-700">
+                <code>{snippet}</code>
+              </pre>
+            </section>
           </div>
         </section>
+
 
         <footer className="border-t border-white/60 bg-white/70 px-4 py-8 backdrop-blur-xl md:px-6">
           <div className="mx-auto flex max-w-6xl flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <div className="flex items-start gap-3">
-              <img
-                src="/images/logo.png"
-                alt="贝壳 AI 客服"
-                className="mt-0.5 h-10 w-10 rounded-2xl object-contain"
-              />
-              <div>
-                <div className="text-lg font-semibold text-slate-950">
-                  贝壳 AI 客服插件
-                </div>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                  首页以插件配置和接入为主，补充最少必要的产品说明，便于演示、联调和对外交付。
-                </p>
-              </div>
-            </div>
             <div className="flex flex-wrap gap-6 text-sm text-slate-500">
               <a
                 href={GITHUB_URL}
