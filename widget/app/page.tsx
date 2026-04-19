@@ -34,7 +34,7 @@ function buildDefaultConfig(baseUrl: string): TestConfig {
     subtitle: "贝壳AI客服为您服务",
     position: "right",
     themeColor: "#0f6cbd",
-    width: "680px",
+    width: "880px",
     subject: generateRandomSubject(),
   };
 }
@@ -327,7 +327,7 @@ function WidgetTestPageInner() {
                     onChange={(event) =>
                       updateField("width", event.target.value)
                     }
-                    placeholder="例如 680px、50vw"
+                    placeholder="例如 880px、50vw"
                     className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-sky-400"
                   />
                 </label>
