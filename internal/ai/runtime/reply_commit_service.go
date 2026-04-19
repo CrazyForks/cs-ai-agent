@@ -16,46 +16,54 @@ import (
 
 type replyCommitService struct{}
 
+type replyCommitInput struct {
+	Conversation   models.Conversation
+	Message        models.Message
+	AIAgent        models.AIAgent
+	ReplyText      string
+	Trace          *aiReplyTraceData
+	ClientPrefix   string
+	IncrementRound bool
+}
+
 func newReplyCommitService() *replyCommitService {
 	return &replyCommitService{}
 }
 
-func (s *replyCommitService) SendAIReply(conversation models.Conversation, message models.Message, aiAgent models.AIAgent,
-	replyText string, trace *aiReplyTraceData, clientPrefix string) (*models.Message, error) {
-	replyText = strings.TrimSpace(replyText)
+func (s *replyCommitService) SendAIReply(input replyCommitInput) (*models.Message, error) {
+	replyText := strings.TrimSpace(input.ReplyText)
 	if replyText == "" {
 		return nil, nil
 	}
 	commitStartedAt := time.Now()
 	replyMessage, err := svc.MessageService.SendAIMessage(
-		conversation.ID,
-		aiAgent.ID,
-		fmt.Sprintf("%s_%d", strings.TrimSpace(clientPrefix), message.ID),
+		input.Conversation.ID,
+		input.AIAgent.ID,
+		fmt.Sprintf("%s_%d", strings.TrimSpace(input.ClientPrefix), input.Message.ID),
 		enums.IMMessageTypeText,
 		replyText,
 		"",
-		s.buildAIPrincipal(aiAgent),
+		s.buildAIPrincipal(input.AIAgent),
 	)
-	if trace != nil {
-		trace.CommitMs = time.Since(commitStartedAt).Milliseconds()
-		trace.ReplySent = err == nil && replyMessage != nil
+	if input.Trace != nil {
+		input.Trace.CommitMs = time.Since(commitStartedAt).Milliseconds()
+		input.Trace.ReplySent = err == nil && replyMessage != nil
 		if replyMessage != nil {
-			trace.ReplyMessageID = replyMessage.ID
+			input.Trace.ReplyMessageID = replyMessage.ID
 		}
+	}
+	if err != nil || !input.IncrementRound {
+		return replyMessage, err
+	}
+	if err := s.IncrementAIReplyRounds(input.Conversation.ID, input.Conversation.AIReplyRounds+1, input.AIAgent.Name); err != nil {
+		return nil, err
 	}
 	return replyMessage, err
 }
 
-func (s *replyCommitService) CommitAIReply(conversation models.Conversation, message models.Message, aiAgent models.AIAgent,
-	replyText string, trace *aiReplyTraceData, clientPrefix string) (*models.Message, error) {
-	replyMessage, err := s.SendAIReply(conversation, message, aiAgent, replyText, trace, clientPrefix)
-	if err != nil {
-		return nil, err
-	}
-	if err := s.IncrementAIReplyRounds(conversation.ID, conversation.AIReplyRounds+1, aiAgent.Name); err != nil {
-		return nil, err
-	}
-	return replyMessage, nil
+func (s *replyCommitService) CommitAIReply(input replyCommitInput) (*models.Message, error) {
+	input.IncrementRound = true
+	return s.SendAIReply(input)
 }
 
 func (s *replyCommitService) IncrementAIReplyRounds(conversationID int64, nextRounds int, aiAgentName string) error {

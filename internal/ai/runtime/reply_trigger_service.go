@@ -53,7 +53,16 @@ func (s *aiReplyService) TriggerReply(ctx context.Context, conversation models.C
 		return nil
 	}
 	defer func() {
-		s.runlog.Write(startedAt, message, conversation, aiAgent, message.Content, retErr, trace, summary)
+		s.runlog.Write(replyRunLogInput{
+			StartedAt:    startedAt,
+			Message:      message,
+			Conversation: conversation,
+			AIAgent:      aiAgent,
+			Question:     message.Content,
+			RunErr:       retErr,
+			Trace:        trace,
+			Summary:      summary,
+		})
 	}()
 	if pendingInterrupt := svc.ConversationInterruptService.FindLatestPendingByConversationID(conversation.ID); pendingInterrupt != nil {
 		return s.resumePendingInterrupt(ctx, conversation, message, aiAgent, pendingInterrupt, trace, &summary)
@@ -63,18 +72,17 @@ func (s *aiReplyService) TriggerReply(ctx context.Context, conversation models.C
 
 func (s *aiReplyService) resumePendingInterrupt(ctx context.Context, conversation models.Conversation, message models.Message, aiAgent models.AIAgent,
 	pendingInterrupt *models.ConversationInterrupt, trace *aiReplyTraceData, summaryRef **applicationruntime.Summary) error {
-	if s == nil || s.interrupts == nil {
-		return nil
-	}
 	return s.interrupts.ResumePendingInterrupt(ctx, s, conversation, message, aiAgent, pendingInterrupt, trace, summaryRef)
 }
 
 func (s *aiReplyService) executeReply(ctx context.Context, conversation models.Conversation, message models.Message, aiAgent models.AIAgent,
 	trace *aiReplyTraceData, summaryRef **applicationruntime.Summary) error {
-	if s == nil || s.executor == nil {
-		return nil
-	}
-	summary, err := s.executor.Run(ctx, conversation, message, aiAgent, trace)
+	summary, err := s.executor.Run(ctx, runtimeReplyRunInput{
+		Conversation: conversation,
+		Message:      message,
+		AIAgent:      aiAgent,
+		Trace:        trace,
+	})
 	if summaryRef != nil {
 		*summaryRef = summary
 	}
@@ -85,7 +93,14 @@ func (s *aiReplyService) executeReply(ctx context.Context, conversation models.C
 		return s.interrupts.HandleInterruptedSummary(s, conversation, message, aiAgent, summary, trace)
 	}
 	if summary != nil && strings.TrimSpace(summary.ReplyText) != "" {
-		replyMessage, err := s.commit.CommitAIReply(conversation, message, aiAgent, summary.ReplyText, trace, "ai_reply")
+		replyMessage, err := s.commit.CommitAIReply(replyCommitInput{
+			Conversation: conversation,
+			Message:      message,
+			AIAgent:      aiAgent,
+			ReplyText:    summary.ReplyText,
+			Trace:        trace,
+			ClientPrefix: "ai_reply",
+		})
 		if err != nil {
 			return err
 		}

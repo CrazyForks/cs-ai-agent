@@ -18,10 +18,16 @@ func newReplyInterruptService() *replyInterruptService {
 
 func (s *replyInterruptService) ResumePendingInterrupt(ctx context.Context, owner *aiReplyService, conversation models.Conversation, message models.Message, aiAgent models.AIAgent,
 	pendingInterrupt *models.ConversationInterrupt, trace *aiReplyTraceData, summaryRef **applicationruntime.Summary) error {
-	if pendingInterrupt == nil || owner == nil || owner.executor == nil {
+	if pendingInterrupt == nil || owner == nil {
 		return nil
 	}
-	summary, err := owner.executor.ResumePendingInterrupt(ctx, conversation, message, aiAgent, pendingInterrupt, trace)
+	summary, err := owner.executor.ResumePendingInterrupt(ctx, runtimeReplyResumeInput{
+		Conversation:     conversation,
+		Message:          message,
+		AIAgent:          aiAgent,
+		PendingInterrupt: pendingInterrupt,
+		Trace:            trace,
+	})
 	*summaryRef = summary
 	if err != nil {
 		if isCheckpointMissingError(err) {
@@ -29,7 +35,14 @@ func (s *replyInterruptService) ResumePendingInterrupt(ctx context.Context, owne
 			*summaryRef = summary
 			trace.Status = "interrupt_expired"
 			trace.FinalAction = "expired"
-			replyMessage, expireErr := owner.commit.CommitAIReply(conversation, message, aiAgent, summary.ReplyText, trace, "ai_interrupt_expired")
+			replyMessage, expireErr := owner.commit.CommitAIReply(replyCommitInput{
+				Conversation: conversation,
+				Message:      message,
+				AIAgent:      aiAgent,
+				ReplyText:    summary.ReplyText,
+				Trace:        trace,
+				ClientPrefix: "ai_interrupt_expired",
+			})
 			if expireErr != nil {
 				return expireErr
 			}
@@ -48,7 +61,14 @@ func (s *replyInterruptService) ResumePendingInterrupt(ctx context.Context, owne
 		return s.HandleInterruptedResume(owner, conversation, message, aiAgent, pendingInterrupt, summary, trace)
 	}
 	if summary != nil && strings.TrimSpace(summary.ReplyText) != "" {
-		replyMessage, err := owner.commit.CommitAIReply(conversation, message, aiAgent, summary.ReplyText, trace, "ai_resume")
+		replyMessage, err := owner.commit.CommitAIReply(replyCommitInput{
+			Conversation: conversation,
+			Message:      message,
+			AIAgent:      aiAgent,
+			ReplyText:    summary.ReplyText,
+			Trace:        trace,
+			ClientPrefix: "ai_resume",
+		})
 		if err != nil {
 			return err
 		}
@@ -75,7 +95,14 @@ func (s *replyInterruptService) HandleInterruptedSummary(owner *aiReplyService, 
 	}
 	pending = svc.ConversationInterruptService.GetByCheckPointID(summary.CheckPointID)
 	replyText := resolveInterruptPrompt(summary)
-	replyMessage, err := owner.commit.CommitAIReply(conversation, message, aiAgent, replyText, trace, "ai_interrupt")
+	replyMessage, err := owner.commit.CommitAIReply(replyCommitInput{
+		Conversation: conversation,
+		Message:      message,
+		AIAgent:      aiAgent,
+		ReplyText:    replyText,
+		Trace:        trace,
+		ClientPrefix: "ai_interrupt",
+	})
 	if err != nil {
 		return err
 	}
@@ -91,7 +118,14 @@ func (s *replyInterruptService) HandleInterruptedResume(owner *aiReplyService, c
 		return nil
 	}
 	replyText := resolveInterruptPrompt(summary)
-	replyMessage, err := owner.commit.CommitAIReply(conversation, message, aiAgent, replyText, trace, "ai_interrupt_resume")
+	replyMessage, err := owner.commit.CommitAIReply(replyCommitInput{
+		Conversation: conversation,
+		Message:      message,
+		AIAgent:      aiAgent,
+		ReplyText:    replyText,
+		Trace:        trace,
+		ClientPrefix: "ai_interrupt_resume",
+	})
 	if err != nil {
 		return err
 	}

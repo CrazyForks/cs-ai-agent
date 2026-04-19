@@ -15,53 +15,68 @@ import (
 
 type runtimeReplyExecutor struct{}
 
+type runtimeReplyRunInput struct {
+	Conversation models.Conversation
+	Message      models.Message
+	AIAgent      models.AIAgent
+	Trace        *aiReplyTraceData
+}
+
+type runtimeReplyResumeInput struct {
+	Conversation     models.Conversation
+	Message          models.Message
+	AIAgent          models.AIAgent
+	PendingInterrupt *models.ConversationInterrupt
+	Trace            *aiReplyTraceData
+}
+
 func newRuntimeReplyExecutor() *runtimeReplyExecutor {
 	return &runtimeReplyExecutor{}
 }
 
-func (e *runtimeReplyExecutor) Run(ctx context.Context, conversation models.Conversation, message models.Message, aiAgent models.AIAgent, trace *aiReplyTraceData) (*applicationruntime.Summary, error) {
-	aiConfig := svc.AIConfigService.Get(aiAgent.AIConfigID)
+func (e *runtimeReplyExecutor) Run(ctx context.Context, input runtimeReplyRunInput) (*applicationruntime.Summary, error) {
+	aiConfig := svc.AIConfigService.Get(input.AIAgent.AIConfigID)
 	if aiConfig == nil {
 		return nil, fmt.Errorf("ai config is nil")
 	}
 	runtimeStartedAt := time.Now()
 	summary, err := Service.Run(ctx, applicationruntime.Request{
-		Conversation: conversation,
-		UserMessage:  message,
-		AIAgent:      aiAgent,
+		Conversation: input.Conversation,
+		UserMessage:  input.Message,
+		AIAgent:      input.AIAgent,
 		AIConfig:     *aiConfig,
 	})
-	if trace != nil {
-		trace.RuntimeLatencyMs = time.Since(runtimeStartedAt).Milliseconds()
-		e.fillTraceFromSummary(trace, summary, err)
+	if input.Trace != nil {
+		input.Trace.RuntimeLatencyMs = time.Since(runtimeStartedAt).Milliseconds()
+		e.fillTraceFromSummary(input.Trace, summary, err)
 	}
 	return summary, err
 }
 
-func (e *runtimeReplyExecutor) ResumePendingInterrupt(ctx context.Context, conversation models.Conversation, message models.Message, aiAgent models.AIAgent, pendingInterrupt *models.ConversationInterrupt, trace *aiReplyTraceData) (*applicationruntime.Summary, error) {
-	if pendingInterrupt == nil {
+func (e *runtimeReplyExecutor) ResumePendingInterrupt(ctx context.Context, input runtimeReplyResumeInput) (*applicationruntime.Summary, error) {
+	if input.PendingInterrupt == nil {
 		return nil, nil
 	}
-	aiConfig := svc.AIConfigService.Get(aiAgent.AIConfigID)
+	aiConfig := svc.AIConfigService.Get(input.AIAgent.AIConfigID)
 	if aiConfig == nil {
 		return nil, fmt.Errorf("ai config is nil")
 	}
 	runtimeStartedAt := time.Now()
-	if trace != nil {
-		trace.ResumeSource = "pending_interrupt"
+	if input.Trace != nil {
+		input.Trace.ResumeSource = "pending_interrupt"
 	}
 	summary, err := Service.Resume(ctx, applicationruntime.ResumeRequest{
-		Conversation: conversation,
-		AIAgent:      aiAgent,
+		Conversation: input.Conversation,
+		AIAgent:      input.AIAgent,
 		AIConfig:     *aiConfig,
-		CheckPointID: strings.TrimSpace(pendingInterrupt.CheckPointID),
+		CheckPointID: strings.TrimSpace(input.PendingInterrupt.CheckPointID),
 		ResumeData: map[string]string{
-			strings.TrimSpace(pendingInterrupt.InterruptID): strings.TrimSpace(message.Content),
+			strings.TrimSpace(input.PendingInterrupt.InterruptID): strings.TrimSpace(input.Message.Content),
 		},
 	})
-	if trace != nil {
-		trace.RuntimeLatencyMs = time.Since(runtimeStartedAt).Milliseconds()
-		e.fillTraceFromSummary(trace, summary, err)
+	if input.Trace != nil {
+		input.Trace.RuntimeLatencyMs = time.Since(runtimeStartedAt).Milliseconds()
+		e.fillTraceFromSummary(input.Trace, summary, err)
 	}
 	return summary, err
 }

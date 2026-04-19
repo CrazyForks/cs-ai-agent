@@ -18,47 +18,57 @@ func newReplyRunLogService() *replyRunLogService {
 
 type replyRunLogService struct{}
 
-func (s *replyRunLogService) Write(startedAt time.Time, message models.Message, conversation models.Conversation, aiAgent models.AIAgent,
-	question string, runErr error, trace *aiReplyTraceData, summary *applicationruntime.Summary) {
+type replyRunLogInput struct {
+	StartedAt    time.Time
+	Message      models.Message
+	Conversation models.Conversation
+	AIAgent      models.AIAgent
+	Question     string
+	RunErr       error
+	Trace        *aiReplyTraceData
+	Summary      *applicationruntime.Summary
+}
+
+func (s *replyRunLogService) Write(input replyRunLogInput) {
 	errorMessage := ""
-	if runErr != nil {
-		errorMessage = runErr.Error()
-	} else if summary != nil && strings.TrimSpace(summary.ErrorMessage) != "" {
-		errorMessage = strings.TrimSpace(summary.ErrorMessage)
+	if input.RunErr != nil {
+		errorMessage = input.RunErr.Error()
+	} else if input.Summary != nil && strings.TrimSpace(input.Summary.ErrorMessage) != "" {
+		errorMessage = strings.TrimSpace(input.Summary.ErrorMessage)
 	}
-	traceData := buildAIReplyTraceData(trace)
-	plannedAction, plannedToolCode, planReason := buildRunLogPlan(summary)
+	traceData := buildAIReplyTraceData(input.Trace)
+	plannedAction, plannedToolCode, planReason := buildRunLogPlan(input.Summary)
 	logItem := &models.AgentRunLog{
-		ConversationID:   conversation.ID,
-		MessageID:        message.ID,
-		AIAgentID:        aiAgent.ID,
-		AIConfigID:       aiAgent.AIConfigID,
-		UserMessage:      strings.TrimSpace(question),
+		ConversationID:   input.Conversation.ID,
+		MessageID:        input.Message.ID,
+		AIAgentID:        input.AIAgent.ID,
+		AIConfigID:       input.AIAgent.AIConfigID,
+		UserMessage:      strings.TrimSpace(input.Question),
 		PlannedAction:    plannedAction,
-		PlannedSkillCode: strings.TrimSpace(summaryPlannedSkillCode(summary)),
-		PlannedSkillName: strings.TrimSpace(summaryPlannedSkillName(summary)),
-		SkillRouteTrace:  strings.TrimSpace(summarySkillRouteTrace(summary)),
-		ToolSearchTrace:  extractToolSearchTrace(summary),
-		GraphToolTrace:   extractGraphToolTrace(summary),
-		GraphToolCode:    firstGraphToolCode(summary),
-		HandoffReason:    extractHandoffReason(summary),
+		PlannedSkillCode: strings.TrimSpace(summaryPlannedSkillCode(input.Summary)),
+		PlannedSkillName: strings.TrimSpace(summaryPlannedSkillName(input.Summary)),
+		SkillRouteTrace:  strings.TrimSpace(summarySkillRouteTrace(input.Summary)),
+		ToolSearchTrace:  extractToolSearchTrace(input.Summary),
+		GraphToolTrace:   extractGraphToolTrace(input.Summary),
+		GraphToolCode:    firstGraphToolCode(input.Summary),
+		HandoffReason:    extractHandoffReason(input.Summary),
 		PlannedToolCode:  plannedToolCode,
 		PlanReason:       planReason,
-		InterruptType:    firstInterruptType(summary),
-		ResumeSource:     runLogResumeSource(trace),
-		FinalAction:      toRunLogFinalAction(summary),
-		FinalStatus:      runLogFinalStatus(summary),
-		ReplyText:        buildRunLogReplyText(summary),
+		InterruptType:    firstInterruptType(input.Summary),
+		ResumeSource:     runLogResumeSource(input.Trace),
+		FinalAction:      toRunLogFinalAction(input.Summary),
+		FinalStatus:      runLogFinalStatus(input.Summary),
+		ReplyText:        buildRunLogReplyText(input.Summary),
 		ErrorMessage:     errorMessage,
-		LatencyMs:        time.Since(startedAt).Milliseconds(),
+		LatencyMs:        time.Since(input.StartedAt).Milliseconds(),
 		TraceData:        traceData,
 		CreatedAt:        time.Now(),
 	}
 	if err := svc.AgentRunLogService.Create(logItem); err != nil {
 		slog.Warn("create agent run log failed",
-			"message_id", message.ID,
+			"message_id", input.Message.ID,
 			"conversation_id", logItem.ConversationID,
-			"ai_agent_id", aiAgent.ID,
+			"ai_agent_id", input.AIAgent.ID,
 			"error", err)
 	}
 }

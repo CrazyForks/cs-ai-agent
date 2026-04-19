@@ -19,15 +19,9 @@ type service struct {
 }
 
 func (s *service) Run(ctx context.Context, req applicationruntime.Request) (*applicationruntime.Summary, error) {
-	if s == nil || s.app == nil {
-		return nil, nil
-	}
 	return s.app.Run(ctx, req)
 }
 
 func (s *service) Resume(ctx context.Context, req applicationruntime.ResumeRequest) (*applicationruntime.Summary, error) {
-	if s == nil || s.app == nil {
-		return nil, nil
-	}
 	return s.app.Resume(ctx, req)
 }

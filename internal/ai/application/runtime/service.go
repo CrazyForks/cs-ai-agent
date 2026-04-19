@@ -23,13 +23,12 @@ func NewService() *Service {
 }
 
 func (s *Service) Run(ctx context.Context, req Request) (*Summary, error) {
-	if s == nil || s.runtime == nil || s.prepare == nil {
-		return nil, nil
-	}
 	req.UserMessage.Content = utils.BuildRuntimeMessageText(req.UserMessage.MessageType, req.UserMessage.Content)
-	if err := s.prepare.prepareToolsForRun(&req); err != nil {
+	toolSet, err := s.prepare.prepareToolsForRun(req)
+	if err != nil {
 		return nil, err
 	}
+	req.ToolSet = toolSet
 	summary, err := s.runtime.ExecuteRun(ctx, executor.RunInput{
 		Conversation: req.Conversation,
 		UserMessage:  req.UserMessage,
@@ -45,12 +44,11 @@ func (s *Service) Run(ctx context.Context, req Request) (*Summary, error) {
 }
 
 func (s *Service) Resume(ctx context.Context, req ResumeRequest) (*Summary, error) {
-	if s == nil || s.runtime == nil || s.prepare == nil {
-		return nil, nil
-	}
-	if err := s.prepare.prepareToolsForResume(&req); err != nil {
+	toolSet, err := s.prepare.prepareToolsForResume(req)
+	if err != nil {
 		return nil, err
 	}
+	req.ToolSet = toolSet
 	summary, err := s.runtime.ExecuteResume(ctx, executor.ResumeInput{
 		Conversation: req.Conversation,
 		AIAgent:      req.AIAgent,

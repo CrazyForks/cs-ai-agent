@@ -32,10 +32,7 @@ func buildRuntimeStaticTools() []registry.Tool {
 	return ret
 }
 
-func (c *toolCatalog) resolveForRun(req *Request) (*registry.ToolSet, error) {
-	if req == nil || req.ToolSet != nil || c == nil || c.registry == nil {
-		return nil, nil
-	}
+func (c *toolCatalog) resolveForRun(req Request) (*registry.ToolSet, error) {
 	return c.registry.Resolve(registry.Context{
 		Conversation:     req.Conversation,
 		AIAgent:          req.AIAgent,
@@ -45,10 +42,7 @@ func (c *toolCatalog) resolveForRun(req *Request) (*registry.ToolSet, error) {
 	})
 }
 
-func (c *toolCatalog) resolveForResume(req *ResumeRequest) (*registry.ToolSet, error) {
-	if req == nil || req.ToolSet != nil || c == nil || c.registry == nil {
-		return nil, nil
-	}
+func (c *toolCatalog) resolveForResume(req ResumeRequest) (*registry.ToolSet, error) {
 	return c.registry.Resolve(registry.Context{
 		Conversation:     req.Conversation,
 		AIAgent:          req.AIAgent,
