@@ -79,6 +79,10 @@ func (s *skillDefinitionService) GetByCode(code string) *models.SkillDefinition 
 	return repositories.SkillDefinitionRepository.GetByCode(sqls.DB(), code)
 }
 
+func (s *skillDefinitionService) GetByIDs(ids []int64) map[int64]models.SkillDefinition {
+	return repositories.SkillDefinitionRepository.GetByIDs(sqls.DB(), ids)
+}
+
 func (s *skillDefinitionService) CreateSkillDefinition(req request.CreateSkillDefinitionRequest, operator *dto.AuthPrincipal) (*models.SkillDefinition, error) {
 	if operator == nil {
 		return nil, errorsx.Unauthorized("未登录或登录已过期")

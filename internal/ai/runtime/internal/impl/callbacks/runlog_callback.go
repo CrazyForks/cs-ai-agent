@@ -63,6 +63,43 @@ func (c *RuntimeTraceCollector) SetSkillMiddleware(enabled bool, toolName string
 	c.Data.Skill.MiddlewareToolName = toolName
 }
 
+type SkillMetadata struct {
+	Code             string
+	Name             string
+	Description      string
+	AllowedToolCodes []string
+}
+
+func (c *RuntimeTraceCollector) SetVisibleSkills(skills map[string]SkillMetadata) {
+	if c == nil || len(skills) == 0 {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	codes := make([]string, 0, len(skills))
+	for code := range skills {
+		if code == "" {
+			continue
+		}
+		codes = append(codes, code)
+	}
+	c.Data.Skill.VisibleCodes = append([]string(nil), codes...)
+}
+
+func (c *RuntimeTraceCollector) ActivateSkill(skill SkillMetadata, routeReason string, routeTrace string) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.Data.Skill.Code = skill.Code
+	c.Data.Skill.Name = skill.Name
+	c.Data.Skill.Description = skill.Description
+	c.Data.Skill.AllowedToolCodes = append([]string(nil), skill.AllowedToolCodes...)
+	c.Data.Skill.RouteReason = routeReason
+	c.Data.Skill.RouteTrace = routeTrace
+}
+
 func (c *RuntimeTraceCollector) SetRetrieverSummary(summary RetrieverTraceSummary) {
 	if c == nil {
 		return

@@ -41,7 +41,7 @@ func (c *toolCatalog) resolveForRun(req *Request) (*registry.ToolSet, error) {
 		AIAgent:          req.AIAgent,
 		AIConfig:         req.AIConfig,
 		UserMessage:      req.UserMessage,
-		AllowedToolCodes: c.resolveAllowedToolCodes(req.AIAgent, req.SelectedSkill),
+		AllowedToolCodes: c.parseAgentAllowedToolCodes(req.AIAgent),
 	})
 }
 

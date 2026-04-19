@@ -49,7 +49,7 @@ var (
 		ServerCode:   "builtin",
 		Name:         "skill",
 		Title:        "加载专项技能说明",
-		Description:  "用于加载当前命中的专项技能说明文档。仅在本轮已命中 Skill 时可用，适合将专项处理规则按需注入上下文。",
+		Description:  "用于按需加载当前 Agent 可用的专项技能说明文档，适合在需要专项处理规则时再注入上下文。",
 		SourceType:   enums.ToolSourceTypeBuiltin,
 		AutoInjected: true,
 	}

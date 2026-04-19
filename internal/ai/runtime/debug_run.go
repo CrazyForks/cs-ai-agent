@@ -43,20 +43,15 @@ func DebugRunSkill(ctx context.Context, req request.SkillDebugRunRequest) (*resp
 		Content:        strings.TrimSpace(req.UserMessage),
 	}
 	summary, err := Service.Run(ctx, applicationruntime.Request{
-		Conversation:    *conversation,
-		UserMessage:     message,
-		AIAgent:         *aiAgent,
-		AIConfig:        *aiConfig,
-		ManualSkillCode: strings.TrimSpace(req.SkillCode),
+		Conversation: *conversation,
+		UserMessage:  message,
+		AIAgent:      *aiAgent,
+		AIConfig:     *aiConfig,
 	})
 	if err != nil {
 		return buildSkillDebugRunResponse(req, summary, nil), err
 	}
-	selectedSkill := svc.SkillDefinitionService.GetByCode(strings.TrimSpace(req.SkillCode))
-	if summary == nil || strings.TrimSpace(summary.PlannedSkillCode) == "" {
-		return nil, errorsx.InvalidParam("Skill 未命中")
-	}
-	return buildSkillDebugRunResponse(req, summary, selectedSkill), nil
+	return buildSkillDebugRunResponse(req, summary, nil), nil
 }
 
 func DebugResumeSkill(ctx context.Context, req request.SkillDebugResumeRequest) (*response.SkillDebugRunResponse, error) {

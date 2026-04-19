@@ -6,15 +6,12 @@ import (
 )
 
 type RunInput struct {
-	Conversation     models.Conversation
-	UserMessage      models.Message
-	AIAgent          models.AIAgent
-	AIConfig         models.AIConfig
-	SelectedSkill    *models.SkillDefinition
-	SkillRouteReason string
-	SkillRouteTrace  string
-	CheckPointID     string
-	ToolSet          *registry.ToolSet
+	Conversation models.Conversation
+	UserMessage  models.Message
+	AIAgent      models.AIAgent
+	AIConfig     models.AIConfig
+	CheckPointID string
+	ToolSet      *registry.ToolSet
 }
 
 type ResumeInput struct {

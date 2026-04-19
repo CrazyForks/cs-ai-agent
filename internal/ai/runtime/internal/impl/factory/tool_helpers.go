@@ -7,7 +7,6 @@ import (
 	einocallbacks "cs-agent/internal/ai/runtime/internal/impl/callbacks"
 	"cs-agent/internal/ai/runtime/registry"
 	runtimetooling "cs-agent/internal/ai/runtime/tooling"
-	"cs-agent/internal/models"
 	"cs-agent/internal/pkg/enums"
 	"cs-agent/internal/pkg/toolx"
 )
@@ -24,7 +23,7 @@ func buildInstructionTraceSummary(summary runtimeinstruction.AssemblySummary) ei
 func buildRuntimeTraceToolMetadata(
 	dynamicToolDefinitions []runtimetooling.MCPToolDefinition,
 	staticToolMetadata map[string]registry.ToolMetadata,
-	selectedSkill *models.SkillDefinition,
+	includeSkillTool bool,
 ) map[string]einocallbacks.ToolMetadata {
 	ret := make(map[string]einocallbacks.ToolMetadata, len(dynamicToolDefinitions)+len(staticToolMetadata)+1)
 	for _, item := range dynamicToolDefinitions {
@@ -54,7 +53,7 @@ func buildRuntimeTraceToolMetadata(
 			SourceType: metadata.SourceType,
 		}
 	}
-	if selectedSkill != nil {
+	if includeSkillTool {
 		resolved := toolx.ResolveToolMetadata(toolx.BuiltinSkill.Code, toolx.BuiltinSkill.Name)
 		ret[toolx.BuiltinSkill.Name] = einocallbacks.ToolMetadata{
 			ToolCode:   resolved.ToolCode,

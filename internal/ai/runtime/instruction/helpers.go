@@ -27,6 +27,10 @@ func BuildSelectedSkillActivationInstruction(skill *models.SkillDefinition) stri
 }
 
 func BuildSelectedSkillDocument(skill *models.SkillDefinition, toolDefinitions []runtimetooling.MCPToolDefinition) string {
+	return BuildSkillDocument(skill, toolDefinitions)
+}
+
+func BuildSkillDocument(skill *models.SkillDefinition, toolDefinitions []runtimetooling.MCPToolDefinition) string {
 	if skill == nil {
 		return ""
 	}

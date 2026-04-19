@@ -24,8 +24,9 @@ type ToolMetadata struct {
 
 type RuntimeTraceHandler struct {
 	*adk.BaseChatModelAgentMiddleware
-	collector      *RuntimeTraceCollector
-	toolMetadataBy map[string]ToolMetadata
+	collector       *RuntimeTraceCollector
+	toolMetadataBy  map[string]ToolMetadata
+	skillMetadataBy map[string]SkillMetadata
 }
 
 type graphAnalyzeConversationResult struct {
@@ -65,11 +66,12 @@ type toolSearchSearchResult struct {
 	Candidates []toolSearchCandidateResult `json:"candidates"`
 }
 
-func NewRuntimeTraceHandler(collector *RuntimeTraceCollector, toolMetadataBy map[string]ToolMetadata) *RuntimeTraceHandler {
+func NewRuntimeTraceHandler(collector *RuntimeTraceCollector, toolMetadataBy map[string]ToolMetadata, skillMetadataBy map[string]SkillMetadata) *RuntimeTraceHandler {
 	return &RuntimeTraceHandler{
 		BaseChatModelAgentMiddleware: &adk.BaseChatModelAgentMiddleware{},
 		collector:                    collector,
 		toolMetadataBy:               toolMetadataBy,
+		skillMetadataBy:              skillMetadataBy,
 	}
 }
 
@@ -123,8 +125,40 @@ func (h *RuntimeTraceHandler) WrapInvokableToolCall(_ context.Context, endpoint 
 		if metadata, ok := h.resolveToolMetadata(item.ToolName); ok && strings.TrimSpace(metadata.ToolCode) == toolx.BuiltinToolSearch.Code {
 			h.collector.AddToolSearchItem(h.buildToolSearchTraceItem(argumentsInJSON, result, err))
 		}
+		if metadata, ok := h.resolveToolMetadata(item.ToolName); ok && strings.TrimSpace(metadata.ToolCode) == toolx.BuiltinSkill.Code {
+			h.tryActivateSkill(argumentsInJSON)
+		}
 		return result, err
 	}, nil
+}
+
+func (h *RuntimeTraceHandler) tryActivateSkill(argumentsInJSON string) {
+	if h == nil || h.collector == nil {
+		return
+	}
+	var args struct {
+		Skill string `json:"skill"`
+	}
+	if err := json.Unmarshal([]byte(strings.TrimSpace(argumentsInJSON)), &args); err != nil {
+		return
+	}
+	code := strings.TrimSpace(args.Skill)
+	if code == "" {
+		return
+	}
+	meta, ok := h.skillMetadataBy[code]
+	if !ok {
+		meta = SkillMetadata{Code: code}
+	}
+	buf, err := json.Marshal(map[string]any{
+		"source": "eino_skill_tool",
+		"skill":  code,
+	})
+	routeTrace := ""
+	if err == nil {
+		routeTrace = string(buf)
+	}
+	h.collector.ActivateSkill(meta, "eino_skill_tool", routeTrace)
 }
 
 func parseGraphToolOutcome(toolCode string, result string) (recommendedAction, riskLevel string, ticketDraftReady bool) {

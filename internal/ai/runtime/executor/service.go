@@ -43,32 +43,18 @@ func (s *Service) ExecuteRun(ctx context.Context, req RunInput) (*RunResult, err
 		summary.TraceData = collector.Marshal()
 		return summary, err
 	}
-	tooling := prepareTooling(toolDefs, req.SelectedSkill, req.ToolSet, req.SelectedSkill != nil)
+	hasVisibleSkills := factory.HasVisibleSkills(req.AIAgent)
+	tooling := prepareTooling(toolDefs, nil, req.ToolSet, hasVisibleSkills)
 	summary.ToolCodes = append(summary.ToolCodes, tooling.toolCodes...)
 	collector.Data.Input.ToolCodes = append(collector.Data.Input.ToolCodes, summary.ToolCodes...)
 	collector.SetTooling(tooling.staticToolCodes, definitionToolCodes(tooling.definitions), len(tooling.definitions) > 0)
 
 	collector.Data.Model.Provider = string(req.AIConfig.Provider)
 	collector.Data.Model.Name = req.AIConfig.ModelName
-	summary.SelectedSkillCode = ""
-	summary.SelectedSkillName = ""
-	summary.SkillRouteReason = strings.TrimSpace(req.SkillRouteReason)
-	summary.SkillRouteTrace = strings.TrimSpace(req.SkillRouteTrace)
-	if req.SelectedSkill != nil {
-		summary.SelectedSkillCode = strings.TrimSpace(req.SelectedSkill.Code)
-		summary.SelectedSkillName = strings.TrimSpace(req.SelectedSkill.Name)
-		summary.SkillAllowedToolCodes = parseJSONArrayList(req.SelectedSkill.ToolWhitelist)
-		collector.Data.Skill.Code = summary.SelectedSkillCode
-		collector.Data.Skill.Name = summary.SelectedSkillName
-		collector.Data.Skill.AllowedToolCodes = append([]string(nil), summary.SkillAllowedToolCodes...)
-	}
-	collector.Data.Skill.RouteReason = summary.SkillRouteReason
-	collector.Data.Skill.RouteTrace = summary.SkillRouteTrace
 
 	agent, err := s.agentFactory.BuildCustomerServiceAgent(ctx, factory.BuildCustomerServiceAgentInput{
 		AIAgent:                    req.AIAgent,
 		AIConfig:                   req.AIConfig,
-		SelectedSkill:              req.SelectedSkill,
 		InstructionToolDefinitions: tooling.definitions,
 		DynamicMCPToolDefinitions:  tooling.definitions,
 		StaticTools:                tooling.staticTools,
@@ -114,6 +100,7 @@ func (s *Service) ExecuteRun(ctx context.Context, req RunInput) (*RunResult, err
 	collector.Data.Status = summary.Status
 	collector.Data.Output.ReplyText = summary.ReplyText
 	collector.Data.Output.FinishReason = summary.Status
+	syncSkillSummaryFromCollector(summary, collector)
 	summary.TraceData = collector.Marshal()
 	return summary, nil
 }
@@ -149,7 +136,8 @@ func (s *Service) ExecuteResume(ctx context.Context, req ResumeInput) (*RunResul
 		summary.TraceData = collector.Marshal()
 		return summary, err
 	}
-	tooling := prepareTooling(toolDefs, nil, req.ToolSet, false)
+	hasVisibleSkills := factory.HasVisibleSkills(req.AIAgent)
+	tooling := prepareTooling(toolDefs, nil, req.ToolSet, hasVisibleSkills)
 	summary.ToolCodes = append(summary.ToolCodes, tooling.toolCodes...)
 	collector.Data.Input.ToolCodes = append(collector.Data.Input.ToolCodes, summary.ToolCodes...)
 	collector.SetTooling(tooling.staticToolCodes, definitionToolCodes(tooling.definitions), len(tooling.definitions) > 0)
@@ -211,6 +199,19 @@ func (s *Service) ExecuteResume(ctx context.Context, req ResumeInput) (*RunResul
 	collector.Data.Status = summary.Status
 	collector.Data.Output.ReplyText = summary.ReplyText
 	collector.Data.Output.FinishReason = summary.Status
+	syncSkillSummaryFromCollector(summary, collector)
 	summary.TraceData = collector.Marshal()
 	return summary, nil
+}
+
+func syncSkillSummaryFromCollector(summary *RunResult, collector *callbacks.RuntimeTraceCollector) {
+	if summary == nil || collector == nil {
+		return
+	}
+	trace := collector.Data.Skill
+	summary.SelectedSkillCode = strings.TrimSpace(trace.Code)
+	summary.SelectedSkillName = strings.TrimSpace(trace.Name)
+	summary.SkillRouteReason = strings.TrimSpace(trace.RouteReason)
+	summary.SkillRouteTrace = strings.TrimSpace(trace.RouteTrace)
+	summary.SkillAllowedToolCodes = append([]string(nil), trace.AllowedToolCodes...)
 }

@@ -19,10 +19,10 @@ func NewSkillMiddlewareService() *SkillMiddlewareService {
 
 func (s *SkillMiddlewareService) Build(
 	ctx context.Context,
-	selectedSkill *models.SkillDefinition,
+	aiAgent models.AIAgent,
 	toolDefinitions []runtimetooling.MCPToolDefinition,
 ) (adk.ChatModelAgentMiddleware, error) {
-	backend, err := newSelectedSkillBackend(selectedSkill, toolDefinitions)
+	backend, err := newDatabaseSkillBackend(aiAgent, toolDefinitions)
 	if err != nil {
 		return nil, err
 	}

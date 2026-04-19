@@ -6,16 +6,12 @@ import (
 )
 
 type Request struct {
-	Conversation     models.Conversation
-	UserMessage      models.Message
-	AIAgent          models.AIAgent
-	AIConfig         models.AIConfig
-	ManualSkillCode  string
-	SelectedSkill    *models.SkillDefinition
-	SkillRouteReason string
-	SkillRouteTrace  string
-	CheckPointID     string
-	ToolSet          *registry.ToolSet
+	Conversation models.Conversation
+	UserMessage  models.Message
+	AIAgent      models.AIAgent
+	AIConfig     models.AIConfig
+	CheckPointID string
+	ToolSet      *registry.ToolSet
 }
 
 type ResumeRequest struct {

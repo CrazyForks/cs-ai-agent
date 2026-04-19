@@ -27,39 +27,21 @@ func (s *Service) Run(ctx context.Context, req Request) (*Summary, error) {
 		return nil, nil
 	}
 	req.UserMessage.Content = utils.BuildRuntimeMessageText(req.UserMessage.MessageType, req.UserMessage.Content)
-	selectedSkill, skillReason, skillTrace, skillErr := s.prepare.selectSkill(ctx, req)
-	req.SelectedSkill = selectedSkill
-	req.SkillRouteReason = skillReason
-	req.SkillRouteTrace = skillTrace
-	if req.SelectedSkill != nil {
-		req.SelectedSkill = cloneSkillDefinition(req.SelectedSkill)
-	}
 	if err := s.prepare.prepareToolsForRun(&req); err != nil {
 		return nil, err
 	}
 	summary, err := s.runtime.ExecuteRun(ctx, executor.RunInput{
-		Conversation:     req.Conversation,
-		UserMessage:      req.UserMessage,
-		AIAgent:          req.AIAgent,
-		AIConfig:         req.AIConfig,
-		SelectedSkill:    req.SelectedSkill,
-		SkillRouteReason: req.SkillRouteReason,
-		SkillRouteTrace:  req.SkillRouteTrace,
-		CheckPointID:     req.CheckPointID,
-		ToolSet:          req.ToolSet,
+		Conversation: req.Conversation,
+		UserMessage:  req.UserMessage,
+		AIAgent:      req.AIAgent,
+		AIConfig:     req.AIConfig,
+		CheckPointID: req.CheckPointID,
+		ToolSet:      req.ToolSet,
 	})
 	if err != nil {
-		ret := toSummary(summary)
-		if ret != nil && skillErr != nil && ret.PlanReason == "" {
-			ret.PlanReason = "skill_failed_fallback_runtime"
-		}
-		return ret, err
+		return toSummary(summary), err
 	}
-	ret := toSummary(summary)
-	if ret != nil && skillErr != nil && ret.PlanReason == "" {
-		ret.PlanReason = "skill_failed_fallback_runtime"
-	}
-	return ret, nil
+	return toSummary(summary), nil
 }
 
 func (s *Service) Resume(ctx context.Context, req ResumeRequest) (*Summary, error) {

@@ -34,8 +34,6 @@ type BuildCustomerServiceAgentInput struct {
 	AIAgent models.AIAgent
 	// AIConfig 为模型配置，决定底层使用哪个 ChatModel。
 	AIConfig models.AIConfig
-	// SelectedSkill 为当前命中的技能；为空表示本次运行未命中专项技能。
-	SelectedSkill *models.SkillDefinition
 	// InstructionToolDefinitions 用于生成 instruction 中的工具说明。
 	// 它描述“当前允许模型理解和使用的 MCP 工具范围”。
 	InstructionToolDefinitions []tooling.MCPToolDefinition
@@ -73,11 +71,11 @@ func (f *AgentFactory) BuildCustomerServiceAgent(ctx context.Context, input Buil
 	}
 	allTools := make([]tool.BaseTool, 0, len(input.StaticTools))
 	allTools = append(allTools, input.StaticTools...)
-	instructionResult := f.instructionService.Build(input.AIAgent, input.SelectedSkill, input.InstructionToolDefinitions, input.StaticToolCodes)
+	instructionResult := f.instructionService.Build(input.AIAgent, nil, input.InstructionToolDefinitions, input.StaticToolCodes)
 	handlers := make([]adk.ChatModelAgentMiddleware, 0, 3)
 	if f.handlerService != nil {
 		builtHandlers, err := f.handlerService.Build(ctx, BuildAgentHandlersInput{
-			SelectedSkill:              input.SelectedSkill,
+			AIAgent:                    input.AIAgent,
 			InstructionToolDefinitions: input.InstructionToolDefinitions,
 			DynamicToolDefinitions:     input.DynamicMCPToolDefinitions,
 			DynamicTools:               dynamicTools,

@@ -36,3 +36,32 @@ func TestExtractCandidateToolCodes(t *testing.T) {
 		t.Fatalf("unexpected candidate codes: %#v", got)
 	}
 }
+
+func TestTryActivateSkill(t *testing.T) {
+	collector := NewRuntimeTraceCollector()
+	handler := &RuntimeTraceHandler{
+		collector: collector,
+		skillMetadataBy: map[string]SkillMetadata{
+			"after_sales_escalation_skill": {
+				Code:             "after_sales_escalation_skill",
+				Name:             "售后升级",
+				AllowedToolCodes: []string{"graph/handoff_to_human"},
+			},
+		},
+	}
+
+	handler.tryActivateSkill(`{"skill":"after_sales_escalation_skill"}`)
+
+	if collector.Data.Skill.Code != "after_sales_escalation_skill" {
+		t.Fatalf("unexpected skill code: %#v", collector.Data.Skill)
+	}
+	if collector.Data.Skill.Name != "售后升级" {
+		t.Fatalf("unexpected skill name: %#v", collector.Data.Skill)
+	}
+	if collector.Data.Skill.RouteReason != "eino_skill_tool" {
+		t.Fatalf("unexpected route reason: %#v", collector.Data.Skill)
+	}
+	if len(collector.Data.Skill.AllowedToolCodes) != 1 || collector.Data.Skill.AllowedToolCodes[0] != "graph/handoff_to_human" {
+		t.Fatalf("unexpected allowed tools: %#v", collector.Data.Skill.AllowedToolCodes)
+	}
+}

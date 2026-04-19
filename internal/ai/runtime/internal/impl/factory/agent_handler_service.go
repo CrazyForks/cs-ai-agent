@@ -19,7 +19,7 @@ type AgentHandlerService struct {
 }
 
 type BuildAgentHandlersInput struct {
-	SelectedSkill              *models.SkillDefinition
+	AIAgent                    models.AIAgent
 	InstructionToolDefinitions []runtimetooling.MCPToolDefinition
 	DynamicToolDefinitions     []runtimetooling.MCPToolDefinition
 	DynamicTools               []einobasetool.BaseTool
@@ -46,20 +46,31 @@ func (s *AgentHandlerService) Build(ctx context.Context, input BuildAgentHandler
 		}
 		handlers = append(handlers, toolSearchHandler)
 	}
-	if input.SelectedSkill != nil {
-		skillHandler, err := s.skillMiddleware.Build(ctx, input.SelectedSkill, input.InstructionToolDefinitions)
+	skillMetadataByCode := buildRuntimeSkillMetadataMap(input.AIAgent)
+	if len(skillMetadataByCode) > 0 {
+		skillHandler, err := s.skillMiddleware.Build(ctx, input.AIAgent, input.InstructionToolDefinitions)
 		if err != nil {
 			return nil, err
 		}
 		handlers = append(handlers, skillHandler)
 	}
 	if input.Collector != nil {
-		toolMetadataBy := buildRuntimeTraceToolMetadata(input.DynamicToolDefinitions, input.StaticToolMetadata, input.SelectedSkill)
-		if input.SelectedSkill != nil {
+		toolMetadataBy := buildRuntimeTraceToolMetadata(input.DynamicToolDefinitions, input.StaticToolMetadata, len(skillMetadataByCode) > 0)
+		traceSkillMetadata := make(map[string]einocallbacks.SkillMetadata, len(skillMetadataByCode))
+		for code, item := range skillMetadataByCode {
+			traceSkillMetadata[code] = einocallbacks.SkillMetadata{
+				Code:             item.Code,
+				Name:             item.Name,
+				Description:      item.Description,
+				AllowedToolCodes: append([]string(nil), item.AllowedToolCodes...),
+			}
+		}
+		if len(skillMetadataByCode) > 0 {
 			input.Collector.SetSkillMiddleware(true, toolx.BuiltinSkill.Name)
 		}
+		input.Collector.SetVisibleSkills(traceSkillMetadata)
 		input.Collector.SetInstructionSummary(input.InstructionSummary)
-		handlers = append(handlers, einocallbacks.NewRuntimeTraceHandler(input.Collector, toolMetadataBy))
+		handlers = append(handlers, einocallbacks.NewRuntimeTraceHandler(input.Collector, toolMetadataBy, traceSkillMetadata))
 	}
 	return handlers, nil
 }
