@@ -9,14 +9,6 @@ import { OptionCombobox } from "@/components/option-combobox"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { AgentRunLogDetailDialog } from "./_components/detail"
 import {
   fetchAgentRunLogs,
@@ -183,8 +175,8 @@ export default function DashboardAgentRunLogsPage() {
   return (
     <>
       <div className="flex flex-1 flex-col gap-6 p-4 lg:p-6">
-        <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-end">
-          <div className="relative min-w-72">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-[minmax(0,1.6fr)_repeat(5,minmax(0,0.7fr))_auto_auto] xl:items-center">
+          <div className="relative min-w-0">
             <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={keywordInput}
@@ -194,7 +186,7 @@ export default function DashboardAgentRunLogsPage() {
               className="pl-9"
             />
           </div>
-          <div className="w-full xl:w-40">
+          <div className="min-w-0">
             <OptionCombobox
               value={plannedActionInput}
               options={actionOptions}
@@ -204,7 +196,7 @@ export default function DashboardAgentRunLogsPage() {
               onChange={(value) => setPlannedActionInput(value || "all")}
             />
           </div>
-          <div className="w-full xl:w-40">
+          <div className="min-w-0">
             <OptionCombobox
               value={finalActionInput}
               options={actionOptions}
@@ -214,7 +206,7 @@ export default function DashboardAgentRunLogsPage() {
               onChange={(value) => setFinalActionInput(value || "all")}
             />
           </div>
-          <div className="w-full xl:w-40">
+          <div className="min-w-0">
             <OptionCombobox
               value={finalStatusInput}
               options={finalStatusOptions}
@@ -224,7 +216,7 @@ export default function DashboardAgentRunLogsPage() {
               onChange={(value) => setFinalStatusInput(value || "all")}
             />
           </div>
-          <div className="w-full xl:w-40">
+          <div className="min-w-0">
             <OptionCombobox
               value={hitlStatusInput}
               options={hitlStatusOptions}
@@ -234,7 +226,7 @@ export default function DashboardAgentRunLogsPage() {
               onChange={(value) => setHitlStatusInput(value || "all")}
             />
           </div>
-          <div className="w-full xl:w-52">
+          <div className="min-w-0">
             <OptionCombobox
               value={aiAgentIdInput}
               options={aiAgentOptions}
@@ -244,119 +236,122 @@ export default function DashboardAgentRunLogsPage() {
               onChange={(value) => setAiAgentIdInput(value || "all")}
             />
           </div>
-          <Button variant="outline" onClick={applyFilters} disabled={loading}>
+          <Button variant="outline" onClick={applyFilters} disabled={loading} className="w-full xl:w-auto">
             <SearchIcon />
             查询
           </Button>
-          <Button variant="outline" onClick={() => void loadData()} disabled={loading}>
+          <Button
+            variant="outline"
+            onClick={() => void loadData()}
+            disabled={loading}
+            className="w-full xl:w-auto"
+          >
             <RefreshCwIcon className={loading ? "animate-spin" : ""} />
             刷新列表
           </Button>
         </div>
 
         <div className="overflow-hidden rounded-lg border bg-background">
-          <Table>
-            <TableHeader className="bg-muted/40">
-              <TableRow>
-                <TableHead className="w-[180px]">时间</TableHead>
-                <TableHead>用户问题</TableHead>
-                <TableHead className="w-[120px]">规划动作</TableHead>
-                <TableHead className="w-[220px]">Skill / Tool</TableHead>
-                <TableHead className="w-[140px]">最终状态</TableHead>
-                <TableHead className="w-[110px] text-right">耗时</TableHead>
-                <TableHead className="w-[96px] text-right">操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {!loading && result.results.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="py-14 text-center text-muted-foreground">
-                    暂无 Agent 运行日志
-                  </TableCell>
-                </TableRow>
-              ) : null}
-              {result.results.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {formatDateTime(item.createdAt)}
-                  </TableCell>
-                  <TableCell>
-                    <UserMessagePreview value={item.userMessage} />
-                    {item.errorMessage ? (
-                      <div className="mt-1 line-clamp-1 text-xs text-destructive">
-                        {item.errorMessage}
-                      </div>
-                    ) : null}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={actionBadgeVariant(item.plannedAction)}>
-                      {item.plannedAction || "-"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {item.plannedSkillCode || item.plannedToolCode ? (
-                      <div className="space-y-1">
-                        <Badge variant="outline">
-                          {item.plannedSkillCode || item.graphToolCode || item.plannedToolCode}
-                        </Badge>
-                        {item.plannedSkillName ? (
-                          <div className="line-clamp-1 text-xs text-muted-foreground">
-                            {item.plannedSkillName}
-                          </div>
-                        ) : null}
-                        {item.handoffReason ? (
-                          <div className="line-clamp-1 text-xs text-muted-foreground">
-                            转人工原因：{item.handoffReason}
-                          </div>
-                        ) : null}
-                        {item.recommendedAction ? (
-                          <div className="line-clamp-1 text-xs text-muted-foreground">
-                            分流建议：{item.recommendedAction}
-                            {item.riskLevel ? ` / ${item.riskLevel} risk` : ""}
-                            {item.ticketDraftReady ? " / 草稿已就绪" : ""}
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <Badge variant={actionBadgeVariant(item.finalAction)}>
-                        {item.finalAction || "-"}
-                      </Badge>
-                      {item.hitlStatusName ? (
-                        <div>
-                          <Badge variant={hitlBadgeVariant(item.hitlStatus)}>
-                            {item.hitlStatusName}
-                          </Badge>
-                        </div>
+          {!loading && result.results.length === 0 ? (
+            <div className="py-14 text-center text-sm text-muted-foreground">
+              暂无 Agent 运行日志
+            </div>
+          ) : (
+            <div>
+              <div className="hidden grid-cols-[160px_minmax(0,1.8fr)_110px_minmax(0,1.2fr)_130px_90px_76px] gap-3 border-b bg-muted/40 px-4 py-3 text-sm text-muted-foreground lg:grid">
+                <div>时间</div>
+                <div>用户问题</div>
+                <div>规划动作</div>
+                <div>Skill / Tool</div>
+                <div>最终状态</div>
+                <div className="text-right">耗时</div>
+                <div className="text-right">操作</div>
+              </div>
+
+              <div className="divide-y">
+                {result.results.map((item) => (
+                  <article
+                    key={item.id}
+                    className="grid grid-cols-1 gap-2 px-4 py-3 lg:grid-cols-[160px_minmax(0,1.8fr)_110px_minmax(0,1.2fr)_130px_90px_76px] lg:items-center lg:gap-3"
+                  >
+                    <div className="min-w-0 text-sm text-muted-foreground">
+                      {formatDateTime(item.createdAt)}
+                    </div>
+
+                    <div className="min-w-0">
+                      <UserMessagePreview value={item.userMessage} />
+                      {item.errorMessage ? (
+                        <div className="truncate text-xs text-destructive">{item.errorMessage}</div>
                       ) : null}
-                      <div className="text-xs text-muted-foreground">
-                        {item.finalStatus || "-"}
+                    </div>
+
+                    <div className="min-w-0">
+                      <Badge variant={actionBadgeVariant(item.plannedAction)}>
+                        {item.plannedAction || "-"}
+                      </Badge>
+                    </div>
+
+                    <div className="min-w-0 text-sm">
+                      {item.plannedSkillCode || item.graphToolCode || item.plannedToolCode ? (
+                        <div className="min-w-0 space-y-1">
+                          <div className="truncate font-medium">
+                            {item.plannedSkillCode || item.graphToolCode || item.plannedToolCode}
+                          </div>
+                          {item.plannedSkillName ? (
+                            <div className="truncate text-xs text-muted-foreground">
+                              {item.plannedSkillName}
+                            </div>
+                          ) : item.handoffReason ? (
+                            <div className="truncate text-xs text-muted-foreground">
+                              转人工原因：{item.handoffReason}
+                            </div>
+                          ) : item.recommendedAction ? (
+                            <div className="truncate text-xs text-muted-foreground">
+                              分流建议：{item.recommendedAction}
+                              {item.riskLevel ? ` / ${item.riskLevel} risk` : ""}
+                              {item.ticketDraftReady ? " / 草稿已就绪" : ""}
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="space-y-1">
+                        <Badge variant={actionBadgeVariant(item.finalAction)}>
+                          {item.finalAction || "-"}
+                        </Badge>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {item.hitlStatusName
+                            ? `${item.hitlStatusName} / ${item.finalStatus || "-"}`
+                            : item.finalStatus || "-"}
+                        </div>
                       </div>
                     </div>
-                  </TableCell>
-                  <TableCell className="text-right text-sm text-muted-foreground">
-                    {item.latencyMs} ms
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setActiveLogId(item.id)
-                        setDetailOpen(true)
-                      }}
-                    >
-                      详情
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+
+                    <div className="text-sm text-muted-foreground lg:text-right">
+                      {item.latencyMs} ms
+                    </div>
+
+                    <div className="lg:text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setActiveLogId(item.id)
+                          setDetailOpen(true)
+                        }}
+                      >
+                        详情
+                      </Button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="border-t px-4 py-3">
             <ListPagination
               page={result.page.page}
@@ -390,7 +385,7 @@ function UserMessagePreview({ value }: { value?: string }) {
   const preview = useMemo(() => summarizeUserMessage(value), [value])
 
   return (
-    <div className="line-clamp-2 max-w-[620px] text-sm text-muted-foreground">
+    <div className="truncate text-sm text-foreground">
       {preview}
     </div>
   )
