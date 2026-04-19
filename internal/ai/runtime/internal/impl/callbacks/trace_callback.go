@@ -12,6 +12,8 @@ type ToolTraceItem struct {
 	LatencyMs     int64          `json:"latencyMs,omitempty"`
 	Status        string         `json:"status,omitempty"`
 	ErrorMessage  string         `json:"errorMessage,omitempty"`
+	Blocked       bool           `json:"blocked,omitempty"`
+	BlockedReason string         `json:"blockedReason,omitempty"`
 }
 
 type ToolSearchTraceItem struct {
@@ -146,6 +148,7 @@ type SkillTraceData struct {
 	RouteReason        string   `json:"routeReason,omitempty"`
 	RouteTrace         string   `json:"routeTrace,omitempty"`
 	AllowedToolCodes   []string `json:"allowedToolCodes,omitempty"`
+	FilteredToolCodes  []string `json:"filteredToolCodes,omitempty"`
 	MiddlewareEnabled  bool     `json:"middlewareEnabled,omitempty"`
 	MiddlewareToolName string   `json:"middlewareToolName,omitempty"`
 	VisibleCodes       []string `json:"visibleCodes,omitempty"`

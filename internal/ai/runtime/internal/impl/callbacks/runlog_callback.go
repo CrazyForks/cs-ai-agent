@@ -100,6 +100,15 @@ func (c *RuntimeTraceCollector) ActivateSkill(skill SkillMetadata, routeReason s
 	c.Data.Skill.RouteTrace = routeTrace
 }
 
+func (c *RuntimeTraceCollector) SetFilteredToolCodes(toolCodes []string) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.Data.Skill.FilteredToolCodes = append([]string(nil), toolCodes...)
+}
+
 func (c *RuntimeTraceCollector) SetRetrieverSummary(summary RetrieverTraceSummary) {
 	if c == nil {
 		return

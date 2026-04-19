@@ -214,4 +214,7 @@ func syncSkillSummaryFromCollector(summary *RunResult, collector *callbacks.Runt
 	summary.SkillRouteReason = strings.TrimSpace(trace.RouteReason)
 	summary.SkillRouteTrace = strings.TrimSpace(trace.RouteTrace)
 	summary.SkillAllowedToolCodes = append([]string(nil), trace.AllowedToolCodes...)
+	if len(trace.FilteredToolCodes) > 0 {
+		summary.ToolCodes = append([]string(nil), trace.FilteredToolCodes...)
+	}
 }
