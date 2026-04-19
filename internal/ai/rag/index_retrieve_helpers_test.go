@@ -8,7 +8,7 @@ import (
 )
 
 func TestBuildFAQChunkContent(t *testing.T) {
-	faq := &models.KnowledgeFAQ{
+	faq := models.KnowledgeFAQ{
 		Question:         "如何退款",
 		SimilarQuestions: `["退款怎么申请","申请售后"]`,
 		Answer:           "在订单页发起退款。",
@@ -27,8 +27,8 @@ func TestBuildFAQChunkContent(t *testing.T) {
 }
 
 func TestBuildFAQChunkModel(t *testing.T) {
-	knowledgeBase := &models.KnowledgeBase{ID: 11}
-	faq := &models.KnowledgeFAQ{ID: 22, Question: "如何退款"}
+	knowledgeBase := models.KnowledgeBase{ID: 11}
+	faq := models.KnowledgeFAQ{ID: 22, Question: "如何退款"}
 
 	chunk, chunkID := buildFAQChunkModel(knowledgeBase, faq, "问题：如何退款\n回答：在订单页发起退款。")
 	if chunkID == "" {

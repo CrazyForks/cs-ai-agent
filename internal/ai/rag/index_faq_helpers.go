@@ -11,7 +11,7 @@ import (
 	"cs-agent/internal/pkg/enums"
 )
 
-func buildFAQChunkModel(knowledgeBase *models.KnowledgeBase, faq *models.KnowledgeFAQ, content string) (models.KnowledgeChunk, string) {
+func buildFAQChunkModel(knowledgeBase models.KnowledgeBase, faq models.KnowledgeFAQ, content string) (models.KnowledgeChunk, string) {
 	chunkID := buildKnowledgeFAQChunkVectorID(knowledgeBase.ID, faq.ID, 0)
 	now := time.Now()
 	return models.KnowledgeChunk{
@@ -32,7 +32,7 @@ func buildFAQChunkModel(knowledgeBase *models.KnowledgeBase, faq *models.Knowled
 	}, chunkID
 }
 
-func (s *index) prepareFAQVector(ctx context.Context, knowledgeBase *models.KnowledgeBase, faq *models.KnowledgeFAQ, content string) (vectordb.Vector, models.KnowledgeChunk, int, error) {
+func (s *index) prepareFAQVector(ctx context.Context, knowledgeBase models.KnowledgeBase, faq models.KnowledgeFAQ, content string) (vectordb.Vector, models.KnowledgeChunk, int, error) {
 	embeddingResult, err := ai.Embedding.GenerateEmbedding(ctx, content)
 	if err != nil {
 		return vectordb.Vector{}, models.KnowledgeChunk{}, 0, fmt.Errorf("failed to generate embedding for faq %d: %w", faq.ID, err)

@@ -54,7 +54,7 @@ func (s *index) IndexDocumentByID(ctx context.Context, documentID int64) error {
 	return s.IndexDocument(ctx, document)
 }
 
-func (s *index) IndexDocument(ctx context.Context, document *models.KnowledgeDocument) error {
+func (s *index) IndexDocument(ctx context.Context, document models.KnowledgeDocument) error {
 	start := time.Now()
 	if err := s.markDocumentIndexPending(document.ID); err != nil {
 		slog.Error("Failed to mark knowledge document index as pending", "document_id", document.ID, "error", err)
@@ -302,10 +302,7 @@ func (s *index) RebuildKnowledgeBaseIndex(ctx context.Context, knowledgeBaseID i
 	return nil
 }
 
-func buildFAQChunkContent(faq *models.KnowledgeFAQ) string {
-	if faq == nil {
-		return ""
-	}
+func buildFAQChunkContent(faq models.KnowledgeFAQ) string {
 	parts := []string{fmt.Sprintf("问题：%s", faq.Question)}
 	var similarQuestions []string
 	if faq.SimilarQuestions != "" {

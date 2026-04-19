@@ -46,6 +46,13 @@ func (s *aiReplyService) TriggerReply(ctx context.Context, conversation models.C
 	startedAt := time.Now()
 	trace := &aiReplyTraceData{Status: "started"}
 	var summary *applicationruntime.Summary
+	replyCtx := aiReplyContext{
+		Conversation: conversation,
+		Message:      message,
+		AIAgent:      aiAgent,
+		Trace:        trace,
+		SummaryRef:   &summary,
+	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -65,46 +72,43 @@ func (s *aiReplyService) TriggerReply(ctx context.Context, conversation models.C
 		})
 	}()
 	if pendingInterrupt := svc.ConversationInterruptService.FindLatestPendingByConversationID(conversation.ID); pendingInterrupt != nil {
-		return s.resumePendingInterrupt(ctx, conversation, message, aiAgent, pendingInterrupt, trace, &summary)
+		replyCtx.PendingInterrupt = pendingInterrupt
+		return s.resumePendingInterrupt(ctx, replyCtx)
 	}
-	return s.executeReply(ctx, conversation, message, aiAgent, trace, &summary)
+	return s.executeReply(ctx, replyCtx)
 }
 
-func (s *aiReplyService) resumePendingInterrupt(ctx context.Context, conversation models.Conversation, message models.Message, aiAgent models.AIAgent,
-	pendingInterrupt *models.ConversationInterrupt, trace *aiReplyTraceData, summaryRef **applicationruntime.Summary) error {
-	return s.interrupts.ResumePendingInterrupt(ctx, s, conversation, message, aiAgent, pendingInterrupt, trace, summaryRef)
+func (s *aiReplyService) resumePendingInterrupt(ctx context.Context, replyCtx aiReplyContext) error {
+	return s.interrupts.ResumePendingInterrupt(ctx, s, replyCtx)
 }
 
-func (s *aiReplyService) executeReply(ctx context.Context, conversation models.Conversation, message models.Message, aiAgent models.AIAgent,
-	trace *aiReplyTraceData, summaryRef **applicationruntime.Summary) error {
+func (s *aiReplyService) executeReply(ctx context.Context, replyCtx aiReplyContext) error {
 	summary, err := s.executor.Run(ctx, runtimeReplyRunInput{
-		Conversation: conversation,
-		Message:      message,
-		AIAgent:      aiAgent,
-		Trace:        trace,
+		Conversation: replyCtx.Conversation,
+		Message:      replyCtx.Message,
+		AIAgent:      replyCtx.AIAgent,
+		Trace:        replyCtx.Trace,
 	})
-	if summaryRef != nil {
-		*summaryRef = summary
-	}
+	replyCtx.setSummary(summary)
 	if err != nil {
 		return err
 	}
 	if summary != nil && summary.Interrupted {
-		return s.interrupts.HandleInterruptedSummary(s, conversation, message, aiAgent, summary, trace)
+		return s.interrupts.HandleInterruptedSummary(s, replyCtx, summary)
 	}
 	if summary != nil && strings.TrimSpace(summary.ReplyText) != "" {
 		replyMessage, err := s.commit.CommitAIReply(replyCommitInput{
-			Conversation: conversation,
-			Message:      message,
-			AIAgent:      aiAgent,
+			Conversation: replyCtx.Conversation,
+			Message:      replyCtx.Message,
+			AIAgent:      replyCtx.AIAgent,
 			ReplyText:    summary.ReplyText,
-			Trace:        trace,
+			Trace:        replyCtx.Trace,
 			ClientPrefix: "ai_reply",
 		})
 		if err != nil {
 			return err
 		}
-		trace.ReplySent = replyMessage != nil
+		replyCtx.Trace.ReplySent = replyMessage != nil
 	}
 	return nil
 }

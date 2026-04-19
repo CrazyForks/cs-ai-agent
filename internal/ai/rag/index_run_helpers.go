@@ -13,7 +13,7 @@ import (
 	"github.com/mlogclub/simple/sqls"
 )
 
-func (s *index) runDocumentIndex(ctx context.Context, document *models.KnowledgeDocument, knowledgeBase *models.KnowledgeBase) ([]vectordb.Vector, int, error) {
+func (s *index) runDocumentIndex(ctx context.Context, document models.KnowledgeDocument, knowledgeBase models.KnowledgeBase) ([]vectordb.Vector, int, error) {
 	existingChunks := repositories.KnowledgeChunkRepository.FindByDocumentID(sqls.DB(), document.ID)
 	chunks, err := s.buildDocumentChunks(ctx, document, knowledgeBase)
 	if err != nil {
@@ -51,7 +51,7 @@ func (s *index) runDocumentIndex(ctx context.Context, document *models.Knowledge
 	return vectors, len(chunks), nil
 }
 
-func (s *index) runFAQIndex(ctx context.Context, faq *models.KnowledgeFAQ, knowledgeBase *models.KnowledgeBase) error {
+func (s *index) runFAQIndex(ctx context.Context, faq models.KnowledgeFAQ, knowledgeBase models.KnowledgeBase) error {
 	existingChunks := repositories.KnowledgeChunkRepository.FindByFaqID(sqls.DB(), faq.ID)
 	content := buildFAQChunkContent(faq)
 	if content == "" {

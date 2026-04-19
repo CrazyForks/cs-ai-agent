@@ -15,7 +15,7 @@ import (
 	"github.com/mlogclub/simple/common/strs"
 )
 
-func (s *index) buildDocumentChunkRequest(document *models.KnowledgeDocument, knowledgeBase *models.KnowledgeBase) *ragchunk.ChunkRequest {
+func (s *index) buildDocumentChunkRequest(document models.KnowledgeDocument, knowledgeBase models.KnowledgeBase) *ragchunk.ChunkRequest {
 	return &ragchunk.ChunkRequest{
 		KnowledgeBaseID: document.KnowledgeBaseID,
 		DocumentID:      document.ID,
@@ -33,7 +33,7 @@ func (s *index) buildDocumentChunkRequest(document *models.KnowledgeDocument, kn
 	}
 }
 
-func (s *index) buildDocumentChunks(ctx context.Context, document *models.KnowledgeDocument, knowledgeBase *models.KnowledgeBase) ([]ragchunk.ChunkResult, error) {
+func (s *index) buildDocumentChunks(ctx context.Context, document models.KnowledgeDocument, knowledgeBase models.KnowledgeBase) ([]ragchunk.ChunkResult, error) {
 	chunks, err := s.registry.Chunk(ctx, s.buildDocumentChunkRequest(document, knowledgeBase))
 	if err != nil {
 		return nil, fmt.Errorf("failed to chunk document: %w", err)
@@ -54,7 +54,7 @@ func collectExistingVectorIDs(chunks []models.KnowledgeChunk) []string {
 	return ret
 }
 
-func (s *index) prepareDocumentVectors(ctx context.Context, knowledgeBase *models.KnowledgeBase, document *models.KnowledgeDocument, chunks []ragchunk.ChunkResult) ([]vectordb.Vector, []models.KnowledgeChunk, int, error) {
+func (s *index) prepareDocumentVectors(ctx context.Context, knowledgeBase models.KnowledgeBase, document models.KnowledgeDocument, chunks []ragchunk.ChunkResult) ([]vectordb.Vector, []models.KnowledgeChunk, int, error) {
 	vectors := make([]vectordb.Vector, 0, len(chunks))
 	chunkModels := make([]models.KnowledgeChunk, 0, len(chunks))
 	dimension := 0
