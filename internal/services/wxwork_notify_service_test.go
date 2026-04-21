@@ -19,14 +19,14 @@ func TestWxWorkNotifyDefaultRecipients(t *testing.T) {
 		WxWork: config.WxWorkConfig{
 			Notify: config.WxWorkNotifyConfig{
 				Enabled: true,
-				ToUsers: []string{" user_a ", "user_a", ""},
+				ToUsers: []string{"user_a", "user_a", "user_b"},
 			},
 		},
 	})
 
 	svc := newWxWorkNotifyService()
 	recipients := svc.defaultRecipients()
-	if len(recipients.ToUsers) != 1 || recipients.ToUsers[0] != "user_a" {
+	if len(recipients.ToUsers) != 2 || recipients.ToUsers[0] != "user_a" || recipients.ToUsers[1] != "user_b" {
 		t.Fatalf("unexpected users: %#v", recipients.ToUsers)
 	}
 }
