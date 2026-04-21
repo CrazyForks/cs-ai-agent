@@ -14,9 +14,14 @@ type Handler[T any] func(ctx context.Context, event T) error
 
 type ErrorHandler func(ctx context.Context, err error)
 
+type handlerEntry[T any] struct {
+	id      uint64
+	handler Handler[T]
+}
+
 type Bus[T any] struct {
 	mu       sync.RWMutex
-	handlers map[uint64]Handler[T]
+	handlers []handlerEntry[T]
 	nextID   uint64
 
 	onError ErrorHandler
@@ -26,9 +31,7 @@ type Bus[T any] struct {
 }
 
 func New[T any](opts ...Option[T]) *Bus[T] {
-	b := &Bus[T]{
-		handlers: make(map[uint64]Handler[T]),
-	}
+	b := &Bus[T]{}
 	for _, opt := range opts {
 		opt(b)
 	}
@@ -60,7 +63,10 @@ func (b *Bus[T]) Subscribe(h Handler[T]) (uint64, func()) {
 	id := atomic.AddUint64(&b.nextID, 1)
 
 	b.mu.Lock()
-	b.handlers[id] = h
+	b.handlers = append(b.handlers, handlerEntry[T]{
+		id:      id,
+		handler: h,
+	})
 	b.mu.Unlock()
 
 	return id, func() {
@@ -87,7 +93,10 @@ func (b *Bus[T]) SubscribeOnce(h Handler[T]) (uint64, func()) {
 	id = atomic.AddUint64(&b.nextID, 1)
 
 	b.mu.Lock()
-	b.handlers[id] = wrapper
+	b.handlers = append(b.handlers, handlerEntry[T]{
+		id:      id,
+		handler: wrapper,
+	})
 	b.mu.Unlock()
 
 	return id, func() {
@@ -97,7 +106,13 @@ func (b *Bus[T]) SubscribeOnce(h Handler[T]) (uint64, func()) {
 
 func (b *Bus[T]) Unsubscribe(id uint64) {
 	b.mu.Lock()
-	delete(b.handlers, id)
+	for i, entry := range b.handlers {
+		if entry.id != id {
+			continue
+		}
+		b.handlers = append(b.handlers[:i], b.handlers[i+1:]...)
+		break
+	}
 	b.mu.Unlock()
 }
 
@@ -130,8 +145,8 @@ func (b *Bus[T]) snapshotHandlers() []Handler[T] {
 	defer b.mu.RUnlock()
 
 	handlers := make([]Handler[T], 0, len(b.handlers))
-	for _, h := range b.handlers {
-		handlers = append(handlers, h)
+	for _, entry := range b.handlers {
+		handlers = append(handlers, entry.handler)
 	}
 	return handlers
 }

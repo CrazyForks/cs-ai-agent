@@ -3,6 +3,7 @@ package eventbus
 import (
 	"context"
 	"errors"
+	"reflect"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -50,6 +51,60 @@ func TestPublishReturnsJoinedHandlerErrors(t *testing.T) {
 	}
 	if !errors.Is(err, secondErr) {
 		t.Fatalf("expected joined error to include second error, got %v", err)
+	}
+}
+
+func TestPublishCallsHandlersInSubscribeOrder(t *testing.T) {
+	bus := New[testEvent]()
+	calls := make([]int, 0, 3)
+
+	bus.Subscribe(func(ctx context.Context, event testEvent) error {
+		calls = append(calls, 1)
+		return nil
+	})
+	bus.Subscribe(func(ctx context.Context, event testEvent) error {
+		calls = append(calls, 2)
+		return nil
+	})
+	bus.Subscribe(func(ctx context.Context, event testEvent) error {
+		calls = append(calls, 3)
+		return nil
+	})
+
+	if err := bus.Publish(context.Background(), testEvent{}); err != nil {
+		t.Fatalf("publish failed: %v", err)
+	}
+
+	if !reflect.DeepEqual(calls, []int{1, 2, 3}) {
+		t.Fatalf("expected handlers to run in subscribe order, got %#v", calls)
+	}
+}
+
+func TestUnsubscribeKeepsRemainingHandlerOrder(t *testing.T) {
+	bus := New[testEvent]()
+	calls := make([]int, 0, 2)
+
+	bus.Subscribe(func(ctx context.Context, event testEvent) error {
+		calls = append(calls, 1)
+		return nil
+	})
+	_, unsubscribe := bus.Subscribe(func(ctx context.Context, event testEvent) error {
+		calls = append(calls, 2)
+		return nil
+	})
+	bus.Subscribe(func(ctx context.Context, event testEvent) error {
+		calls = append(calls, 3)
+		return nil
+	})
+
+	unsubscribe()
+
+	if err := bus.Publish(context.Background(), testEvent{}); err != nil {
+		t.Fatalf("publish failed: %v", err)
+	}
+
+	if !reflect.DeepEqual(calls, []int{1, 3}) {
+		t.Fatalf("expected remaining handlers to keep order, got %#v", calls)
 	}
 }
 
