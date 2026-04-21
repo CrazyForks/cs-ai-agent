@@ -21,10 +21,6 @@ type wxWorkMessageSender interface {
 	SendText(request wxmessage.SendTextRequest) (*wxmessage.SendResponse, error)
 }
 
-type wxWorkNotifyRecipients struct {
-	ToUsers []string
-}
-
 type wxWorkNotifyService struct {
 	senderFactory func() (wxWorkMessageSender, error)
 }
@@ -51,17 +47,17 @@ func (s *wxWorkNotifyService) SendTextToAssigneeOrDefault(assigneeID int64, titl
 	if !s.Enabled() {
 		return nil
 	}
-	recipients := s.resolveRecipientsByUserIDs([]int64{assigneeID})
-	if recipients.empty() {
-		recipients = s.defaultRecipients()
+	toUsers := s.resolveToUsersByUserIDs([]int64{assigneeID})
+	if len(toUsers) == 0 {
+		toUsers = s.defaultToUsers()
 	}
-	if recipients.empty() {
+	if len(toUsers) == 0 {
 		return nil
 	}
-	return s.sendText(title, body, recipients)
+	return s.sendText(title, body, toUsers)
 }
 
-func (s *wxWorkNotifyService) sendText(title, body string, recipients wxWorkNotifyRecipients) error {
+func (s *wxWorkNotifyService) sendText(title, body string, toUsers []string) error {
 	if !s.Enabled() {
 		return nil
 	}
@@ -76,7 +72,7 @@ func (s *wxWorkNotifyService) sendText(title, body string, recipients wxWorkNoti
 	cfg := config.Current().WxWork
 	req := wxmessage.SendTextRequest{
 		SendRequestCommon: &wxmessage.SendRequestCommon{
-			ToUser:                 strings.Join(recipients.ToUsers, "|"),
+			ToUser:                 strings.Join(toUsers, "|"),
 			AgentID:                strings.TrimSpace(cfg.AgentID),
 			Safe:                   cast.ToInt(cfg.Notify.Safe),
 			EnableDuplicateCheck:   cast.ToInt(cfg.Notify.EnableDuplicateCheck),
@@ -88,10 +84,10 @@ func (s *wxWorkNotifyService) sendText(title, body string, recipients wxWorkNoti
 	return err
 }
 
-func (s *wxWorkNotifyService) resolveRecipientsByUserIDs(userIDs []int64) wxWorkNotifyRecipients {
+func (s *wxWorkNotifyService) resolveToUsersByUserIDs(userIDs []int64) []string {
 	userIDs = arrs.Distinct(userIDs)
 	if len(userIDs) == 0 {
-		return wxWorkNotifyRecipients{}
+		return nil
 	}
 	cfg := config.Current().WxWork
 	identities := repositories.UserIdentityRepository.Find(sqls.DB(), sqls.NewCnd().
@@ -100,21 +96,18 @@ func (s *wxWorkNotifyService) resolveRecipientsByUserIDs(userIDs []int64) wxWork
 		Eq("status", enums.StatusOk).
 		In("user_id", userIDs).
 		Asc("id"))
-	recipients := wxWorkNotifyRecipients{}
+	toUsers := make([]string, 0, len(identities))
 	for i := range identities {
 		if receiver := strings.TrimSpace(identities[i].ProviderUserID); receiver != "" {
-			recipients.ToUsers = append(recipients.ToUsers, receiver)
+			toUsers = append(toUsers, receiver)
 		}
 	}
-	recipients.ToUsers = arrs.Distinct(recipients.ToUsers)
-	return recipients
+	return arrs.Distinct(toUsers)
 }
 
-func (s *wxWorkNotifyService) defaultRecipients() wxWorkNotifyRecipients {
+func (s *wxWorkNotifyService) defaultToUsers() []string {
 	cfg := config.Current().WxWork.Notify
-	return wxWorkNotifyRecipients{
-		ToUsers: arrs.Distinct(cfg.ToUsers),
-	}
+	return arrs.Distinct(cfg.ToUsers)
 }
 
 func (s *wxWorkNotifyService) buildTextContent(title, body string) string {
@@ -140,10 +133,6 @@ func (s *wxWorkNotifyService) normalizeDuplicateCheckInterval(value int) int {
 		return 14400
 	}
 	return value
-}
-
-func (r wxWorkNotifyRecipients) empty() bool {
-	return len(r.ToUsers) == 0
 }
 
 func truncateRunes(value string, max int) string {

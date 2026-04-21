@@ -25,9 +25,9 @@ func TestWxWorkNotifyDefaultRecipients(t *testing.T) {
 	})
 
 	svc := newWxWorkNotifyService()
-	recipients := svc.defaultRecipients()
-	if len(recipients.ToUsers) != 2 || recipients.ToUsers[0] != "user_a" || recipients.ToUsers[1] != "user_b" {
-		t.Fatalf("unexpected users: %#v", recipients.ToUsers)
+	toUsers := svc.defaultToUsers()
+	if len(toUsers) != 2 || toUsers[0] != "user_a" || toUsers[1] != "user_b" {
+		t.Fatalf("unexpected users: %#v", toUsers)
 	}
 }
 
