@@ -9,8 +9,10 @@ import (
 	"cs-agent/internal/repositories"
 	"cs-agent/internal/wxwork"
 
+	"github.com/mlogclub/simple/common/arrs"
 	"github.com/mlogclub/simple/sqls"
 	wxmessage "github.com/silenceper/wechat/v2/work/message"
+	"github.com/spf13/cast"
 )
 
 var WxWorkNotifyService = newWxWorkNotifyService()
@@ -80,8 +82,8 @@ func (s *wxWorkNotifyService) sendText(title, body string, recipients wxWorkNoti
 			ToParty:                strings.Join(recipients.ToParties, "|"),
 			ToTag:                  strings.Join(recipients.ToTags, "|"),
 			AgentID:                strings.TrimSpace(cfg.AgentID),
-			Safe:                   boolToInt(cfg.Notify.Safe),
-			EnableDuplicateCheck:   boolToInt(cfg.Notify.EnableDuplicateCheck),
+			Safe:                   cast.ToInt(cfg.Notify.Safe),
+			EnableDuplicateCheck:   cast.ToInt(cfg.Notify.EnableDuplicateCheck),
 			DuplicateCheckInterval: s.normalizeDuplicateCheckInterval(cfg.Notify.DuplicateCheckInterval),
 		},
 		Text: wxmessage.TextField{Content: content},
@@ -91,7 +93,7 @@ func (s *wxWorkNotifyService) sendText(title, body string, recipients wxWorkNoti
 }
 
 func (s *wxWorkNotifyService) resolveRecipientsByUserIDs(userIDs []int64) wxWorkNotifyRecipients {
-	userIDs = uniqueInt64s(userIDs)
+	userIDs = arrs.Distinct(userIDs)
 	if len(userIDs) == 0 {
 		return wxWorkNotifyRecipients{}
 	}
@@ -108,16 +110,16 @@ func (s *wxWorkNotifyService) resolveRecipientsByUserIDs(userIDs []int64) wxWork
 			recipients.ToUsers = append(recipients.ToUsers, receiver)
 		}
 	}
-	recipients.ToUsers = uniqueStrings(recipients.ToUsers)
+	recipients.ToUsers = arrs.Distinct(recipients.ToUsers)
 	return recipients
 }
 
 func (s *wxWorkNotifyService) defaultRecipients() wxWorkNotifyRecipients {
 	cfg := config.Current().WxWork.Notify
 	return wxWorkNotifyRecipients{
-		ToUsers:   uniqueStrings(cfg.ToUsers),
-		ToParties: uniqueStrings(cfg.ToParties),
-		ToTags:    uniqueStrings(cfg.ToTags),
+		ToUsers:   arrs.Distinct(cfg.ToUsers),
+		ToParties: arrs.Distinct(cfg.ToParties),
+		ToTags:    arrs.Distinct(cfg.ToTags),
 	}
 }
 
@@ -150,45 +152,6 @@ func (r wxWorkNotifyRecipients) empty() bool {
 	return len(r.ToUsers) == 0 && len(r.ToParties) == 0 && len(r.ToTags) == 0
 }
 
-func uniqueStrings(values []string) []string {
-	if len(values) == 0 {
-		return nil
-	}
-	ret := make([]string, 0, len(values))
-	seen := make(map[string]struct{}, len(values))
-	for _, value := range values {
-		item := strings.TrimSpace(value)
-		if item == "" {
-			continue
-		}
-		if _, ok := seen[item]; ok {
-			continue
-		}
-		seen[item] = struct{}{}
-		ret = append(ret, item)
-	}
-	return ret
-}
-
-func uniqueInt64s(values []int64) []int64 {
-	if len(values) == 0 {
-		return nil
-	}
-	ret := make([]int64, 0, len(values))
-	seen := make(map[int64]struct{}, len(values))
-	for _, value := range values {
-		if value <= 0 {
-			continue
-		}
-		if _, ok := seen[value]; ok {
-			continue
-		}
-		seen[value] = struct{}{}
-		ret = append(ret, value)
-	}
-	return ret
-}
-
 func truncateRunes(value string, max int) string {
 	if max <= 0 {
 		return ""
@@ -198,19 +161,4 @@ func truncateRunes(value string, max int) string {
 		return string(runes)
 	}
 	return string(runes[:max])
-}
-
-func defaultIfBlank(value, fallback string) string {
-	value = strings.TrimSpace(value)
-	if value != "" {
-		return value
-	}
-	return strings.TrimSpace(fallback)
-}
-
-func boolToInt(v bool) int {
-	if v {
-		return 1
-	}
-	return 0
 }
