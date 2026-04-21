@@ -117,11 +117,11 @@ func (s *wxWorkNotifyService) buildTextContent(title, body string) string {
 	case title == "" && body == "":
 		return ""
 	case title == "":
-		return truncateRunes(body, 1024)
+		return s.truncateRunes(body, 1024)
 	case body == "":
-		return truncateRunes(title, 1024)
+		return s.truncateRunes(title, 1024)
 	default:
-		return truncateRunes(title+"\n\n"+body, 1024)
+		return s.truncateRunes(title+"\n\n"+body, 1024)
 	}
 }
 
@@ -135,7 +135,7 @@ func (s *wxWorkNotifyService) normalizeDuplicateCheckInterval(value int) int {
 	return value
 }
 
-func truncateRunes(value string, max int) string {
+func (s *wxWorkNotifyService) truncateRunes(value string, max int) string {
 	if max <= 0 {
 		return ""
 	}
