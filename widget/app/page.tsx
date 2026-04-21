@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import {
   ArrowRight,
@@ -272,9 +273,11 @@ function WidgetHomePageInner() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-3 text-slate-950"
             >
-              <img
+              <Image
                 src="/images/logo.png"
                 alt="贝壳 AI 客服"
+                width={40}
+                height={40}
                 className="h-10 w-10 rounded-2xl object-contain ring-1 ring-slate-200"
               />
               <span>
