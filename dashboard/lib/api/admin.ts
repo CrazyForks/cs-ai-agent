@@ -72,6 +72,13 @@ export type AdminRole = {
   permissions?: string[]
 }
 
+export type CreateAdminRolePayload = {
+  name: string
+  code: string
+  sortNo: number
+  remark: string
+}
+
 export type AdminPermission = {
   id: number
   name: string
@@ -710,6 +717,13 @@ export function fetchRoleListAll() {
 
 export function fetchRoleDetail(id: number) {
   return request<AdminRole>(`/api/dashboard/role/${id}`)
+}
+
+export function createRole(payload: CreateAdminRolePayload) {
+  return request<AdminRole>("/api/dashboard/role/create", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
 }
 
 export function assignRolePermissions(roleId: number, permissionIds: number[]) {

@@ -1,5 +1,5 @@
 .PHONY: help install run run-server run-dashboard run-widget build build-all build-assets build-dashboard build-widget \
-	package-current package-platform build-server-linux-amd64 clean-dist clean-temp generator enums migration testdata
+	package-current package-platform build-linux-amd64 clean-dist clean-temp generator enums migration testdata
 
 DIST_DIR ?= dist
 TMP_DIR := $(DIST_DIR)/.tmp
@@ -28,7 +28,7 @@ help:
 	@echo "  make build-widget         Build widget sdk and app"
 	@echo "  make package-current      Package current platform"
 	@echo "  make package-platform     Package specified PLATFORM"
-	@echo "  make build-server-linux-amd64 Build linux amd64 server binary"
+	@echo "  make build-linux-amd64   Build and package linux amd64 release"
 	@echo "  make clean-dist           Remove dist directory"
 	@echo "  make clean-temp           Remove temporary packaging files"
 	@echo "  make generator            Run code generator"
@@ -103,7 +103,7 @@ package-current:
 build-linux-amd64: clean-dist build-assets
 	@$(MAKE) package-platform PLATFORM=linux-amd64
 	@$(MAKE) clean-temp
-	@echo "[build-server-linux-amd64] done"
+	@echo "[build-linux-amd64] done"
 
 package-platform:
 	@platform="$(PLATFORM)"; \

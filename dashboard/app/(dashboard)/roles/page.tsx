@@ -22,6 +22,7 @@ import {
 import { CSS } from "@dnd-kit/utilities"
 import {
   GripVerticalIcon,
+  PlusIcon,
   RefreshCwIcon,
   ShieldCheckIcon,
   ShieldIcon,
@@ -30,16 +31,19 @@ import { toast } from "sonner"
 
 import {
   assignRolePermissions,
+  createRole,
   fetchPermissions,
   fetchRoleDetail,
   fetchRoles,
   type AdminPermission,
   type AdminRole,
+  type CreateAdminRolePayload,
   type PageResult,
   updateRoleSort,
 } from "@/lib/api/admin"
 import { cn } from "@/lib/utils"
 import { AssignPermissionsDrawer } from "./_components/assign-permissions"
+import { CreateRoleDrawer } from "./_components/create"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -148,6 +152,8 @@ function SortableRoleRow({
 export default function DashboardRolesPage() {
   const [loading, setLoading] = useState(true)
   const [sorting, setSorting] = useState(false)
+  const [creatingOpen, setCreatingOpen] = useState(false)
+  const [savingCreate, setSavingCreate] = useState(false)
   const [savingPermissions, setSavingPermissions] = useState(false)
   const [assignPermissionsLoading, setAssignPermissionsLoading] = useState(false)
   const [assigningRole, setAssigningRole] = useState<AdminRole | null>(null)
@@ -181,6 +187,31 @@ export default function DashboardRolesPage() {
       toast.error(error instanceof Error ? error.message : "加载角色失败")
     } finally {
       setLoading(false)
+    }
+  }
+
+  function handleCreateDrawerOpenChange(open: boolean) {
+    if (savingCreate) {
+      return
+    }
+    setCreatingOpen(open)
+  }
+
+  async function handleCreateRole(payload: CreateAdminRolePayload) {
+    if (savingCreate) {
+      return
+    }
+
+    setSavingCreate(true)
+    try {
+      const role = await createRole(payload)
+      toast.success(`已创建角色 ${role.name}`)
+      setCreatingOpen(false)
+      await loadRoles()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "创建角色失败")
+    } finally {
+      setSavingCreate(false)
     }
   }
 
@@ -279,9 +310,20 @@ export default function DashboardRolesPage() {
     void loadRoles()
   }, [])
 
+  const defaultSortNo =
+    result.results.reduce((max, item) => Math.max(max, item.sortNo), -1) + 1
+
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 lg:p-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+        <Button
+          type="button"
+          onClick={() => setCreatingOpen(true)}
+          disabled={loading || sorting}
+        >
+          <PlusIcon className="size-4" />
+          添加角色
+        </Button>
         <Button onClick={() => void loadRoles()} disabled={loading || sorting}>
           <RefreshCwIcon className={cn((loading || sorting) && "animate-spin")} />
           刷新列表
@@ -352,6 +394,13 @@ export default function DashboardRolesPage() {
         selectedPermissionIds={assignPermissionIds}
         onOpenChange={handleAssignPermissionsOpenChange}
         onSubmit={handleAssignPermissions}
+      />
+      <CreateRoleDrawer
+        open={creatingOpen}
+        saving={savingCreate}
+        defaultSortNo={defaultSortNo}
+        onOpenChange={handleCreateDrawerOpenChange}
+        onSubmit={handleCreateRole}
       />
     </div>
   )
