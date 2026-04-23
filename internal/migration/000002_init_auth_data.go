@@ -224,7 +224,6 @@ func ensureBootstrapAdmin(tx *gorm.DB, superAdminRole *models.Role) error {
 		if err := repositories.UserRepository.Updates(tx, user.ID, map[string]any{
 			"nickname":         nickname,
 			"status":           enums.StatusOk,
-			"is_system":        true,
 			"update_user_id":   constants.SystemAuditUserID,
 			"update_user_name": constants.SystemAuditUserName,
 			"updated_at":       now,

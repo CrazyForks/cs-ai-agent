@@ -1,10 +1,6 @@
 package migration
 
-import (
-	"cs-agent/internal/pkg/constants"
-
-	"github.com/mlogclub/simple/sqls"
-)
+import "github.com/mlogclub/simple/sqls"
 
 func init() {
 	register(4, "sync ai agent permissions", func() error {
@@ -19,11 +15,7 @@ func init() {
 				return err
 			}
 
-			if err = ensureRolePermissions(ctx.Tx, roles, permissions); err != nil {
-				return err
-			}
-
-			return ensureBootstrapAdmin(ctx.Tx, roles[constants.RoleCodeSuperAdmin])
+			return ensureRolePermissions(ctx.Tx, roles, permissions)
 		})
 	})
 }
