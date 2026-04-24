@@ -75,13 +75,6 @@ func NewServer() (*iris.Application, error) {
 		ShowList:  false,
 	})
 
-	// 注册widget静态资源服务
-	app.HandleDir("/widget", iris.Dir("widget/out"), iris.DirOptions{
-		IndexName: "index.html",
-		Compress:  true,
-		ShowList:  false,
-	})
-
 	return app, nil
 }
 
