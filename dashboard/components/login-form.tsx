@@ -36,7 +36,7 @@ export function LoginForm({
   const nextPath = searchParams.get("next")
   const wxworkError = searchParams.get("wxworkError")
   const redirectPath =
-    nextPath && nextPath.startsWith("/") ? nextPath : "/"
+    nextPath && nextPath.startsWith("/") ? nextPath : "/dashboard"
 
   useEffect(() => {
     if (session) {

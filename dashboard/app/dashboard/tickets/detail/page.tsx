@@ -810,7 +810,7 @@ export default function TicketDetailPage() {
                           当前工单未生成 SLA 记录，请检查工单 SLA
                           配置；如果系统仍在使用默认策略，也需要确认配置是否已补齐。
                             <Link
-                              href="/ticket-priorities"
+                              href="/dashboard/ticket-priorities"
                               className="ml-1 font-medium underline underline-offset-4"
                             >
                               前往配置优先级
@@ -912,7 +912,7 @@ export default function TicketDetailPage() {
                         <Button
                           variant="outline"
                           className="w-full"
-                          onClick={() => router.push("/conversations")}
+                          onClick={() => router.push("/dashboard/conversations")}
                         >
                           <RotateCcwIcon className="size-4" />
                           前往会话工作台

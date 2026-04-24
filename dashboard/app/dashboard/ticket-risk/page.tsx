@@ -236,7 +236,7 @@ export default function TicketRiskPage() {
                 ]}
               />
             </div>
-            <Link href="/tickets">
+            <Link href="/dashboard/tickets">
               <Button variant="outline">前往工单工作台</Button>
             </Link>
             <Button variant="outline" onClick={() => void loadData()} disabled={loading}>

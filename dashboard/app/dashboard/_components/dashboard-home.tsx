@@ -12,10 +12,10 @@ import {
   type DashboardOverview,
   type DashboardRange,
 } from "@/lib/api/dashboard"
-import { SummaryCards } from "./_components/summary-cards"
-import { TrendPanel } from "./_components/trend-panel"
-import { TeamLoadPanel } from "./_components/team-load-panel"
-import { AlertList } from "./_components/alert-list"
+import { SummaryCards } from "./summary-cards"
+import { TrendPanel } from "./trend-panel"
+import { TeamLoadPanel } from "./team-load-panel"
+import { AlertList } from "./alert-list"
 
 const rangeOptions: Array<{ value: DashboardRange; label: string }> = [
   { value: "today", label: "今天" },
@@ -39,7 +39,7 @@ function LoadingCards() {
   )
 }
 
-export default function DashboardPage() {
+export function DashboardHome() {
   const [range, setRange] = useState<DashboardRange>("7d")
   const [data, setData] = useState<DashboardOverview | null>(null)
   const [loading, setLoading] = useState(true)
