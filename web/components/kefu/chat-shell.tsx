@@ -29,6 +29,7 @@ export function KefuChatShell() {
   const [isMaximized, setIsMaximized] = useState(false)
   const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false)
   const [isClosingConversation, setIsClosingConversation] = useState(false)
+  const [showHostActions, setShowHostActions] = useState(false)
 
   const {
     title,
@@ -95,6 +96,9 @@ export function KefuChatShell() {
 
   useEffect(() => {
     return bindKefuHostBridge({
+      onInit: () => {
+        setShowHostActions(true)
+      },
       onOpen: () => {
         setIsOpen(true)
         setIsVisible(true)
@@ -214,28 +218,32 @@ export function KefuChatShell() {
                 >
                   <RotateCwIcon className="size-3.75 transition duration-200 group-hover:rotate-[-20deg]" />
                 </button>
-                <button
-                  type="button"
-                  onClick={handleMinimize}
-                  aria-label="收起聊天窗口"
-                  title="收起聊天窗口"
-                  className="group inline-flex h-6 w-6 items-center justify-center rounded-[14px] text-slate-400 transition duration-200 hover:-translate-y-0.5 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] hover:text-slate-700 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_10px_18px_rgba(15,23,42,0.10)]"
-                >
-                  <MinusIcon className="size-3.75 transition duration-200 group-hover:scale-x-[0.88]" />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleToggleMaximize}
-                  aria-label={isMaximized ? "取消最大化" : "最大化聊天窗口"}
-                  title={isMaximized ? "取消最大化" : "最大化聊天窗口"}
-                  className="group inline-flex h-6 w-6 items-center justify-center rounded-[14px] text-slate-400 transition duration-200 hover:-translate-y-0.5 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(238,249,244,0.96))] hover:text-emerald-700 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_10px_18px_rgba(16,185,129,0.14)]"
-                >
-                  {isMaximized ? (
-                    <Minimize2Icon className="size-3.75 transition duration-200 group-hover:scale-[0.94]" />
-                  ) : (
-                    <Maximize2Icon className="size-3.75 transition duration-200 group-hover:scale-[1.04]" />
-                  )}
-                </button>
+                {showHostActions ? (
+                  <button
+                    type="button"
+                    onClick={handleMinimize}
+                    aria-label="收起聊天窗口"
+                    title="收起聊天窗口"
+                    className="group inline-flex h-6 w-6 items-center justify-center rounded-[14px] text-slate-400 transition duration-200 hover:-translate-y-0.5 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] hover:text-slate-700 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_10px_18px_rgba(15,23,42,0.10)]"
+                  >
+                    <MinusIcon className="size-3.75 transition duration-200 group-hover:scale-x-[0.88]" />
+                  </button>
+                ) : null}
+                {showHostActions ? (
+                  <button
+                    type="button"
+                    onClick={handleToggleMaximize}
+                    aria-label={isMaximized ? "取消最大化" : "最大化聊天窗口"}
+                    title={isMaximized ? "取消最大化" : "最大化聊天窗口"}
+                    className="group inline-flex h-6 w-6 items-center justify-center rounded-[14px] text-slate-400 transition duration-200 hover:-translate-y-0.5 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(238,249,244,0.96))] hover:text-emerald-700 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_10px_18px_rgba(16,185,129,0.14)]"
+                  >
+                    {isMaximized ? (
+                      <Minimize2Icon className="size-3.75 transition duration-200 group-hover:scale-[0.94]" />
+                    ) : (
+                      <Maximize2Icon className="size-3.75 transition duration-200 group-hover:scale-[1.04]" />
+                    )}
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => setIsCloseDialogOpen(true)}

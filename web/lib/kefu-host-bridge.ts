@@ -4,6 +4,7 @@ import {
 } from "@/lib/kefu-widget-config"
 
 type HostBridgeOptions = {
+  onInit?: () => void
   onOpen?: () => void
   onMinimize?: () => void
   onMaximizedChange?: (isMaximized: boolean) => void
@@ -40,6 +41,7 @@ export function bindKefuHostBridge(options: HostBridgeOptions = {}) {
 
     if (data.type === INIT_MESSAGE_TYPE && data.payload) {
       setKefuWidgetConfig(data.payload as KefuWidgetHostConfig)
+      options.onInit?.()
       return
     }
 
