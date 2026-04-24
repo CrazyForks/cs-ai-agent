@@ -1,4 +1,4 @@
-.PHONY: help install run run-server run-dashboard run-widget build build-all build-assets build-dashboard build-widget \
+.PHONY: help install run run-server run-web run-widget build build-all build-assets build-web build-widget \
 	package-current package-platform build-linux-amd64 clean-dist clean-temp generator enums migration testdata
 
 DIST_DIR ?= dist
@@ -16,19 +16,19 @@ PLATFORM ?= $(CURRENT_PLATFORM)
 help:
 	@echo "Available targets:"
 	@echo "  make help                 Show this help message"
-	@echo "  make install              Install Go, dashboard, and widget dependencies"
-	@echo "  make run                  Run server, dashboard, and widget"
+	@echo "  make install              Install Go, web, and widget dependencies"
+	@echo "  make run                  Run server, web, and widget"
 	@echo "  make run-server           Run Go server"
-	@echo "  make run-dashboard        Run dashboard app"
+	@echo "  make run-web              Run web app"
 	@echo "  make run-widget           Run widget app"
 	@echo "  make build                Build assets and package current platform"
 	@echo "  make build-all            Build and package all platforms"
-	@echo "  make build-assets         Build dashboard and widget assets"
-	@echo "  make build-dashboard      Build dashboard app"
+	@echo "  make build-assets         Build web and widget assets"
+	@echo "  make build-web.           Build web app"
 	@echo "  make build-widget         Build widget sdk and app"
 	@echo "  make package-current      Package current platform"
 	@echo "  make package-platform     Package specified PLATFORM"
-	@echo "  make build-linux-amd64   Build and package linux amd64 release"
+	@echo "  make build-linux-amd64    Build and package linux amd64 release"
 	@echo "  make clean-dist           Remove dist directory"
 	@echo "  make clean-temp           Remove temporary packaging files"
 	@echo "  make generator            Run code generator"
@@ -38,7 +38,7 @@ help:
 
 install:
 	go mod download
-	cd dashboard && pnpm install
+	cd web && pnpm install
 	cd widget && pnpm install
 	@echo "[install] done"
 
@@ -49,7 +49,7 @@ run:
 	trap 'kill $$server_pid $$dashboard_pid $$widget_pid 2>/dev/null || true' INT TERM EXIT; \
 	$(MAKE) run-server & \
 	server_pid=$$!; \
-	$(MAKE) run-dashboard & \
+	$(MAKE) run-web & \
 	dashboard_pid=$$!; \
 	$(MAKE) run-widget & \
 	widget_pid=$$!; \
@@ -66,8 +66,8 @@ run:
 run-server:
 	go run ./cmd/server
 
-run-dashboard:
-	cd dashboard && pnpm dev
+run-web:
+	cd web && pnpm dev
 
 run-widget:
 	cd widget && pnpm dev
@@ -84,13 +84,13 @@ build-all: clean-dist build-assets
 	@$(MAKE) clean-temp
 	@echo "[build-all] done"
 
-build-assets: build-dashboard build-widget
+build-assets: build-web build-widget
 	@echo "[build-assets] done"
 
-build-dashboard:
-	@echo "[build-dashboard] building dashboard app"
-	cd dashboard && pnpm build
-	@echo "[build-dashboard] done"
+build-web:
+	@echo "[build-web] building web app"
+	cd web && pnpm build
+	@echo "[build-web] done"
 
 build-widget:
 	@echo "[build-widget] building widget sdk"
@@ -117,11 +117,11 @@ package-platform:
 	if [ "$$goos" = "windows" ]; then binary_name="$(APP_NAME).exe"; fi; \
 	echo "[package] start $$platform"; \
 	rm -rf "$$stage_dir"; \
-	mkdir -p "$$package_dir/dashboard" "$$package_dir/widget" "$$package_dir/config" "$$dist_dir"; \
+	mkdir -p "$$package_dir/web" "$$package_dir/widget" "$$package_dir/config" "$$dist_dir"; \
 	echo "[package] go build $$platform"; \
 	GOOS=$$goos GOARCH=$$goarch go build -o "$$package_dir/$$binary_name" $(APP_ENTRY); \
 	echo "[package] copy assets $$platform"; \
-	cp -R dashboard/out "$$package_dir/dashboard/out"; \
+	cp -R web/out "$$package_dir/web/out"; \
 	cp -R widget/out "$$package_dir/widget/out"; \
 	echo "[package] include example config only"; \
 	cp config/config.example.yaml "$$package_dir/config/config.example.yaml"; \
