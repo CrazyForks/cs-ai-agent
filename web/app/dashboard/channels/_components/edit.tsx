@@ -37,11 +37,40 @@ const channelTypeOptions = [
   { value: "wxwork_kf", label: "企业微信客服" },
 ] as const
 
+const widgetPositionOptions = [
+  { value: "right", label: "右下角" },
+  { value: "left", label: "左下角" },
+] as const
+
+type WebChannelConfig = {
+  title?: string
+  subtitle?: string
+  welcomeText?: string
+  themeColor?: string
+  position?: "left" | "right"
+  width?: string
+}
+
+const defaultWebChannelConfig: Required<WebChannelConfig> = {
+  title: "在线客服",
+  subtitle: "欢迎咨询",
+  welcomeText: "",
+  themeColor: "#2563eb",
+  position: "right",
+  width: "380px",
+}
+
 const schema = z.object({
   channelType: z.enum(["web", "wxwork_kf"], "请选择渠道类型"),
   aiAgentId: z.string().trim().regex(/^\d+$/, "请选择 AI Agent"),
   name: z.string().trim().min(1, "渠道名称不能为空"),
   openKfId: z.string().trim(),
+  widgetTitle: z.string().trim(),
+  widgetSubtitle: z.string().trim(),
+  widgetWelcomeText: z.string().trim(),
+  widgetThemeColor: z.string().trim(),
+  widgetPosition: z.enum(["left", "right"]),
+  widgetWidth: z.string().trim(),
   remark: z.string().trim(),
 })
 
@@ -58,6 +87,12 @@ const emptyForm: EditForm = {
   aiAgentId: "",
   name: "",
   openKfId: "",
+  widgetTitle: defaultWebChannelConfig.title,
+  widgetSubtitle: defaultWebChannelConfig.subtitle,
+  widgetWelcomeText: defaultWebChannelConfig.welcomeText,
+  widgetThemeColor: defaultWebChannelConfig.themeColor,
+  widgetPosition: defaultWebChannelConfig.position,
+  widgetWidth: defaultWebChannelConfig.width,
   remark: "",
 }
 
@@ -73,15 +108,43 @@ function parseOpenKfId(configJson: string): string {
   }
 }
 
+function parseWebChannelConfig(configJson: string): Required<WebChannelConfig> {
+  if (!configJson.trim()) {
+    return defaultWebChannelConfig
+  }
+  try {
+    const parsed = JSON.parse(configJson) as WebChannelConfig
+    const position = parsed.position === "left" ? "left" : "right"
+    return {
+      title: parsed.title?.trim() || defaultWebChannelConfig.title,
+      subtitle: parsed.subtitle?.trim() ?? defaultWebChannelConfig.subtitle,
+      welcomeText: parsed.welcomeText?.trim() ?? defaultWebChannelConfig.welcomeText,
+      themeColor:
+        parsed.themeColor?.trim() || defaultWebChannelConfig.themeColor,
+      position,
+      width: parsed.width?.trim() || defaultWebChannelConfig.width,
+    }
+  } catch {
+    return defaultWebChannelConfig
+  }
+}
+
 function buildForm(item: AdminChannel | null): EditForm {
   if (!item) {
     return emptyForm
   }
+  const widgetConfig = parseWebChannelConfig(item.configJson)
   return {
     channelType: item.channelType === "wxwork_kf" ? "wxwork_kf" : "web",
     aiAgentId: item.aiAgentId > 0 ? String(item.aiAgentId) : "",
     name: item.name,
     openKfId: parseOpenKfId(item.configJson),
+    widgetTitle: widgetConfig.title,
+    widgetSubtitle: widgetConfig.subtitle,
+    widgetWelcomeText: widgetConfig.welcomeText,
+    widgetThemeColor: widgetConfig.themeColor,
+    widgetPosition: widgetConfig.position,
+    widgetWidth: widgetConfig.width,
     remark: item.remark || "",
   }
 }
@@ -91,7 +154,15 @@ function buildPayload(form: EditForm, status: number): CreateAdminChannelPayload
   const configJson =
     channelType === "wxwork_kf"
       ? JSON.stringify({ openKfId: form.openKfId.trim() })
-      : ""
+      : JSON.stringify({
+          title: form.widgetTitle.trim() || defaultWebChannelConfig.title,
+          subtitle: form.widgetSubtitle.trim(),
+          welcomeText: form.widgetWelcomeText.trim(),
+          themeColor:
+            form.widgetThemeColor.trim() || defaultWebChannelConfig.themeColor,
+          position: form.widgetPosition || defaultWebChannelConfig.position,
+          width: form.widgetWidth.trim() || defaultWebChannelConfig.width,
+        })
   return {
     channelType,
     aiAgentId: Number(form.aiAgentId),
@@ -280,6 +351,85 @@ function ChannelFormBody({
               </Field>
             ) : null}
           </div>
+
+          {channelType === "web" ? (
+            <div className="grid grid-cols-1 gap-4 rounded-md border p-4 sm:grid-cols-2">
+              <Field data-invalid={!!errors.widgetTitle}>
+                <FieldLabel htmlFor="channel-widget-title">窗口标题</FieldLabel>
+                <FieldContent>
+                  <Input id="channel-widget-title" {...register("widgetTitle")} />
+                  <FieldError errors={[errors.widgetTitle]} />
+                </FieldContent>
+              </Field>
+
+              <Field data-invalid={!!errors.widgetSubtitle}>
+                <FieldLabel htmlFor="channel-widget-subtitle">窗口副标题</FieldLabel>
+                <FieldContent>
+                  <Input
+                    id="channel-widget-subtitle"
+                    {...register("widgetSubtitle")}
+                  />
+                  <FieldError errors={[errors.widgetSubtitle]} />
+                </FieldContent>
+              </Field>
+
+              <Field data-invalid={!!errors.widgetThemeColor}>
+                <FieldLabel htmlFor="channel-widget-theme-color">主题色</FieldLabel>
+                <FieldContent>
+                  <Input
+                    id="channel-widget-theme-color"
+                    placeholder="#2563eb"
+                    {...register("widgetThemeColor")}
+                  />
+                  <FieldError errors={[errors.widgetThemeColor]} />
+                </FieldContent>
+              </Field>
+
+              <Field data-invalid={!!errors.widgetPosition}>
+                <FieldLabel>挂载位置</FieldLabel>
+                <FieldContent>
+                  <Controller
+                    control={control}
+                    name="widgetPosition"
+                    render={({ field }) => (
+                      <OptionCombobox
+                        value={field.value}
+                        options={[...widgetPositionOptions]}
+                        placeholder="请选择挂载位置"
+                        searchPlaceholder="搜索挂载位置"
+                        emptyText="未找到挂载位置"
+                        onChange={field.onChange}
+                      />
+                    )}
+                  />
+                  <FieldError errors={[errors.widgetPosition]} />
+                </FieldContent>
+              </Field>
+
+              <Field data-invalid={!!errors.widgetWidth}>
+                <FieldLabel htmlFor="channel-widget-width">窗口宽度</FieldLabel>
+                <FieldContent>
+                  <Input
+                    id="channel-widget-width"
+                    placeholder="380px"
+                    {...register("widgetWidth")}
+                  />
+                  <FieldError errors={[errors.widgetWidth]} />
+                </FieldContent>
+              </Field>
+
+              <Field data-invalid={!!errors.widgetWelcomeText}>
+                <FieldLabel htmlFor="channel-widget-welcome-text">欢迎语</FieldLabel>
+                <FieldContent>
+                  <Input
+                    id="channel-widget-welcome-text"
+                    {...register("widgetWelcomeText")}
+                  />
+                  <FieldError errors={[errors.widgetWelcomeText]} />
+                </FieldContent>
+              </Field>
+            </div>
+          ) : null}
 
           <Field data-invalid={!!errors.remark}>
             <FieldLabel htmlFor="channel-remark">备注</FieldLabel>

@@ -15,3 +15,12 @@ type AuthPrincipal struct {
 type WxWorkKFChannelConfig struct {
 	OpenKfID string `json:"openKfId"`
 }
+
+type WebChannelConfig struct {
+	Title       string `json:"title"`
+	Subtitle    string `json:"subtitle"`
+	WelcomeText string `json:"welcomeText"`
+	ThemeColor  string `json:"themeColor"`
+	Position    string `json:"position"`
+	Width       string `json:"width"`
+}

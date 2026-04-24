@@ -103,10 +103,13 @@ export type ImAsset = {
 }
 
 export type ImWidgetConfig = {
+  channelId?: string
   title?: string
   subtitle?: string
   welcomeText?: string
   themeColor?: string
+  position?: "left" | "right"
+  width?: string
 }
 
 const VISITOR_STORAGE_KEY = "cs_agent_im_visitor_id"

@@ -159,6 +159,45 @@ func (s *channelService) ParseWxWorkKFChannelConfig(raw string) (*dto.WxWorkKFCh
 	return cfg, nil
 }
 
+func (s *channelService) ParseWebChannelConfig(raw string) (*dto.WebChannelConfig, error) {
+	raw = strings.TrimSpace(raw)
+	cfg := &dto.WebChannelConfig{
+		Title:       "在线客服",
+		Subtitle:    "欢迎咨询",
+		WelcomeText: "",
+		ThemeColor:  "#2563eb",
+		Position:    "right",
+		Width:       "380px",
+	}
+	if raw != "" {
+		if err := json.Unmarshal([]byte(raw), cfg); err != nil {
+			return nil, err
+		}
+	}
+	cfg.Title = strings.TrimSpace(cfg.Title)
+	if cfg.Title == "" {
+		cfg.Title = "在线客服"
+	}
+	cfg.Subtitle = strings.TrimSpace(cfg.Subtitle)
+	cfg.WelcomeText = strings.TrimSpace(cfg.WelcomeText)
+	cfg.ThemeColor = strings.TrimSpace(cfg.ThemeColor)
+	if cfg.ThemeColor == "" {
+		cfg.ThemeColor = "#2563eb"
+	}
+	cfg.Position = strings.TrimSpace(cfg.Position)
+	if cfg.Position == "" {
+		cfg.Position = "right"
+	}
+	if cfg.Position != "left" && cfg.Position != "right" {
+		return nil, errorsx.InvalidParam("Web渠道配置 position 只能为 left 或 right")
+	}
+	cfg.Width = strings.TrimSpace(cfg.Width)
+	if cfg.Width == "" {
+		cfg.Width = "380px"
+	}
+	return cfg, nil
+}
+
 func (s *channelService) GetEnabledWxWorkKFChannelByOpenKfID(openKfID string) *models.Channel {
 	openKfID = strings.TrimSpace(openKfID)
 	if openKfID == "" {
@@ -229,6 +268,15 @@ func (s *channelService) buildChannelModel(id int64, req request.CreateChannelRe
 		if exists := s.Take("channel_id = ? AND status <> ? AND id <> ?", channelID, enums.StatusDeleted, id); exists != nil {
 			return nil, errorsx.InvalidParam("渠道标识已存在")
 		}
+		cfg, err := s.ParseWebChannelConfig(configJSON)
+		if err != nil {
+			return nil, errorsx.InvalidParam("Web渠道配置不合法")
+		}
+		configBytes, err := json.Marshal(cfg)
+		if err != nil {
+			return nil, err
+		}
+		configJSON = string(configBytes)
 	case enums.ChannelTypeWxWorkKF:
 		if channelID == "" {
 			channelID = strs.UUID()

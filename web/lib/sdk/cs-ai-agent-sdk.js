@@ -16,6 +16,7 @@
       initSent: false,
       isOpen: false,
       isMaximized: false,
+      configLoading: false,
       frameHideTimer: null,
       frameDestroyTimer: null,
       config: null,
@@ -61,13 +62,60 @@
     frameUrl.searchParams.set("baseUrl", config.baseUrl);
     if (config.apiBaseUrl) frameUrl.searchParams.set("apiBaseUrl", config.apiBaseUrl);
     if (config.externalSource) frameUrl.searchParams.set("externalSource", config.externalSource);
-    if (config.title) frameUrl.searchParams.set("title", config.title);
-    if (config.subtitle) frameUrl.searchParams.set("subtitle", config.subtitle);
-    if (config.position) frameUrl.searchParams.set("position", config.position);
-    if (config.themeColor) frameUrl.searchParams.set("themeColor", config.themeColor);
-    if (config.width) frameUrl.searchParams.set("width", config.width);
     if (config.subject) frameUrl.searchParams.set("subject", config.subject);
     return frameUrl;
+  }
+
+  function mergeWidgetConfig(config, remoteConfig) {
+    if (!remoteConfig) {
+      return config;
+    }
+    var merged = {};
+    var key;
+    for (key in config) {
+      if (Object.prototype.hasOwnProperty.call(config, key)) {
+        merged[key] = config[key];
+      }
+    }
+    var remoteKeys = ["title", "subtitle", "welcomeText", "themeColor", "position", "width"];
+    for (var i = 0; i < remoteKeys.length; i += 1) {
+      key = remoteKeys[i];
+      if (
+        Object.prototype.hasOwnProperty.call(remoteConfig, key) &&
+        remoteConfig[key] !== undefined &&
+        remoteConfig[key] !== null
+      ) {
+        merged[key] = remoteConfig[key];
+      }
+    }
+    return merged;
+  }
+
+  function fetchWidgetConfig(config) {
+    var baseUrl = String(config.apiBaseUrl || config.baseUrl || "").replace(/\/$/, "");
+    if (!baseUrl || !config.channelId || typeof fetch !== "function") {
+      return Promise.resolve(config);
+    }
+    var url = baseUrl + "/api/open/im/widget/config?channelId=" + encodeURIComponent(config.channelId);
+    return fetch(url, {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        "X-Channel-Id": config.channelId,
+      },
+    })
+      .then(function (response) {
+        return response.json();
+      })
+      .then(function (payload) {
+        if (!payload || payload.success === false) {
+          return config;
+        }
+        return mergeWidgetConfig(config, payload.data || {});
+      })
+      .catch(function () {
+        return config;
+      });
   }
 
   function clearFrameTimers() {
@@ -220,6 +268,9 @@
     if (state.frame) {
       return state.frame;
     }
+    if (!state.frameUrl || !state.config) {
+      return null;
+    }
 
     state.frame = document.createElement("iframe");
     state.frame.dataset.csAgentWidget = "frame";
@@ -308,14 +359,31 @@
   }
 
   function mount(config) {
-    state.config = normalizeConfig(config || window.CSAgentConfig || {});
-    if (!state.config.channelId || !state.config.baseUrl) {
-      console.error("[cs-agent-widget] channelId and baseUrl are required");
+    var rawConfig = config || window.CSAgentConfig || {};
+    state.config = normalizeConfig(rawConfig);
+    var widgetBaseUrl = resolveWidgetBaseUrl(state.config);
+    if (!rawConfig.baseUrl) {
+      state.config.baseUrl = widgetBaseUrl;
+    }
+    if (!rawConfig.apiBaseUrl) {
+      state.config.apiBaseUrl = state.config.baseUrl;
+    }
+    if (!state.config.channelId) {
+      console.error("[cs-agent-widget] channelId is required");
       return;
     }
 
-    state.frameUrl = createFrameUrl(state.config);
-    createLauncher();
+    state.configLoading = true;
+    fetchWidgetConfig(state.config).then(function (nextConfig) {
+      state.configLoading = false;
+      state.config = normalizeConfig(nextConfig);
+      state.frameUrl = createFrameUrl(state.config);
+      if (state.button && state.button.parentNode) {
+        state.button.parentNode.removeChild(state.button);
+        state.button = null;
+      }
+      createLauncher();
+    });
   }
 
   function destroy() {
@@ -333,6 +401,7 @@
     state.initSent = false;
     state.isOpen = false;
     state.isMaximized = false;
+    state.configLoading = false;
   }
 
   window.CSAgentWidget = {
@@ -341,6 +410,9 @@
     open: function () {
       if (!state.frame) {
         createFrame();
+      }
+      if (!state.frame) {
+        return;
       }
       state.isOpen = true;
       syncFrameVisibility();
@@ -360,4 +432,3 @@
     mount(window.CSAgentConfig);
   }
 })();
-
