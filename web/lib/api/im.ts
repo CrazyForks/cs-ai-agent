@@ -10,6 +10,8 @@ export type Paging = {
 export type PageResult<T> = {
   results: T[]
   page: Paging
+  cursor?: string
+  hasMore?: boolean
 }
 
 export type ImConversationTag = {
@@ -99,6 +101,13 @@ export type ImAsset = {
   updateUserName: string
 }
 
+export type ImWidgetConfig = {
+  title?: string
+  subtitle?: string
+  welcomeText?: string
+  themeColor?: string
+}
+
 const VISITOR_STORAGE_KEY = "cs_agent_im_visitor_id"
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || ""
@@ -168,6 +177,25 @@ export function createOrMatchImConversation() {
   return request<ImConversation>("/api/open/im/conversation/create_or_match", {
     method: "POST",
     headers: createImHeaders(),
+  })
+}
+
+export function fetchImWidgetConfig() {
+  return request<ImWidgetConfig>(
+    `/api/open/im/widget/config${toQueryString({
+      channelId: OPEN_IM_CHANNEL_ID,
+    })}`,
+    {
+      headers: createImHeaders(),
+    }
+  )
+}
+
+export function closeImConversation(conversationId: number) {
+  return request<void>("/api/open/im/conversation/close", {
+    method: "POST",
+    headers: createImHeaders(),
+    body: JSON.stringify({ conversationId }),
   })
 }
 
