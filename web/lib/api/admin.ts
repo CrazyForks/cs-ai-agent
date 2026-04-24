@@ -14,7 +14,7 @@ export type PageResult<T> = {
 }
 
 export type CursorResult<T> = {
-  results: T[]
+  results?: T[] | null
   cursor: string
   hasMore: boolean
 }

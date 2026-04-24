@@ -33,7 +33,7 @@ type ConversationDetailDialogProps = {
   saving: boolean;
   item: AdminConversation | null;
   detail: AdminConversationDetail | null;
-  messages: AdminMessage[];
+  messages?: AdminMessage[] | null;
   /** 是否还有更早消息（cursor 分页） */
   messagesHasMore?: boolean;
   loadingMoreMessages?: boolean;
@@ -139,7 +139,7 @@ export function ConversationDetailDialog({
   saving,
   item,
   detail,
-  messages,
+  messages: rawMessages,
   messagesHasMore = false,
   loadingMoreMessages = false,
   onLoadMoreMessages,
@@ -150,6 +150,7 @@ export function ConversationDetailDialog({
   onRead,
   onOpenClose,
 }: ConversationDetailDialogProps) {
+  const messages = Array.isArray(rawMessages) ? rawMessages : [];
   const currentConversation = detail ?? item;
   const isClosedConversation = currentConversation?.status === 4;
   const isPendingConversation = currentConversation?.status === 2;

@@ -456,7 +456,7 @@ export default function DashboardConversationsPage() {
         fetchConversationMessages({ conversationId: item.id, limit: 20 }),
       ])
       setDetailData(detail)
-      setDetailMessages(messages.results)
+      setDetailMessages(Array.isArray(messages.results) ? messages.results : [])
       setDetailMessagesNextCursor(messages.cursor ?? "")
       setDetailMessagesHasMore(Boolean(messages.hasMore))
     } catch (error) {
@@ -481,7 +481,8 @@ export default function DashboardConversationsPage() {
         cursor,
         limit: 20,
       })
-      setDetailMessages((prev) => [...page.results, ...prev])
+      const nextResults = Array.isArray(page.results) ? page.results : []
+      setDetailMessages((prev) => [...nextResults, ...prev])
       setDetailMessagesNextCursor(page.cursor ?? "")
       setDetailMessagesHasMore(Boolean(page.hasMore))
     } catch (error) {
