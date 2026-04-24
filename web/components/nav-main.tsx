@@ -26,10 +26,15 @@ export function NavMain({
   const pathname = usePathname()
 
   const isActive = (itemUrl: string) => {
-    if (itemUrl === "/") {
-      return pathname === itemUrl
+    const normalizePath = (path: string) =>
+      path !== "/" ? path.replace(/\/+$/, "") : path
+    const currentPath = normalizePath(pathname)
+    const targetPath = normalizePath(itemUrl)
+
+    if (targetPath === "/" || targetPath === "/dashboard") {
+      return currentPath === targetPath
     }
-    return pathname === itemUrl || pathname.startsWith(itemUrl + "/")
+    return currentPath === targetPath || currentPath.startsWith(targetPath + "/")
   }
 
   return (
