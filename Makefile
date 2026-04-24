@@ -1,4 +1,4 @@
-.PHONY: help install run run-server run-web run-widget build build-all build-assets build-web build-widget \
+.PHONY: help install run run-server run-web build build-all build-assets build-web \
 	package-current package-platform build-linux-amd64 clean-dist clean-temp generator enums migration testdata
 
 DIST_DIR ?= dist
@@ -16,16 +16,14 @@ PLATFORM ?= $(CURRENT_PLATFORM)
 help:
 	@echo "Available targets:"
 	@echo "  make help                 Show this help message"
-	@echo "  make install              Install Go, web, and widget dependencies"
-	@echo "  make run                  Run server, web, and widget"
+	@echo "  make install              Install Go and web dependencies"
+	@echo "  make run                  Run server and web"
 	@echo "  make run-server           Run Go server"
 	@echo "  make run-web              Run web app"
-	@echo "  make run-widget           Run widget app"
 	@echo "  make build                Build assets and package current platform"
 	@echo "  make build-all            Build and package all platforms"
-	@echo "  make build-assets         Build web and widget assets"
-	@echo "  make build-web.           Build web app"
-	@echo "  make build-widget         Build widget sdk and app"
+	@echo "  make build-assets         Build web assets"
+	@echo "  make build-web            Build web app and sdk"
 	@echo "  make package-current      Package current platform"
 	@echo "  make package-platform     Package specified PLATFORM"
 	@echo "  make build-linux-amd64    Build and package linux amd64 release"
@@ -39,28 +37,23 @@ help:
 install:
 	go mod download
 	cd web && pnpm install
-	cd widget && pnpm install
 	@echo "[install] done"
 
 run:
 	@server_pid=0; \
 	web_pid=0; \
-	widget_pid=0; \
-	trap 'kill $$server_pid $$web_pid $$widget_pid 2>/dev/null || true' INT TERM EXIT; \
+	trap 'kill $$server_pid $$web_pid 2>/dev/null || true' INT TERM EXIT; \
 	$(MAKE) run-server & \
 	server_pid=$$!; \
 	$(MAKE) run-web & \
 	web_pid=$$!; \
-	$(MAKE) run-widget & \
-	widget_pid=$$!; \
-	while kill -0 $$server_pid 2>/dev/null && kill -0 $$web_pid 2>/dev/null && kill -0 $$widget_pid 2>/dev/null; do \
+	while kill -0 $$server_pid 2>/dev/null && kill -0 $$web_pid 2>/dev/null; do \
 		sleep 1; \
 	done; \
 	status=0; \
 	wait $$server_pid || status=$$?; \
 	wait $$web_pid || status=$$?; \
-	wait $$widget_pid || status=$$?; \
-	kill $$server_pid $$web_pid $$widget_pid 2>/dev/null || true; \
+	kill $$server_pid $$web_pid 2>/dev/null || true; \
 	exit $$status
 
 run-server:
@@ -68,9 +61,6 @@ run-server:
 
 run-web:
 	cd web && pnpm dev
-
-run-widget:
-	cd widget && pnpm dev
 
 build: clean-dist build-assets package-current clean-temp
 	@echo "[build] done"
@@ -84,18 +74,13 @@ build-all: clean-dist build-assets
 	@$(MAKE) clean-temp
 	@echo "[build-all] done"
 
-build-assets: build-web build-widget
+build-assets: build-web
 	@echo "[build-assets] done"
 
 build-web:
-	@echo "[build-web] building web app"
-	cd web && pnpm build
+	@echo "[build-web] building web sdk and app"
+	cd web && pnpm build:sdk && pnpm build
 	@echo "[build-web] done"
-
-build-widget:
-	@echo "[build-widget] building widget sdk"
-	cd widget && pnpm build:sdk && pnpm build
-	@echo "[build-widget] done"
 
 package-current:
 	@$(MAKE) package-platform PLATFORM=$(CURRENT_PLATFORM)
@@ -117,12 +102,11 @@ package-platform:
 	if [ "$$goos" = "windows" ]; then binary_name="$(APP_NAME).exe"; fi; \
 	echo "[package] start $$platform"; \
 	rm -rf "$$stage_dir"; \
-	mkdir -p "$$package_dir/web" "$$package_dir/widget" "$$package_dir/config" "$$dist_dir"; \
+	mkdir -p "$$package_dir/web" "$$package_dir/config" "$$dist_dir"; \
 	echo "[package] go build $$platform"; \
 	GOOS=$$goos GOARCH=$$goarch go build -o "$$package_dir/$$binary_name" $(APP_ENTRY); \
 	echo "[package] copy assets $$platform"; \
 	cp -R web/out "$$package_dir/web/out"; \
-	cp -R widget/out "$$package_dir/widget/out"; \
 	echo "[package] include example config only"; \
 	cp config/config.example.yaml "$$package_dir/config/config.example.yaml"; \
 	rm -f "$$archive_base.zip"; \
