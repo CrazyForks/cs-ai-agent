@@ -26,6 +26,12 @@ import {
   mergeImMessagesByIdAsc,
   parseImMessageCursorId,
 } from "@/lib/im-message-merge"
+import {
+  markMessagesReadToSeqNo,
+  normalizeRealtimeMessage,
+  patchConversation,
+  patchConversationWithMessage,
+} from "@/lib/im-realtime-state"
 import { summarizeIMMessage } from "@/lib/im-message"
 import { createRealtimeConnectionManager } from "@/lib/realtime-connection"
 import { generateUUID } from "@/lib/utils"
@@ -68,6 +74,30 @@ function showNotification(title: string, body: string, onClick?: () => void) {
 
 function ensureMessageList(value: ImMessage[] | null | undefined): ImMessage[] {
   return Array.isArray(value) ? value : []
+}
+
+function markConversationReadMessages(
+  messages: ImMessage[],
+  payload: ImRealtimeEnvelope["data"] | ImRealtimeEnvelope["payload"]
+) {
+  let next = messages
+  if ((payload?.agentLastReadSeqNo ?? 0) > 0) {
+    next = markMessagesReadToSeqNo(
+      next,
+      payload?.agentLastReadSeqNo ?? 0,
+      "agent",
+      payload?.agentLastReadAt
+    )
+  }
+  if ((payload?.customerLastReadSeqNo ?? 0) > 0) {
+    next = markMessagesReadToSeqNo(
+      next,
+      payload?.customerLastReadSeqNo ?? 0,
+      "customer",
+      payload?.customerLastReadAt
+    )
+  }
+  return next
 }
 
 export type KefuChatStore = {
@@ -133,31 +163,43 @@ export const useKefuChatStore = create<KefuChatStore>((set, get) => {
         return
       }
       const payload = event.data ?? event.payload
-      const needsRefresh =
-        event.type === "message.created" ||
-        event.type?.startsWith("conversation.")
+      if (event.type === "resync.required") {
+        void get().refreshMessages()
+        return
+      }
+      if (payload?.conversationId !== conversationId) {
+        return
+      }
 
-      if (needsRefresh && payload?.conversationId === conversationId) {
-        void get()
-          .syncLatestMessages()
-          .then(() => {
-            if (event.type !== "message.created") {
-              return
-            }
-            const state = get()
-            const lastMessage = state.messages.at(-1)
-            if (
-              lastMessage &&
-              lastMessage.senderType !== "customer" &&
-              typeof document !== "undefined" &&
-              document.visibilityState !== "visible"
-            ) {
-              showNotification("新消息", getNotificationBody(lastMessage), () => {
-                state.setIsOpen(true)
-                state.setIsVisible(true)
-              })
-            }
+      if (event.type === "message.created") {
+        const message = normalizeRealtimeMessage<ImMessage>(payload)
+        if (!message) {
+          void get().syncLatestMessages()
+          return
+        }
+        set((state) => ({
+          messages: mergeImMessagesByIdAsc(state.messages, [message]),
+          conversation: patchConversationWithMessage(state.conversation, message),
+        }))
+        if (
+          message.senderType !== "customer" &&
+          typeof document !== "undefined" &&
+          document.visibilityState !== "visible"
+        ) {
+          const state = get()
+          showNotification("新消息", getNotificationBody(message), () => {
+            state.setIsOpen(true)
+            state.setIsVisible(true)
           })
+        }
+        return
+      }
+
+      if (event.type?.startsWith("conversation.")) {
+        set((state) => ({
+          conversation: patchConversation(state.conversation, payload),
+          messages: markConversationReadMessages(state.messages, payload),
+        }))
       }
     },
   })

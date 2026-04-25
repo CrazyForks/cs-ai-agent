@@ -3,6 +3,7 @@ package services
 import (
 	"cs-agent/internal/models"
 	"cs-agent/internal/pkg/dto"
+	"cs-agent/internal/pkg/dto/response"
 	"cs-agent/internal/pkg/enums"
 	"cs-agent/internal/pkg/errorsx"
 	"cs-agent/internal/pkg/openidentity"
@@ -275,6 +276,7 @@ func (s *wsService) PublishMessageCreated(conversation *models.Conversation, mes
 		Payload: RealtimeMessageCreatedPayload{
 			ConversationID:    conversation.ID,
 			MessageID:         message.ID,
+			Message:           s.buildRealtimeMessage(message),
 			Status:            conversation.Status,
 			CurrentAssigneeID: conversation.CurrentAssigneeID,
 			SenderType:        message.SenderType,
@@ -288,6 +290,86 @@ func (s *wsService) PublishMessageCreated(conversation *models.Conversation, mes
 		},
 	})
 	s.PublishToTopics(s.routeConversationTopics(conversation), event)
+}
+
+func (s *wsService) buildRealtimeMessage(item *models.Message) response.MessageResponse {
+	if item == nil {
+		return response.MessageResponse{}
+	}
+	agentReadState, customerReadState := ConversationReadStateService.GetConversationReadStates(item.ConversationID)
+	content, payload := utils.BuildRenderableMessage(item)
+	ret := response.MessageResponse{
+		ID:              item.ID,
+		ConversationID:  item.ConversationID,
+		ClientMsgID:     item.ClientMsgID,
+		SenderType:      item.SenderType,
+		SenderID:        item.SenderID,
+		MessageType:     item.MessageType,
+		Content:         content,
+		Payload:         payload,
+		SeqNo:           item.SeqNo,
+		SendStatus:      item.SendStatus,
+		SentAt:          utils.FormatTimePtr(item.SentAt),
+		DeliveredAt:     utils.FormatTimePtr(item.DeliveredAt),
+		ReadAt:          utils.FormatTimePtr(item.ReadAt),
+		CustomerRead:    isRealtimeMessageRead(item, customerReadState),
+		CustomerReadAt:  realtimeReadMessageAt(item, customerReadState),
+		AgentRead:       isRealtimeMessageRead(item, agentReadState),
+		AgentReadAt:     realtimeReadMessageAt(item, agentReadState),
+		RecalledAt:      utils.FormatTimePtr(item.RecalledAt),
+		QuotedMessageID: item.QuotedMessageID,
+	}
+	s.fillRealtimeMessageSender(&ret, item)
+	return ret
+}
+
+func (s *wsService) fillRealtimeMessageSender(ret *response.MessageResponse, item *models.Message) {
+	if ret == nil || item == nil || item.SenderID <= 0 {
+		return
+	}
+	switch item.SenderType {
+	case enums.IMSenderTypeAI:
+		if aiAgent := AIAgentService.Get(item.SenderID); aiAgent != nil {
+			ret.SenderName = aiAgent.Name
+		}
+	case enums.IMSenderTypeAgent:
+		if profile := AgentProfileService.GetByUserID(item.SenderID); profile != nil {
+			if displayName := strings.TrimSpace(profile.DisplayName); displayName != "" {
+				ret.SenderName = displayName
+			}
+			if avatar := strings.TrimSpace(profile.Avatar); avatar != "" {
+				ret.SenderAvatar = avatar
+			}
+		}
+		if ret.SenderName == "" {
+			s.fillRealtimeMessageUserName(ret, item.SenderID)
+		}
+	default:
+		s.fillRealtimeMessageUserName(ret, item.SenderID)
+	}
+}
+
+func (s *wsService) fillRealtimeMessageUserName(ret *response.MessageResponse, userID int64) {
+	if ret == nil || userID <= 0 {
+		return
+	}
+	if user := UserService.Get(userID); user != nil {
+		ret.SenderName = user.Nickname
+		if ret.SenderName == "" {
+			ret.SenderName = user.Username
+		}
+	}
+}
+
+func isRealtimeMessageRead(item *models.Message, state *models.ConversationReadState) bool {
+	return item != nil && state != nil && state.LastReadSeqNo >= item.SeqNo
+}
+
+func realtimeReadMessageAt(item *models.Message, state *models.ConversationReadState) string {
+	if !isRealtimeMessageRead(item, state) {
+		return ""
+	}
+	return utils.FormatTimePtr(state.LastReadAt)
 }
 
 func (s *wsService) PublishMessageRecalled(conversation *models.Conversation, message *models.Message) {

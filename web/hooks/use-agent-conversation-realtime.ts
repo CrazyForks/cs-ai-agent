@@ -4,22 +4,32 @@ import { useEffect, useRef } from "react"
 import { toast } from "sonner"
 
 import { createAdminWebSocketUrl } from "@/lib/api/admin"
+import { type AgentMessage } from "@/lib/api/agent"
 import { readSession } from "@/lib/auth"
+import {
+  normalizeRealtimeMessage,
+  type RealtimeConversationPatch,
+  type RealtimeMessageCreatedPayload,
+} from "@/lib/im-realtime-state"
 import { createRealtimeConnectionManager } from "@/lib/realtime-connection"
 import { getNotificationBody, showNotification } from "@/lib/services/notification"
 import { useAgentConversationsStore } from "@/lib/stores/agent-conversations"
 
 type AgentRealtimeConnection = ReturnType<typeof createRealtimeConnectionManager>
+type AgentRealtimeEnvelope = {
+  eventId?: string
+  type?: string
+  data?: RealtimeMessageCreatedPayload<AgentMessage> &
+    RealtimeConversationPatch & {
+      messageId?: number
+      recalledAt?: string
+      sendStatus?: number
+    }
+}
 
 export function useAgentConversationRealtime() {
   const selectedConversationId = useAgentConversationsStore(
     (state) => state.selectedConversationId
-  )
-  const loadConversations = useAgentConversationsStore(
-    (state) => state.loadConversations
-  )
-  const syncLatestMessages = useAgentConversationsStore(
-    (state) => state.syncLatestMessages
   )
   const setRealtimeStatus = useAgentConversationsStore(
     (state) => state.setRealtimeStatus
@@ -57,22 +67,11 @@ export function useAgentConversationRealtime() {
       },
       onMessage: (event, socket) => {
         try {
-          const payload = JSON.parse(event.data) as {
-            eventId?: string
-            type?: string
-            data?: {
-              conversationId?: number
-              messageId?: number
-              status?: number
-              currentAssigneeId?: number
-              senderType?: string
-              messageType?: string
-              content?: string
-            }
-          }
-          const eventType = payload.type ?? ""
-          const conversationId = payload.data?.conversationId ?? 0
-          const eventId = payload.eventId?.trim() ?? ""
+          const envelope = JSON.parse(event.data) as AgentRealtimeEnvelope
+          const eventType = envelope.type ?? ""
+          const payload = envelope.data
+          const conversationId = payload?.conversationId ?? 0
+          const eventId = envelope.eventId?.trim() ?? ""
 
           if (
             eventType === "" ||
@@ -88,51 +87,50 @@ export function useAgentConversationRealtime() {
             socket.send(JSON.stringify({ type: "ack", eventId }))
           }
 
-          if (eventType === "message.created" && conversationId > 0) {
-            const senderType = payload.data?.senderType ?? ""
-            const status = payload.data?.status ?? 0
-            const currentAssigneeId = payload.data?.currentAssigneeId ?? 0
-
-            void loadConversations()
-              .then(() => {
-                const store = useAgentConversationsStore.getState()
-                const shouldNotify =
-                  senderType === "customer" &&
-                  status === 2 &&
-                  currentAssigneeId > 0 &&
-                  currentAssigneeId === currentUserIdRef.current &&
-                  typeof document !== "undefined" &&
-                  document.visibilityState !== "visible"
-
-                if (!shouldNotify) {
-                  return
-                }
-
-                showNotification(
-                  "新消息",
-                  getNotificationBody({
-                    messageType: payload.data?.messageType ?? "",
-                    content: payload.data?.content ?? "",
-                  }),
-                  () => {
-                    void store.selectConversation(conversationId)
-                  }
-                )
-              })
-              .catch((error) => {
-                toast.error(error instanceof Error ? error.message : "加载消息失败")
-              })
-          } else {
-            void loadConversations().catch((error) => {
-              toast.error(error instanceof Error ? error.message : "加载会话列表失败")
+          const store = useAgentConversationsStore.getState()
+          if (eventType === "resync.required") {
+            void store.resyncRealtimeData(conversationId).catch((error) => {
+              toast.error(error instanceof Error ? error.message : "同步会话数据失败")
             })
+            return
           }
 
-          if (
-            conversationId > 0 &&
-            selectedConversationIdRef.current === conversationId
-          ) {
-            void syncLatestMessages(conversationId)
+          if (eventType === "message.created") {
+            const message = normalizeRealtimeMessage<AgentMessage>(payload)
+            if (!message) {
+              void store.resyncRealtimeData(conversationId).catch((error) => {
+                toast.error(error instanceof Error ? error.message : "同步消息失败")
+              })
+              return
+            }
+            store.applyRealtimeMessageCreated(message)
+
+            const shouldNotify =
+              message.senderType === "customer" &&
+              payload?.status === 2 &&
+              (payload.currentAssigneeId ?? 0) > 0 &&
+              payload.currentAssigneeId === currentUserIdRef.current &&
+              typeof document !== "undefined" &&
+              document.visibilityState !== "visible"
+
+            if (shouldNotify) {
+              showNotification("新消息", getNotificationBody(message), () => {
+                void store.selectConversation(message.conversationId)
+              })
+            }
+            return
+          }
+
+          if (eventType === "message.recalled" && payload?.messageId) {
+            store.applyRealtimeMessageRecalled(payload.messageId, {
+              sendStatus: payload.sendStatus,
+              recalledAt: payload.recalledAt,
+            })
+            return
+          }
+
+          if (eventType.startsWith("conversation.") && payload) {
+            store.applyRealtimeConversationChanged(payload)
           }
         } catch {
           // ignore invalid ws payload
@@ -167,7 +165,7 @@ export function useAgentConversationRealtime() {
       realtime.disconnect()
       subscribedConversationIdRef.current = null
     }
-  }, [loadConversations, setRealtimeStatus, syncLatestMessages])
+  }, [setRealtimeStatus])
 
   useEffect(() => {
     const socket = realtimeRef.current?.getSocket()

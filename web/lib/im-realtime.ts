@@ -1,18 +1,16 @@
 import { createWebSocketBaseUrl } from "@/lib/api/websocket"
-import { getImVisitorId } from "@/lib/api/im"
+import { getImVisitorId, type ImMessage } from "@/lib/api/im"
 import { readKefuWidgetConfig } from "@/lib/kefu-widget-config"
+import type {
+  RealtimeConversationPatch,
+  RealtimeMessageCreatedPayload,
+} from "@/lib/im-realtime-state"
 
 export type ImRealtimeEnvelope = {
   type: string
   topic?: string
-  data?: {
-    conversationId?: number
-    messageId?: number
-  }
-  payload?: {
-    conversationId?: number
-    messageId?: number
-  }
+  data?: RealtimeMessageCreatedPayload<ImMessage> & RealtimeConversationPatch
+  payload?: RealtimeMessageCreatedPayload<ImMessage> & RealtimeConversationPatch
 }
 
 export function createImRealtimeConnection() {

@@ -21,6 +21,12 @@ import {
   mergeImMessagesByIdAsc,
   parseImMessageCursorId,
 } from "@/lib/im-message-merge"
+import {
+  markMessagesReadToSeqNo,
+  patchConversationList,
+  patchConversationListWithMessage,
+  type RealtimeConversationPatch,
+} from "@/lib/im-realtime-state"
 import { summarizeIMMessage } from "@/lib/im-message"
 import { generateUUID } from "@/lib/utils"
 
@@ -89,6 +95,10 @@ type AgentConversationsStore = {
   uploadImage: (file: File) => Promise<AgentAsset | null>
   sendAttachment: (file: File) => Promise<AgentMessage | null>
   recallMessage: (messageId: number) => Promise<AgentMessage | null>
+  applyRealtimeMessageCreated: (message: AgentMessage) => void
+  applyRealtimeConversationChanged: (patch: RealtimeConversationPatch) => void
+  applyRealtimeMessageRecalled: (messageId: number, patch: Partial<AgentMessage>) => void
+  resyncRealtimeData: (conversationId?: number) => Promise<void>
 }
 
 let conversationsRequestSeq = 0
@@ -391,6 +401,77 @@ export const useAgentConversationsStore = create<AgentConversationsStore>((set, 
     }
   },
 
+  applyRealtimeMessageCreated: (message) => {
+    set((state) => {
+      const isSelected = state.selectedConversationId === message.conversationId
+      const nextMessages = isSelected
+        ? mergeImMessagesByIdAsc(state.messages, [message])
+        : state.messages
+      return {
+        messages: nextMessages,
+        conversations: patchConversationListWithMessage(
+          state.conversations,
+          message
+        ),
+      }
+    })
+  },
+
+  applyRealtimeConversationChanged: (patch) => {
+    set((state) => {
+      const conversationId = patch.id ?? patch.conversationId ?? 0
+      let nextMessages = state.messages
+      if (
+        conversationId > 0 &&
+        state.selectedConversationId === conversationId
+      ) {
+        if ((patch.agentLastReadSeqNo ?? 0) > 0) {
+          nextMessages = markMessagesReadToSeqNo(
+            nextMessages,
+            patch.agentLastReadSeqNo ?? 0,
+            "agent",
+            patch.agentLastReadAt
+          )
+        }
+        if ((patch.customerLastReadSeqNo ?? 0) > 0) {
+          nextMessages = markMessagesReadToSeqNo(
+            nextMessages,
+            patch.customerLastReadSeqNo ?? 0,
+            "customer",
+            patch.customerLastReadAt
+          )
+        }
+      }
+      return {
+        messages: nextMessages,
+        conversations: patchConversationList(state.conversations, patch),
+      }
+    })
+  },
+
+  applyRealtimeMessageRecalled: (messageId, patch) => {
+    if (messageId <= 0) {
+      return
+    }
+    set((state) => ({
+      messages: state.messages.map((item) =>
+        item.id === messageId ? { ...item, ...patch, id: item.id } : item
+      ),
+    }))
+  },
+
+  resyncRealtimeData: async (conversationId) => {
+    await get().loadConversations()
+    const selectedConversationId = get().selectedConversationId
+    const targetConversationId = conversationId ?? selectedConversationId
+    if (targetConversationId && selectedConversationId === targetConversationId) {
+      await get().loadMessages(targetConversationId, {
+        forceLoading: false,
+        reset: false,
+      })
+    }
+  },
+
   sendMessage: async (html) => {
     const trimmedContent = html.trim()
     const { selectedConversationId, sending } = get()
@@ -412,22 +493,17 @@ export const useAgentConversationsStore = create<AgentConversationsStore>((set, 
           messages: current.messages.some((m) => m.id === message.id)
             ? current.messages.map((m) => (m.id === message.id ? message : m))
             : [...current.messages, message],
-          conversations: current.conversations.map((item) =>
-            item.id === selectedConversationId
-              ? {
-                  ...item,
-                  lastMessageAt: message.sentAt,
-                  lastActiveAt: message.sentAt,
-                  lastMessageSummary: summarizeIMMessage({
-                    messageType: "html",
-                    content: trimmedContent,
-                  }),
-                  agentUnreadCount: 0,
-                  customerUnreadCount: (item.customerUnreadCount ?? 0) + 1,
-                  agentLastReadMessageId: message.id,
-                  agentLastReadSeqNo: message.seqNo,
-                }
-              : item
+          conversations: patchConversationList(
+            patchConversationListWithMessage(current.conversations, message),
+            {
+              conversationId: selectedConversationId,
+              agentUnreadCount: 0,
+              customerUnreadCount:
+                (current.conversations.find((item) => item.id === selectedConversationId)
+                  ?.customerUnreadCount ?? 0) + 1,
+              agentLastReadMessageId: message.id,
+              agentLastReadSeqNo: message.seqNo,
+            }
           ),
         }))
       }
@@ -474,19 +550,17 @@ export const useAgentConversationsStore = create<AgentConversationsStore>((set, 
           messages: current.messages.some((m) => m.id === message.id)
             ? current.messages.map((m) => (m.id === message.id ? message : m))
             : [...current.messages, message],
-          conversations: current.conversations.map((item) =>
-            item.id === selectedConversationId
-              ? {
-                  ...item,
-                  lastMessageAt: message.sentAt,
-                  lastActiveAt: message.sentAt,
-                  lastMessageSummary: summarizeIMMessage(message),
-                  agentUnreadCount: 0,
-                  customerUnreadCount: (item.customerUnreadCount ?? 0) + 1,
-                  agentLastReadMessageId: message.id,
-                  agentLastReadSeqNo: message.seqNo,
-                }
-              : item
+          conversations: patchConversationList(
+            patchConversationListWithMessage(current.conversations, message),
+            {
+              conversationId: selectedConversationId,
+              agentUnreadCount: 0,
+              customerUnreadCount:
+                (current.conversations.find((item) => item.id === selectedConversationId)
+                  ?.customerUnreadCount ?? 0) + 1,
+              agentLastReadMessageId: message.id,
+              agentLastReadSeqNo: message.seqNo,
+            }
           ),
         }))
       }

@@ -2,6 +2,7 @@ package services
 
 import (
 	"cs-agent/internal/pkg/dto"
+	"cs-agent/internal/pkg/dto/response"
 	"cs-agent/internal/pkg/enums"
 	"cs-agent/internal/pkg/openidentity"
 	"encoding/json"
@@ -134,6 +135,7 @@ func (e RealtimeResyncRequiredEvent) EventPayload() RealtimeEventPayload {
 type RealtimeMessageCreatedPayload struct {
 	ConversationID    int64                      `json:"conversationId,omitempty"`
 	MessageID         int64                      `json:"messageId,omitempty"`
+	Message           response.MessageResponse   `json:"message,omitempty"`
 	Status            enums.IMConversationStatus `json:"status,omitempty"`
 	CurrentAssigneeID int64                      `json:"currentAssigneeId,omitempty"`
 	SenderType        enums.IMSenderType         `json:"senderType,omitempty"`
