@@ -39,6 +39,51 @@ export function mergeImMessagesByIdAsc<T extends MergeableImMessage>(
   return Array.from(byId.values()).sort((x, y) => x.id - y.id)
 }
 
+export function parseImMessageCursorId(cursor: string): number {
+  const value = Number.parseInt(cursor, 10)
+  return Number.isFinite(value) && value > 0 ? value : 0
+}
+
+export function cursorFromLoadedImMessages<T extends Pick<MergeableImMessage, "id">>(
+  messages: T[]
+): string {
+  if (messages.length === 0) {
+    return ""
+  }
+  return String(Math.min(...messages.map((message) => message.id)))
+}
+
+export function hasMoreAfterLatestImMessageMerge<
+  T extends Pick<MergeableImMessage, "id">,
+>(args: {
+  previousMessages: T[]
+  previousHasMore: boolean
+  merged: T[]
+  apiHasMore: boolean
+}): boolean {
+  const prevMin = minImMessageId(args.previousMessages)
+  const mergedMin = minImMessageId(args.merged)
+
+  if (mergedMin === null) {
+    return Boolean(args.apiHasMore)
+  }
+
+  if (!args.previousHasMore && prevMin !== null && mergedMin >= prevMin) {
+    return false
+  }
+
+  return args.previousHasMore || Boolean(args.apiHasMore)
+}
+
+function minImMessageId<T extends Pick<MergeableImMessage, "id">>(
+  messages: T[]
+): number | null {
+  if (messages.length === 0) {
+    return null
+  }
+  return Math.min(...messages.map((message) => message.id))
+}
+
 export function mergeImMessage<T extends MergeableImMessage>(
   existing: T,
   incoming: T

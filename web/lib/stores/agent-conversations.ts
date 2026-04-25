@@ -15,7 +15,12 @@ import {
   type AgentMessage,
 } from "@/lib/api/agent"
 import type { RealtimeConnectionStatusValue } from "@/components/realtime-connection-status"
-import { mergeImMessagesByIdAsc } from "@/lib/im-message-merge"
+import {
+  cursorFromLoadedImMessages,
+  hasMoreAfterLatestImMessageMerge,
+  mergeImMessagesByIdAsc,
+  parseImMessageCursorId,
+} from "@/lib/im-message-merge"
 import { summarizeIMMessage } from "@/lib/im-message"
 import { generateUUID } from "@/lib/utils"
 
@@ -47,54 +52,6 @@ type LoadMessagesOptions = {
 
 function ensureArray<T>(value: T[] | null | undefined): T[] {
   return Array.isArray(value) ? value : []
-}
-
-function parseCursorId(cursor: string): number {
-  const n = Number.parseInt(cursor, 10)
-  return Number.isFinite(n) && n > 0 ? n : 0
-}
-
-/** 下一页「更旧」请求应传入的游标：当前已加载列表中的最小 message id（后端用 id < cursor） */
-function cursorFromLoadedMessages(messages: AgentMessage[]): string {
-  if (messages.length === 0) {
-    return ""
-  }
-  return String(Math.min(...messages.map((m) => m.id)))
-}
-
-function minMessageId(messages: AgentMessage[]): number | null {
-  if (messages.length === 0) {
-    return null
-  }
-  return Math.min(...messages.map((m) => m.id))
-}
-
-/**
- * 拉「最新一页」做增量合并后，是否仍显示「还有更旧」。
- * 若本地已确认没有更旧，且合并后最早一条 id 没有变小，则不能用接口对「最新一页」的 hasMore 再次打开（满页会误报）。
- */
-function hasMoreAfterLatestSyncMerge(args: {
-  previousMessages: AgentMessage[]
-  previousHasMore: boolean
-  merged: AgentMessage[]
-  apiHasMore: boolean
-}): boolean {
-  const prevMin = minMessageId(args.previousMessages)
-  const mergedMin = minMessageId(args.merged)
-
-  if (mergedMin === null) {
-    return Boolean(args.apiHasMore)
-  }
-
-  if (
-    !args.previousHasMore &&
-    prevMin !== null &&
-    mergedMin >= prevMin
-  ) {
-    return false
-  }
-
-  return args.previousHasMore || Boolean(args.apiHasMore)
 }
 
 type AgentConversationsStore = {
@@ -298,7 +255,7 @@ export const useAgentConversationsStore = create<AgentConversationsStore>((set, 
         messagesLoading: false,
         messagesLoadedConversationId: conversationId,
         messagesCursor:
-          cursorFromLoadedMessages(list) || (data.cursor ?? ""),
+          cursorFromLoadedImMessages(list) || (data.cursor ?? ""),
         messagesHasMore: Boolean(data.hasMore),
       })
     } catch (error) {
@@ -314,7 +271,7 @@ export const useAgentConversationsStore = create<AgentConversationsStore>((set, 
     if (!conversationId || get().messagesLoadingMore || !get().messagesHasMore) {
       return
     }
-    const cursorId = parseCursorId(get().messagesCursor)
+    const cursorId = parseImMessageCursorId(get().messagesCursor)
     if (cursorId <= 0) {
       return
     }
@@ -335,7 +292,7 @@ export const useAgentConversationsStore = create<AgentConversationsStore>((set, 
         return {
           messages: merged,
           messagesCursor:
-            cursorFromLoadedMessages(merged) ||
+            cursorFromLoadedImMessages(merged) ||
             (data.cursor ?? state.messagesCursor),
           messagesHasMore: Boolean(data.hasMore),
           messagesLoadingMore: false,
@@ -368,9 +325,9 @@ export const useAgentConversationsStore = create<AgentConversationsStore>((set, 
         return {
           messages: merged,
           messagesCursor:
-            cursorFromLoadedMessages(merged) ||
+            cursorFromLoadedImMessages(merged) ||
             (data.cursor ?? state.messagesCursor),
-          messagesHasMore: hasMoreAfterLatestSyncMerge({
+          messagesHasMore: hasMoreAfterLatestImMessageMerge({
             previousMessages: state.messages,
             previousHasMore: state.messagesHasMore,
             merged,

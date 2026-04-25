@@ -20,14 +20,18 @@ import {
   createImRealtimeConnection,
   type ImRealtimeEnvelope,
 } from "@/lib/im-realtime"
-import { mergeImMessagesByIdAsc } from "@/lib/im-message-merge"
+import {
+  cursorFromLoadedImMessages,
+  hasMoreAfterLatestImMessageMerge,
+  mergeImMessagesByIdAsc,
+  parseImMessageCursorId,
+} from "@/lib/im-message-merge"
 import { summarizeIMMessage } from "@/lib/im-message"
+import { createRealtimeConnectionManager } from "@/lib/realtime-connection"
 import { generateUUID } from "@/lib/utils"
 
 type ChatStatus = "connecting" | "connected" | "disconnected"
 
-const RECONNECT_BASE_DELAY = 2000
-const RECONNECT_MAX_DELAY = 30000
 const DEFAULT_PAGE_LIMIT = 50
 
 function getNotificationBody(message: ImMessage): string {
@@ -64,45 +68,6 @@ function showNotification(title: string, body: string, onClick?: () => void) {
 
 function ensureMessageList(value: ImMessage[] | null | undefined): ImMessage[] {
   return Array.isArray(value) ? value : []
-}
-
-function parseCursorId(cursor: string): number {
-  const value = Number.parseInt(cursor, 10)
-  return Number.isFinite(value) && value > 0 ? value : 0
-}
-
-function cursorFromLoadedMessages(messages: ImMessage[]): string {
-  if (messages.length === 0) {
-    return ""
-  }
-  return String(Math.min(...messages.map((message) => message.id)))
-}
-
-function minMessageId(messages: ImMessage[]): number | null {
-  if (messages.length === 0) {
-    return null
-  }
-  return Math.min(...messages.map((message) => message.id))
-}
-
-function hasMoreAfterLatestSyncMerge(args: {
-  previousMessages: ImMessage[]
-  previousHasMore: boolean
-  merged: ImMessage[]
-  apiHasMore: boolean
-}): boolean {
-  const prevMin = minMessageId(args.previousMessages)
-  const mergedMin = minMessageId(args.merged)
-
-  if (mergedMin === null) {
-    return Boolean(args.apiHasMore)
-  }
-
-  if (!args.previousHasMore && prevMin !== null && mergedMin >= prevMin) {
-    return false
-  }
-
-  return args.previousHasMore || Boolean(args.apiHasMore)
 }
 
 export type KefuChatStore = {
@@ -144,74 +109,29 @@ export type KefuChatStore = {
 let bootstrapToken = 0
 
 export const useKefuChatStore = create<KefuChatStore>((set, get) => {
-  let reconnectTimer: number | null = null
-  let pingTimer: number | null = null
-  let reconnectAttempt = 0
-  let shouldReconnect = false
-
-  const clearRealtimeTimers = () => {
-    if (reconnectTimer !== null) {
-      window.clearTimeout(reconnectTimer)
-      reconnectTimer = null
-    }
-    if (pingTimer !== null) {
-      window.clearInterval(pingTimer)
-      pingTimer = null
-    }
-  }
-
-  const scheduleReconnect = () => {
-    if (!shouldReconnect || reconnectTimer !== null) {
-      return
-    }
-
-    const delay = Math.min(
-      RECONNECT_BASE_DELAY * 2 ** reconnectAttempt,
-      RECONNECT_MAX_DELAY
-    )
-    set({ status: "connecting" })
-    reconnectTimer = window.setTimeout(() => {
-      reconnectTimer = null
-      reconnectAttempt += 1
-      if (!shouldReconnect || !get().isOpen) {
+  const realtime = createRealtimeConnectionManager({
+    createSocket: createImRealtimeConnection,
+    canReconnect: () => Boolean(get().isOpen && get().conversation?.id),
+    onStatusChange: (status) => {
+      if (get().isOpen || status === "disconnected") {
+        set({ status })
+      }
+    },
+    onSocketChange: (socket) => {
+      set({ socket })
+    },
+    onMessage: (messageEvent) => {
+      let event: ImRealtimeEnvelope
+      try {
+        event = JSON.parse(messageEvent.data) as ImRealtimeEnvelope
+      } catch {
         return
       }
-      connectSocket()
-    }, delay)
-  }
 
-  const closeSocket = (options?: { reconnect?: boolean }) => {
-    shouldReconnect = options?.reconnect ?? false
-    clearRealtimeTimers()
-    if (!shouldReconnect) {
-      reconnectAttempt = 0
-    }
-
-    const socket = get().socket
-    if (
-      socket &&
-      (socket.readyState === WebSocket.OPEN ||
-        socket.readyState === WebSocket.CONNECTING)
-    ) {
-      socket.close()
-    }
-
-    set({ socket: null })
-  }
-
-  const connectSocket = () => {
-    const conversationId = get().conversation?.id
-    if (!conversationId) {
-      return
-    }
-
-    closeSocket({ reconnect: false })
-    shouldReconnect = true
-
-    const socket = createImRealtimeConnection()
-    set({ socket })
-
-    const handleRealtimeEvent = (event: ImRealtimeEnvelope) => {
+      const conversationId = get().conversation?.id
+      if (!conversationId) {
+        return
+      }
       const payload = event.data ?? event.payload
       const needsRefresh =
         event.type === "message.created" ||
@@ -239,51 +159,21 @@ export const useKefuChatStore = create<KefuChatStore>((set, get) => {
             }
           })
       }
+    },
+  })
+
+  const closeSocket = (options?: { reconnect?: boolean }) => {
+    realtime.disconnect({
+      reconnect: options?.reconnect ?? false,
+      updateStatus: true,
+    })
+  }
+
+  const connectSocket = () => {
+    if (!get().conversation?.id) {
+      return
     }
-
-    socket.addEventListener("message", (event) => {
-      try {
-        handleRealtimeEvent(JSON.parse(event.data) as ImRealtimeEnvelope)
-      } catch {
-        return
-      }
-    })
-
-    socket.addEventListener("open", () => {
-      clearRealtimeTimers()
-      reconnectAttempt = 0
-      pingTimer = window.setInterval(() => {
-        if (socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({ type: "ping" }))
-        }
-      }, 20000)
-      if (get().isOpen && get().socket === socket) {
-        set({ status: "connected" })
-      }
-    })
-
-    socket.addEventListener("error", () => {
-      if (get().socket === socket) {
-        scheduleReconnect()
-      }
-    })
-
-    socket.addEventListener("close", () => {
-      if (pingTimer !== null) {
-        window.clearInterval(pingTimer)
-        pingTimer = null
-      }
-      if (get().socket === socket) {
-        set({ socket: null })
-      }
-      if (get().isOpen) {
-        if (shouldReconnect) {
-          scheduleReconnect()
-        } else {
-          set({ status: "disconnected" })
-        }
-      }
-    })
+    realtime.connect()
   }
 
   return {
@@ -388,7 +278,7 @@ export const useKefuChatStore = create<KefuChatStore>((set, get) => {
         const results = ensureMessageList(page.results)
         set({
           messages: results,
-          messagesCursor: cursorFromLoadedMessages(results) || page.cursor || "",
+          messagesCursor: cursorFromLoadedImMessages(results) || page.cursor || "",
           messagesHasMore: Boolean(page.hasMore) || results.length >= DEFAULT_PAGE_LIMIT,
         })
       } catch (error) {
@@ -418,8 +308,8 @@ export const useKefuChatStore = create<KefuChatStore>((set, get) => {
           const merged = mergeImMessagesByIdAsc(state.messages, batch)
           return {
             messages: merged,
-            messagesCursor: cursorFromLoadedMessages(merged) || page.cursor || "",
-            messagesHasMore: hasMoreAfterLatestSyncMerge({
+            messagesCursor: cursorFromLoadedImMessages(merged) || page.cursor || "",
+            messagesHasMore: hasMoreAfterLatestImMessageMerge({
               previousMessages: state.messages,
               previousHasMore: state.messagesHasMore,
               merged,
@@ -444,7 +334,7 @@ export const useKefuChatStore = create<KefuChatStore>((set, get) => {
         return
       }
 
-      const cursorId = parseCursorId(get().messagesCursor)
+      const cursorId = parseImMessageCursorId(get().messagesCursor)
       if (cursorId <= 0) {
         return
       }
@@ -464,7 +354,7 @@ export const useKefuChatStore = create<KefuChatStore>((set, get) => {
           )
           return {
             messages: merged,
-            messagesCursor: cursorFromLoadedMessages(merged) || page.cursor || "",
+            messagesCursor: cursorFromLoadedImMessages(merged) || page.cursor || "",
             messagesHasMore: Boolean(page.hasMore) || results.length >= DEFAULT_PAGE_LIMIT,
             messagesLoadingMore: false,
           }
@@ -667,7 +557,6 @@ export const useKefuChatStore = create<KefuChatStore>((set, get) => {
       try {
         await get().refreshMessages()
         if (get().isOpen) {
-          shouldReconnect = true
           connectSocket()
         }
       } catch (error) {
