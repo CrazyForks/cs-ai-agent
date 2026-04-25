@@ -85,6 +85,7 @@ export function ImMessageEditor({
   const onSendAttachmentRef = useRef(onSendAttachment)
   const shouldRestoreFocusRef = useRef(false)
   const objectUrlsRef = useRef<Set<string>>(new Set())
+  const uploadedImagesRef = useRef(new Map<string, UploadedImage>())
   const [quickReplies, setQuickReplies] = useState<AdminQuickReply[]>([])
   const [loadingQuickReplies, setLoadingQuickReplies] = useState(false)
   const [quickReplyPickerOpen, setQuickReplyPickerOpen] = useState(false)
@@ -198,16 +199,17 @@ export function ImMessageEditor({
       return
     }
     const rawHTML = editor.getHTML()
-    if (hasUploadingEditorImages(rawHTML)) {
+    if (hasUploadingEditorImages(rawHTML, uploadedImagesRef.current)) {
       return
     }
-    const html = buildSendableEditorHTML(rawHTML)
+    const html = buildSendableEditorHTML(rawHTML, uploadedImagesRef.current)
     if (!isMeaningfulHTML(html)) {
       return
     }
     await onSendRef.current(html)
     editor.commands.clearContent(true)
     revokeEditorObjectUrls(objectUrlsRef.current)
+    uploadedImagesRef.current.clear()
     requestAnimationFrame(() => {
       editor.commands.focus("end")
     })
@@ -252,7 +254,12 @@ export function ImMessageEditor({
         revokeEditorObjectUrl(objectUrlsRef.current, objectUrl)
         return
       }
-      markEditorImageUploadedByTitle(editor, placeholderId, uploaded)
+      markEditorImageUploadedByTitle(
+        editor,
+        placeholderId,
+        uploaded,
+        uploadedImagesRef.current
+      )
     } finally {
       requestAnimationFrame(() => {
         if (!disabled && shouldRestoreFocusRef.current) {

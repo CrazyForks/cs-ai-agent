@@ -75,6 +75,7 @@ export function KefuMessageEditor({
   const onSendAttachmentRef = useRef(onSendAttachment)
   const shouldRestoreFocusRef = useRef(false)
   const objectUrlsRef = useRef<Set<string>>(new Set())
+  const uploadedImagesRef = useRef(new Map<string, UploadedImage>())
   const isUploading = uploadingAsset || localUploading
 
   useEffect(() => {
@@ -162,16 +163,17 @@ export function KefuMessageEditor({
       return
     }
     const rawHTML = editor.getHTML()
-    if (hasUploadingEditorImages(rawHTML)) {
+    if (hasUploadingEditorImages(rawHTML, uploadedImagesRef.current)) {
       return
     }
-    const html = buildSendableEditorHTML(rawHTML)
+    const html = buildSendableEditorHTML(rawHTML, uploadedImagesRef.current)
     if (!isMeaningfulHTML(html)) {
       return
     }
     await onSendRef.current(html)
     editor.commands.clearContent(true)
     revokeEditorObjectUrls(objectUrlsRef.current)
+    uploadedImagesRef.current.clear()
   }
 
   async function handleSelectImage(event: React.ChangeEvent<HTMLInputElement>) {
@@ -215,7 +217,12 @@ export function KefuMessageEditor({
         revokeEditorObjectUrl(objectUrlsRef.current, objectUrl)
         return
       }
-      markEditorImageUploadedByTitle(editor, placeholderId, uploaded)
+      markEditorImageUploadedByTitle(
+        editor,
+        placeholderId,
+        uploaded,
+        uploadedImagesRef.current
+      )
     } finally {
       setLocalUploading(false)
       requestAnimationFrame(() => {
