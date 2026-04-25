@@ -7,7 +7,14 @@ import {
   RotateCwIcon,
   XIcon,
 } from "lucide-react"
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react"
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react"
 import { useShallow } from "zustand/react/shallow"
 
 import { KefuConnectionStatus } from "@/components/kefu/connection-status"
@@ -33,7 +40,36 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
+function useKefuSystemTheme() {
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") {
+      return
+    }
+    const root = document.documentElement
+    const query = window.matchMedia("(prefers-color-scheme: dark)")
+    const previousDarkClass = root.classList.contains("dark")
+    const previousColorScheme = root.style.colorScheme
+
+    const syncTheme = () => {
+      const isDark = query.matches
+      root.classList.toggle("dark", isDark)
+      root.style.colorScheme = isDark ? "dark" : "light"
+    }
+
+    syncTheme()
+    query.addEventListener("change", syncTheme)
+
+    return () => {
+      query.removeEventListener("change", syncTheme)
+      root.classList.toggle("dark", previousDarkClass)
+      root.style.colorScheme = previousColorScheme
+    }
+  }, [])
+}
+
 export function KefuChatShell() {
+  useKefuSystemTheme()
+
   const messageListRef = useRef<KefuMessageListHandle | null>(null)
   const [isMaximized, setIsMaximized] = useState(false)
   const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false)
@@ -200,23 +236,23 @@ export function KefuChatShell() {
 
   return (
     <main
-      className="relative flex h-screen overflow-hidden bg-[#f6f8fb] text-slate-950"
+      className="relative flex h-screen overflow-hidden bg-muted text-foreground"
       style={{ "--primary": themeColor } as CSSProperties}
     >
-      <section className="flex h-full w-full flex-col overflow-hidden border border-slate-200/70 bg-white">
-        <header className="shrink-0 border-b border-slate-200/70 bg-white/95 px-4 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+      <section className="flex h-full w-full flex-col overflow-hidden border border-border bg-card text-card-foreground">
+        <header className="shrink-0 border-b border-border bg-card/95 px-4 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.04)] dark:shadow-none">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <div className="truncate text-base font-semibold text-slate-950">
+              <div className="truncate text-base font-semibold text-foreground">
                 {title}
               </div>
-              <div className="mt-1 truncate text-xs text-slate-500">{subtitle}</div>
+              <div className="mt-1 truncate text-xs text-muted-foreground">{subtitle}</div>
             </div>
             <div className="flex items-center gap-2">
               {status !== "connected" ? (
                 <KefuConnectionStatus status={status} />
               ) : null}
-              <div className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
+              <div className="inline-flex items-center gap-1 rounded-lg border border-border bg-muted/60 p-1">
                 <Button
                   type="button"
                   variant="ghost"
@@ -224,7 +260,7 @@ export function KefuChatShell() {
                   onClick={retry}
                   aria-label="重新连接"
                   title="重新连接"
-                  className="text-slate-500 hover:bg-white hover:text-sky-600"
+                  className="text-muted-foreground hover:bg-background hover:text-sky-600 dark:hover:text-sky-400"
                 >
                   <RotateCwIcon />
                 </Button>
@@ -236,7 +272,7 @@ export function KefuChatShell() {
                     onClick={handleMinimize}
                     aria-label="收起聊天窗口"
                     title="收起聊天窗口"
-                    className="text-slate-500 hover:bg-white hover:text-slate-800"
+                    className="text-muted-foreground hover:bg-background hover:text-foreground"
                   >
                     <MinusIcon />
                   </Button>
@@ -249,7 +285,7 @@ export function KefuChatShell() {
                     onClick={handleToggleMaximize}
                     aria-label={isMaximized ? "取消最大化" : "最大化聊天窗口"}
                     title={isMaximized ? "取消最大化" : "最大化聊天窗口"}
-                    className="text-slate-500 hover:bg-white hover:text-emerald-700"
+                    className="text-muted-foreground hover:bg-background hover:text-emerald-700 dark:hover:text-emerald-400"
                   >
                     {isMaximized ? (
                       <Minimize2Icon />
@@ -265,7 +301,7 @@ export function KefuChatShell() {
                   onClick={() => setIsCloseDialogOpen(true)}
                   aria-label="关闭聊天窗口"
                   title="关闭聊天窗口"
-                  className="text-rose-500 hover:bg-rose-50 hover:text-rose-600"
+                  className="text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
                 >
                   <XIcon />
                 </Button>
@@ -274,7 +310,7 @@ export function KefuChatShell() {
           </div>
         </header>
 
-        <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden bg-[#f6f8fb]">
+        <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden bg-muted/70">
           <KefuMessageList
             ref={messageListRef}
             messages={safeMessages}
@@ -292,7 +328,7 @@ export function KefuChatShell() {
         </div>
 
         {error ? (
-          <div className="border-t border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="border-t border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {error}
           </div>
         ) : null}

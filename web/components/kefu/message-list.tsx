@@ -219,7 +219,7 @@ export const KefuMessageList = forwardRef<KefuMessageListHandle, KefuMessageList
                 size="sm"
                 disabled={loadingOlder}
                 onClick={() => void handleLoadOlder()}
-                className="h-7 rounded-full border-slate-200 bg-white/90 text-xs text-slate-600 shadow-sm hover:bg-white hover:text-sky-700"
+                className="h-7 rounded-full bg-background/90 text-xs text-muted-foreground shadow-sm hover:bg-background hover:text-sky-700 dark:hover:text-sky-400"
               >
                 {loadingOlder ? "加载中…" : "加载更早的消息"}
               </Button>
@@ -269,7 +269,7 @@ const MessageItem = memo(
           <div className="mb-3 flex items-center justify-center">
             <Badge
               variant="outline"
-              className="border-slate-200 bg-white/85 text-[11px] font-medium text-slate-500 shadow-sm"
+              className="border-border bg-background/85 text-[11px] font-medium text-muted-foreground shadow-sm"
             >
               {getTimelineLabel(message.sentAt)}
             </Badge>
@@ -280,7 +280,7 @@ const MessageItem = memo(
           {!isCustomer ? (
             <Avatar className="mt-5">
               {avatarSrc ? <AvatarImage src={avatarSrc} alt="" /> : null}
-              <AvatarFallback className="bg-slate-200 text-slate-600">
+              <AvatarFallback className="bg-muted text-muted-foreground">
                 {fallbackName || "客"}
               </AvatarFallback>
             </Avatar>
@@ -292,7 +292,7 @@ const MessageItem = memo(
               isCustomer ? "items-end" : "items-start"
             )}
           >
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-1 text-[11px] text-slate-400">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-1 text-[11px] text-muted-foreground">
               <span className="font-medium">{senderName}</span>
               <span>{formatDateTime(message.sentAt)}</span>
               {isCustomer ? (
@@ -303,16 +303,16 @@ const MessageItem = memo(
               className={cn(
                 "rounded-lg px-3 py-2 text-sm leading-normal shadow-[0_10px_22px_rgba(15,23,42,0.06)]",
                 isCustomer
-                  ? "bg-[#a9ea7a] text-[#161616]"
-                  : "border border-slate-200/80 bg-white text-slate-900"
+                  ? "bg-[#a9ea7a] text-[#161616] dark:bg-emerald-500 dark:text-emerald-950"
+                  : "border border-border bg-card text-card-foreground dark:bg-background"
               )}
             >
               <ImMessageHTML
                 html={htmlContent}
                 className={cn(
                   isCustomer
-                    ? "[&_p]:text-[#161616] [&_a]:text-[#161616] [&_a]:underline [&_img]:cursor-zoom-in"
-                    : "[&_a]:text-slate-900 [&_a]:underline [&_img]:cursor-zoom-in"
+                    ? "[&_p]:text-[#161616] dark:[&_p]:text-emerald-950 [&_a]:text-[#161616] dark:[&_a]:text-emerald-950 [&_a]:underline [&_img]:cursor-zoom-in"
+                    : "[&_a]:text-card-foreground [&_a]:underline [&_img]:cursor-zoom-in"
                 )}
                 onImageSettled={onImageSettled}
                 onImageClick={open}

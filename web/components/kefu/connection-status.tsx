@@ -16,10 +16,10 @@ const statusText: Record<KefuConnectionStatusProps["status"], string> = {
 export function KefuConnectionStatus({ status }: KefuConnectionStatusProps) {
   const toneClass =
     status === "connected"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/50 dark:text-emerald-300"
       : status === "connecting"
-        ? "border-amber-200 bg-amber-50 text-amber-700"
-        : "border-slate-200 bg-slate-100 text-slate-600"
+        ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/70 dark:bg-amber-950/50 dark:text-amber-300"
+        : "border-border bg-muted text-muted-foreground"
 
   return (
     <Badge
@@ -33,7 +33,7 @@ export function KefuConnectionStatus({ status }: KefuConnectionStatusProps) {
             ? "bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.14)]"
             : status === "connecting"
               ? "bg-amber-500 shadow-[0_0_0_4px_rgba(245,158,11,0.16)]"
-              : "bg-slate-400 shadow-[0_0_0_4px_rgba(148,163,184,0.14)]"
+              : "bg-muted-foreground shadow-[0_0_0_4px_rgba(148,163,184,0.14)]"
         )}
       />
       <span>{statusText[status]}</span>

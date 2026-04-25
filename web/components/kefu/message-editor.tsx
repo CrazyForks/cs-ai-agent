@@ -100,7 +100,7 @@ export function KefuMessageEditor({
     editorProps: {
       attributes: {
         class:
-          "min-h-12 max-h-40 overflow-y-auto px-1.5 py-1 text-sm leading-6 text-slate-900 outline-none [&_p]:m-0 [&_p+*]:mt-2 [&_img]:my-2 [&_img]:max-h-64 [&_img]:rounded-lg [&_img]:object-contain",
+          "min-h-12 max-h-40 overflow-y-auto px-1.5 py-1 text-sm leading-6 text-foreground outline-none [&_p]:m-0 [&_p+*]:mt-2 [&_img]:my-2 [&_img]:max-h-64 [&_img]:rounded-lg [&_img]:object-contain",
       },
       handleKeyDown: (_view, event) => {
         if (event.key === "Enter" && !event.shiftKey) {
@@ -233,8 +233,8 @@ export function KefuMessageEditor({
   }
 
   return (
-    <div className="border-t border-slate-200/70 bg-white px-3 pb-3 pt-2">
-      <div className="rounded-xl border border-slate-200 bg-white p-2 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+    <div className="border-t border-border bg-card px-3 pb-3 pt-2">
+      <div className="rounded-xl border border-border bg-background p-2 shadow-[0_8px_24px_rgba(15,23,42,0.05)] dark:shadow-none">
         <input
           ref={imageInputRef}
           type="file"
@@ -265,7 +265,7 @@ export function KefuMessageEditor({
               disabled={disabled || isUploading}
               aria-label={isUploading ? "图片上传中" : "发送图片"}
               title={isUploading ? "图片上传中" : "发送图片"}
-              className="text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+              className="text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               <ImageIcon />
             </Button>
@@ -281,13 +281,13 @@ export function KefuMessageEditor({
               disabled={disabled || isUploading}
               aria-label={isUploading ? "附件上传中" : "发送附件"}
               title={isUploading ? "附件上传中" : "发送附件"}
-              className="text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+              className="text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               <PaperclipIcon />
             </Button>
           </div>
           <div className="flex items-center gap-2">
-            <p className="text-[10px] text-slate-400">Enter 发送</p>
+            <p className="text-[10px] text-muted-foreground">Enter 发送</p>
             <Button
               type="button"
               size="icon"
