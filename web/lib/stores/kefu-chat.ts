@@ -163,7 +163,7 @@ export const useKefuChatStore = create<KefuChatStore>((set, get) => {
         return
       }
       const payload = event.data ?? event.payload
-      if (event.type === "resync.required") {
+      if (event.type === "resyncRequired") {
         void get().refreshMessages()
         return
       }

@@ -88,7 +88,7 @@ export function useAgentConversationRealtime() {
           }
 
           const store = useAgentConversationsStore.getState()
-          if (eventType === "resync.required") {
+          if (eventType === "resyncRequired") {
             void store.resyncRealtimeData(conversationId).catch((error) => {
               toast.error(error instanceof Error ? error.message : "同步会话数据失败")
             })
