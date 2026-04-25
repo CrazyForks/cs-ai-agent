@@ -102,12 +102,6 @@ func addRouter(app *iris.Application) {
 		m.Party("/message", middleware.ExternalInfoMiddleware).Handle(new(api.MessageController))
 	})
 
-	// mvc.Configure(app.Party("/api/open/im", middleware.ChannelContextMiddleware), func(m *mvc.Application) {
-	// 	m.Party("/widget").Handle(new(api.ImWidgetController))
-	// 	m.Party("/conversation").Handle(new(api.ConversationController))
-	// 	m.Party("/message").Handle(new(api.MessageController))
-	// })
-
 	mvc.Configure(app.Party("/api/dashboard", middleware.AuthMiddleware), func(m *mvc.Application) {
 		m.Party("/dashboard").Handle(new(dashboard.DashboardController))
 		m.Party("/user").Handle(new(dashboard.UserController))

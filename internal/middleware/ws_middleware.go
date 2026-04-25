@@ -31,8 +31,7 @@ func OpenImWsMiddleware(ctx iris.Context) {
 		_ = ctx.StopWithJSON(iris.StatusBadRequest, web.JsonErrorMsg("接入渠道不存在或已停用"))
 		return
 	}
-	// 与 Open IM HTTP 一致：优先站内 AuthPrincipal；否则使用外部访客身份（Header/query，见 openidentity）。
-	// 二者不应在业务上同时作为「客户身份」使用；本入口在 principal 非空时不再解析 external，避免语义冲突。
+
 	principal := services.AuthService.GetAuthPrincipal(ctx)
 	var external *openidentity.ExternalInfo
 	if principal == nil {
