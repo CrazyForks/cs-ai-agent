@@ -8,6 +8,14 @@ import StarterKit from "@tiptap/starter-kit"
 import { ImageIcon, PaperclipIcon, SendHorizonalIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import {
+  buildSendableEditorHTML,
+  hasUploadingEditorImages,
+  markEditorImageUploadedByTitle,
+  removeEditorImageByTitle,
+  revokeEditorObjectUrl,
+  revokeEditorObjectUrls,
+} from "@/lib/im-editor-image"
 import { generateUUID } from "@/lib/utils"
 
 type UploadedImage = {
@@ -66,7 +74,15 @@ export function KefuMessageEditor({
   const onUploadImageRef = useRef(onUploadImage)
   const onSendAttachmentRef = useRef(onSendAttachment)
   const shouldRestoreFocusRef = useRef(false)
+  const objectUrlsRef = useRef<Set<string>>(new Set())
   const isUploading = uploadingAsset || localUploading
+
+  useEffect(() => {
+    const objectUrls = objectUrlsRef.current
+    return () => {
+      revokeEditorObjectUrls(objectUrls)
+    }
+  }, [])
 
   useEffect(() => {
     onSendRef.current = onSend
@@ -145,12 +161,17 @@ export function KefuMessageEditor({
     if (!editor || disabled || isUploading) {
       return
     }
-    const html = editor.getHTML()
+    const rawHTML = editor.getHTML()
+    if (hasUploadingEditorImages(rawHTML)) {
+      return
+    }
+    const html = buildSendableEditorHTML(rawHTML)
     if (!isMeaningfulHTML(html)) {
       return
     }
     await onSendRef.current(html)
     editor.commands.clearContent(true)
+    revokeEditorObjectUrls(objectUrlsRef.current)
   }
 
   async function handleSelectImage(event: React.ChangeEvent<HTMLInputElement>) {
@@ -174,6 +195,7 @@ export function KefuMessageEditor({
 
     shouldRestoreFocusRef.current = true
     const objectUrl = URL.createObjectURL(file)
+    objectUrlsRef.current.add(objectUrl)
     const placeholderId = `uploading-${generateUUID()}`
     editor
       .chain()
@@ -188,14 +210,14 @@ export function KefuMessageEditor({
     try {
       setLocalUploading(true)
       const uploaded = await onUploadImageRef.current(file)
-      if (!uploaded?.url) {
-        removeImageByTitle(editor, placeholderId)
+      if (!uploaded?.assetId || !uploaded.provider || !uploaded.storageKey) {
+        removeEditorImageByTitle(editor, placeholderId)
+        revokeEditorObjectUrl(objectUrlsRef.current, objectUrl)
         return
       }
-      replaceImageSourceByTitle(editor, placeholderId, uploaded)
+      markEditorImageUploadedByTitle(editor, placeholderId, uploaded)
     } finally {
       setLocalUploading(false)
-      URL.revokeObjectURL(objectUrl)
       requestAnimationFrame(() => {
         if (!disabled && shouldRestoreFocusRef.current) {
           editor.commands.focus()
@@ -330,49 +352,4 @@ function getClipboardImageFile(data: DataTransfer | null) {
     }
   }
   return null
-}
-
-function removeImageByTitle(editor: NonNullable<ReturnType<typeof useEditor>>, title: string) {
-  const { state } = editor
-  let targetPos: number | null = null
-  state.doc.descendants((node, pos) => {
-    if (node.type.name === "image" && node.attrs.title === title) {
-      targetPos = pos
-      return false
-    }
-    return true
-  })
-  if (targetPos === null) {
-    return
-  }
-  editor.chain().focus().deleteRange({ from: targetPos, to: targetPos + 1 }).run()
-}
-
-function replaceImageSourceByTitle(
-  editor: NonNullable<ReturnType<typeof useEditor>>,
-  title: string,
-  uploaded: UploadedImage
-) {
-  const { state, view } = editor
-  let targetPos: number | null = null
-  state.doc.descendants((node, pos) => {
-    if (node.type.name === "image" && node.attrs.title === title) {
-      targetPos = pos
-      return false
-    }
-    return true
-  })
-  if (targetPos === null) {
-    return
-  }
-  const transaction = view.state.tr.setNodeMarkup(targetPos, undefined, {
-    ...view.state.doc.nodeAt(targetPos)?.attrs,
-    src: uploaded.url,
-    alt: uploaded.filename || "image",
-    dataAssetId: uploaded.assetId,
-    dataProvider: uploaded.provider,
-    dataStorageKey: uploaded.storageKey,
-    title: "",
-  })
-  view.dispatch(transaction)
 }
