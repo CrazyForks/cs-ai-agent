@@ -1,4 +1,4 @@
-package open
+package api
 
 import (
 	"cs-agent/internal/builders"
@@ -15,12 +15,12 @@ import (
 	"github.com/spf13/cast"
 )
 
-type ImMessageController struct {
+type MessageController struct {
 	Ctx iris.Context
 }
 
-func (c *ImMessageController) AnyList() *web.JsonResult {
-	if irisx.GetChannel(c.Ctx) == nil {
+func (c *MessageController) AnyList() *web.JsonResult {
+	if services.ChannelService.GetEnabledChannel(c.Ctx) == nil {
 		return web.JsonErrorMsg("接入渠道未初始化")
 	}
 	external := irisx.GetExternalInfo(c.Ctx)
@@ -53,8 +53,8 @@ func (c *ImMessageController) AnyList() *web.JsonResult {
 	return web.JsonCursorData(results, cast.ToString(nextCursor), hasMore)
 }
 
-func (c *ImMessageController) PostSend() *web.JsonResult {
-	if irisx.GetChannel(c.Ctx) == nil {
+func (c *MessageController) PostSend() *web.JsonResult {
+	if services.ChannelService.GetEnabledChannel(c.Ctx) == nil {
 		return web.JsonErrorMsg("接入渠道未初始化")
 	}
 	external := irisx.GetExternalInfo(c.Ctx)
@@ -74,8 +74,8 @@ func (c *ImMessageController) PostSend() *web.JsonResult {
 	return web.JsonData(builders.BuildMessage(item))
 }
 
-func (c *ImMessageController) PostRead() *web.JsonResult {
-	if irisx.GetChannel(c.Ctx) == nil {
+func (c *MessageController) PostRead() *web.JsonResult {
+	if services.ChannelService.GetEnabledChannel(c.Ctx) == nil {
 		return web.JsonErrorMsg("接入渠道未初始化")
 	}
 	external := irisx.GetExternalInfo(c.Ctx)
@@ -93,8 +93,8 @@ func (c *ImMessageController) PostRead() *web.JsonResult {
 	return web.JsonSuccess()
 }
 
-func (c *ImMessageController) PostUpload_image() *web.JsonResult {
-	if irisx.GetChannel(c.Ctx) == nil {
+func (c *MessageController) PostUpload_image() *web.JsonResult {
+	if services.ChannelService.GetEnabledChannel(c.Ctx) == nil {
 		return web.JsonErrorMsg("接入渠道未初始化")
 	}
 	external := irisx.GetExternalInfo(c.Ctx)
@@ -138,8 +138,8 @@ func (c *ImMessageController) PostUpload_image() *web.JsonResult {
 	return web.JsonData(builders.BuildAsset(item))
 }
 
-func (c *ImMessageController) PostUpload_attachment() *web.JsonResult {
-	if irisx.GetChannel(c.Ctx) == nil {
+func (c *MessageController) PostUpload_attachment() *web.JsonResult {
+	if services.ChannelService.GetEnabledChannel(c.Ctx) == nil {
 		return web.JsonErrorMsg("接入渠道未初始化")
 	}
 	external := irisx.GetExternalInfo(c.Ctx)

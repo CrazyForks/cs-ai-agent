@@ -286,10 +286,9 @@ func BuildXxx(item *models.Xxx) *response.Xxx {
 
 ### 8.2 路径分层
 
-- `/api/dashboard/*`：业务后台接口，默认归属
-- `/api/admin/*`：平台总后台接口
-- `/api/open/*`：开放接口；IM 优先使用 `/api/open/im/*`
-- `/api/auth/*`：认证接口，可未登录访问
+- `/api/dashboard/*`：业务后台接口
+- `/api/third/*`：第三方平台调用接口
+- `/api/*`：开放接口
 
 禁止新增 `/api/v1` 这类版本前缀。
 
@@ -305,8 +304,7 @@ func BuildXxx(item *models.Xxx) *response.Xxx {
 ### 8.4 路由注册
 
 - 业务后台统一在 `internal/bootstrap/server.go` 中通过 `mvc.Configure(app.Party("/api/dashboard"), ...)` 注册
-- 平台接口统一通过 `mvc.Configure(app.Party("/api/admin"), ...)` 注册
-- 开放接口按领域归档，如 `mvc.Configure(app.Party("/api/open/im"), ...)`
+- 开放接口按领域归档，如 `mvc.Configure(app.Party("/api"), ...)`
 - 在分组内部通过 `m.Party("/xxx").Handle(...)` 挂载资源
 - 不要为每个资源单独再写一层顶级 `mvc.Configure(app.Party("/api/dashboard/xxx"), ...)`
 - 认证与鉴权中间件优先挂在 `/api/dashboard` 或 `/api/admin` 这一层

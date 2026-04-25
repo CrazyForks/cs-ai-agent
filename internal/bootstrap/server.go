@@ -10,7 +10,6 @@ import (
 	_ "cs-agent/internal/ai/runtime"
 	"cs-agent/internal/controllers/api"
 	"cs-agent/internal/controllers/dashboard"
-	"cs-agent/internal/controllers/open"
 	"cs-agent/internal/controllers/third"
 	"cs-agent/internal/middleware"
 	"cs-agent/internal/pkg/config"
@@ -95,9 +94,19 @@ func addRouter(app *iris.Application) {
 	app.Get("/api/dashboard/ws", middleware.AuthMiddleware, middleware.DashboardWsMiddleware)
 	app.Get("/api/open/im/ws", middleware.OpenImWsMiddleware)
 
-	mvc.Configure(app.Party("/api/auth"), func(m *mvc.Application) {
-		m.Handle(new(api.AuthController))
+	mvc.Configure(app.Party("/api"), func(m *mvc.Application) {
+		m.Party("/auth").Handle(new(api.AuthController))
+
+		m.Party("/channel", middleware.ChannelContextMiddleware).Handle(new(api.ChannelController))
+		m.Party("/conversation", middleware.ChannelContextMiddleware).Handle(new(api.ConversationController))
+		m.Party("/message", middleware.ChannelContextMiddleware).Handle(new(api.MessageController))
 	})
+
+	// mvc.Configure(app.Party("/api/open/im", middleware.ChannelContextMiddleware), func(m *mvc.Application) {
+	// 	m.Party("/widget").Handle(new(api.ImWidgetController))
+	// 	m.Party("/conversation").Handle(new(api.ConversationController))
+	// 	m.Party("/message").Handle(new(api.MessageController))
+	// })
 
 	mvc.Configure(app.Party("/api/dashboard", middleware.AuthMiddleware), func(m *mvc.Application) {
 		m.Party("/dashboard").Handle(new(dashboard.DashboardController))
@@ -129,12 +138,6 @@ func addRouter(app *iris.Application) {
 		m.Party("/agent-run-log").Handle(new(dashboard.AgentRunLogController))
 		m.Party("/skill-definition").Handle(new(dashboard.SkillDefinitionController))
 		m.Party("/mcp").Handle(new(dashboard.MCPController))
-	})
-
-	mvc.Configure(app.Party("/api/open/im", middleware.OpenImContextMiddleware), func(m *mvc.Application) {
-		m.Party("/widget").Handle(new(open.ImWidgetController))
-		m.Party("/conversation").Handle(new(open.ImConversationController))
-		m.Party("/message").Handle(new(open.ImMessageController))
 	})
 
 	mvc.Configure(app.Party("/api/third"), func(m *mvc.Application) {

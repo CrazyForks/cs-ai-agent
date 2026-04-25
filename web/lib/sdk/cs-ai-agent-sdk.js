@@ -100,7 +100,7 @@
     if (!baseUrl || !config.channelId || typeof fetch !== "function") {
       return Promise.resolve(config);
     }
-    var url = baseUrl + "/api/open/im/widget/config?channelId=" + encodeURIComponent(config.channelId);
+    var url = baseUrl + "/api/channel/config?channelId=" + encodeURIComponent(config.channelId);
     return fetch(url, {
       method: "GET",
       cache: "no-store",

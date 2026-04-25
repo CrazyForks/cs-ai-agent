@@ -196,7 +196,7 @@ function toQueryString(query?: Record<string, string | number | undefined>) {
 }
 
 export function fetchImConversationDetail(id: number) {
-  return request<ImConversationDetail>(`/api/open/im/conversation/${id}`, {
+  return request<ImConversationDetail>(`/api/conversation/${id}`, {
     ...createRequestOptions(),
   })
 }
@@ -205,21 +205,21 @@ export function fetchImMessages(
   query?: Record<string, string | number | undefined>
 ) {
   return request<PageResult<ImMessage>>(
-    `/api/open/im/message/list${toQueryString(query)}`,
+    `/api/message/list${toQueryString(query)}`,
     createRequestOptions()
   )
 }
 
 /** 外部身份仅通过 createImHeaders()（X-External-*）传递，无 JSON body */
 export function createOrMatchImConversation() {
-  return request<ImConversation>("/api/open/im/conversation/create_or_match", {
+  return request<ImConversation>("/api/conversation/create_or_match", {
     ...createRequestOptions({ method: "POST" }),
   })
 }
 
 export function fetchImWidgetConfig() {
   return request<ImWidgetConfig>(
-    `/api/open/im/widget/config${toQueryString({
+    `/api/channel/config${toQueryString({
       channelId: getRuntimeImConfig().channelId,
     })}`,
     createRequestOptions()
@@ -227,7 +227,7 @@ export function fetchImWidgetConfig() {
 }
 
 export function closeImConversation(conversationId: number) {
-  return request<void>("/api/open/im/conversation/close", {
+  return request<void>("/api/conversation/close", {
     ...createRequestOptions({
       method: "POST",
       body: JSON.stringify({ conversationId }),
@@ -242,7 +242,7 @@ export function sendImMessage(payload: {
   payload?: string
   clientMsgId?: string
 }) {
-  return request<ImMessage>("/api/open/im/message/send", {
+  return request<ImMessage>("/api/message/send", {
     ...createRequestOptions({
       method: "POST",
       body: JSON.stringify(payload),
@@ -251,7 +251,7 @@ export function sendImMessage(payload: {
 }
 
 export function markImMessageRead(conversationId: number, messageId = 0) {
-  return request<void>("/api/open/im/message/read", {
+  return request<void>("/api/message/read", {
     ...createRequestOptions({
       method: "POST",
       body: JSON.stringify({ conversationId, messageId }),
@@ -263,7 +263,7 @@ export function uploadImImage(conversationId: number, file: File) {
   const formData = new FormData()
   formData.set("conversationId", String(conversationId))
   formData.set("file", file)
-  return request<ImAsset>("/api/open/im/message/upload_image", {
+  return request<ImAsset>("/api/message/upload_image", {
     ...createRequestOptions({
       method: "POST",
       body: formData,
@@ -275,7 +275,7 @@ export function uploadImAttachment(conversationId: number, file: File) {
   const formData = new FormData()
   formData.set("conversationId", String(conversationId))
   formData.set("file", file)
-  return request<ImAsset>("/api/open/im/message/upload_attachment", {
+  return request<ImAsset>("/api/message/upload_attachment", {
     ...createRequestOptions({
       method: "POST",
       body: formData,

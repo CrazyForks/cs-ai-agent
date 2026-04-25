@@ -6,12 +6,14 @@ import (
 	"cs-agent/internal/pkg/dto/request"
 	"cs-agent/internal/pkg/enums"
 	"cs-agent/internal/pkg/errorsx"
+	"cs-agent/internal/pkg/irisx"
 	"cs-agent/internal/pkg/utils"
 	"cs-agent/internal/repositories"
 	"encoding/json"
 	"strings"
 	"time"
 
+	"github.com/kataras/iris/v12"
 	"github.com/mlogclub/simple/common/strs"
 	"github.com/mlogclub/simple/sqls"
 	"github.com/mlogclub/simple/web/params"
@@ -217,12 +219,16 @@ func (s *channelService) GetEnabledWxWorkKFChannelByOpenKfID(openKfID string) *m
 	return nil
 }
 
-func (s *channelService) GetEnabledWebChannelByChannelID(channelID string) *models.Channel {
-	channelID = strings.TrimSpace(channelID)
-	if channelID == "" {
+func (s *channelService) GetEnabledChannel(ctx iris.Context) *models.Channel {
+	channelID := irisx.GetChannelID(ctx)
+	channel := repositories.ChannelRepository.GetByChannelID(sqls.DB(), channelID)
+	if channel == nil {
 		return nil
 	}
-	return s.Take("channel_type = ? AND channel_id = ? AND status = ?", enums.ChannelTypeWeb, channelID, enums.StatusOk)
+	if channel.Status != enums.StatusOk {
+		return nil
+	}
+	return channel
 }
 
 func (s *channelService) buildChannelModel(id int64, req request.CreateChannelRequest) (*models.Channel, error) {

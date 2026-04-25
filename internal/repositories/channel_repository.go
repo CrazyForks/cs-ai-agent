@@ -3,6 +3,7 @@ package repositories
 import (
 	"cs-agent/internal/models"
 
+	"github.com/mlogclub/simple/common/strs"
 	"github.com/mlogclub/simple/sqls"
 	"github.com/mlogclub/simple/web/params"
 	"gorm.io/gorm"
@@ -62,12 +63,12 @@ func (r *channelRepository) FindPageByCnd(db *gorm.DB, cnd *sqls.Cnd) (list []mo
 	return
 }
 
-func (r *channelRepository) FindBySql(db *gorm.DB, sqlStr string, paramArr... interface{}) (list []models.Channel) {
+func (r *channelRepository) FindBySql(db *gorm.DB, sqlStr string, paramArr ...interface{}) (list []models.Channel) {
 	db.Raw(sqlStr, paramArr...).Scan(&list)
 	return
 }
 
-func (r *channelRepository) CountBySql(db *gorm.DB, sqlStr string, paramArr... interface{}) (count int64) {
+func (r *channelRepository) CountBySql(db *gorm.DB, sqlStr string, paramArr ...interface{}) (count int64) {
 	db.Raw(sqlStr, paramArr...).Count(&count)
 	return
 }
@@ -100,3 +101,9 @@ func (r *channelRepository) Delete(db *gorm.DB, id int64) {
 	db.Delete(&models.Channel{}, "id = ?", id)
 }
 
+func (r *channelRepository) GetByChannelID(db *gorm.DB, channelID string) *models.Channel {
+	if strs.IsBlank(channelID) {
+		return nil
+	}
+	return r.FindOne(db, sqls.NewCnd().Where("channel_id = ?", channelID))
+}

@@ -1,4 +1,4 @@
-package open
+package api
 
 import (
 	"cs-agent/internal/builders"
@@ -12,12 +12,12 @@ import (
 	"github.com/mlogclub/simple/web/params"
 )
 
-type ImConversationController struct {
+type ConversationController struct {
 	Ctx iris.Context
 }
 
-func (c *ImConversationController) GetBy(id int64) *web.JsonResult {
-	if irisx.GetChannel(c.Ctx) == nil {
+func (c *ConversationController) GetBy(id int64) *web.JsonResult {
+	if services.ChannelService.GetEnabledChannel(c.Ctx) == nil {
 		return web.JsonErrorMsg("接入渠道未初始化")
 	}
 	external := irisx.GetExternalInfo(c.Ctx)
@@ -40,8 +40,8 @@ func (c *ImConversationController) GetBy(id int64) *web.JsonResult {
 	return web.JsonData(detail)
 }
 
-func (c *ImConversationController) PostCreate_or_match() *web.JsonResult {
-	channel := irisx.GetChannel(c.Ctx)
+func (c *ConversationController) PostCreate_or_match() *web.JsonResult {
+	channel := services.ChannelService.GetEnabledChannel(c.Ctx)
 	if channel == nil {
 		return web.JsonErrorMsg("接入渠道未初始化")
 	}
@@ -57,8 +57,8 @@ func (c *ImConversationController) PostCreate_or_match() *web.JsonResult {
 	return web.JsonData(builders.BuildConversation(item))
 }
 
-func (c *ImConversationController) PostClose() *web.JsonResult {
-	if irisx.GetChannel(c.Ctx) == nil {
+func (c *ConversationController) PostClose() *web.JsonResult {
+	if services.ChannelService.GetEnabledChannel(c.Ctx) == nil {
 		return web.JsonErrorMsg("接入渠道未初始化")
 	}
 	external := irisx.GetExternalInfo(c.Ctx)

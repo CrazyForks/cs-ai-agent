@@ -1,10 +1,11 @@
 package irisx
 
 import (
-	"cs-agent/internal/models"
 	"cs-agent/internal/pkg/openidentity"
 
 	"github.com/kataras/iris/v12"
+	"github.com/mlogclub/simple/common/strs"
+	"github.com/mlogclub/simple/web/params"
 )
 
 const (
@@ -12,16 +13,16 @@ const (
 	ctxKeyOpenImExternalInfo = "openImExternalInfo"
 )
 
-func SetOpenImChannel(ctx iris.Context, channel *models.Channel) {
-	ctx.Values().Set(ctxKeyOpenImChannel, channel)
-}
+// func SetOpenImChannel(ctx iris.Context, channel *models.Channel) {
+// 	ctx.Values().Set(ctxKeyOpenImChannel, channel)
+// }
 
-// GetChannel 返回 OpenImContextMiddleware 注入的接入渠道（未走中间件时为 nil）。
-func GetChannel(ctx iris.Context) *models.Channel {
-	v := ctx.Values().Get(ctxKeyOpenImChannel)
-	channel, _ := v.(*models.Channel)
-	return channel
-}
+// // GetChannel 返回 OpenImContextMiddleware 注入的接入渠道（未走中间件时为 nil）。
+// func GetChannel(ctx iris.Context) *models.Channel {
+// 	v := ctx.Values().Get(ctxKeyOpenImChannel)
+// 	channel, _ := v.(*models.Channel)
+// 	return channel
+// }
 
 func SetOpenImExternalInfo(ctx iris.Context, ext *openidentity.ExternalInfo) {
 	ctx.Values().Set(ctxKeyOpenImExternalInfo, ext)
@@ -32,4 +33,14 @@ func GetExternalInfo(ctx iris.Context) *openidentity.ExternalInfo {
 	v := ctx.Values().Get(ctxKeyOpenImExternalInfo)
 	ext, _ := v.(*openidentity.ExternalInfo)
 	return ext
+}
+
+func GetChannelID(ctx iris.Context) string {
+	if channelID := ctx.GetHeader("X-Channel-ID"); strs.IsNotBlank(channelID) {
+		return channelID
+	}
+	if channelID, _ := params.Get(ctx, "channelId"); strs.IsNotBlank(channelID) {
+		return channelID
+	}
+	return ""
 }

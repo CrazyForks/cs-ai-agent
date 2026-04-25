@@ -1,20 +1,19 @@
-package open
+package api
 
 import (
 	"cs-agent/internal/pkg/dto/response"
-	"cs-agent/internal/pkg/irisx"
 	"cs-agent/internal/services"
 
 	"github.com/kataras/iris/v12"
 	"github.com/mlogclub/simple/web"
 )
 
-type ImWidgetController struct {
+type ChannelController struct {
 	Ctx iris.Context
 }
 
-func (c *ImWidgetController) AnyConfig() *web.JsonResult {
-	channel := irisx.GetChannel(c.Ctx)
+func (c *ChannelController) AnyConfig() *web.JsonResult {
+	channel := services.ChannelService.GetEnabledChannel(c.Ctx)
 	if channel == nil {
 		return web.JsonErrorMsg("接入渠道未初始化")
 	}
