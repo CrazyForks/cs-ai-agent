@@ -100,7 +100,7 @@ export function KefuMessageEditor({
     editorProps: {
       attributes: {
         class:
-          "min-h-12 max-h-40 overflow-y-auto px-1.5 py-1 text-sm leading-6 text-foreground outline-none [&_p]:m-0 [&_p+*]:mt-2 [&_img]:my-2 [&_img]:max-h-64 [&_img]:rounded-lg [&_img]:object-contain",
+          "cs-agent-scrollbar min-h-12 max-h-40 overflow-y-auto px-1.5 py-1 text-sm leading-6 text-foreground outline-none [&_p]:m-0 [&_p+*]:mt-2 [&_img]:my-2 [&_img]:max-h-64 [&_img]:rounded-lg [&_img]:object-contain",
       },
       handleKeyDown: (_view, event) => {
         if (event.key === "Enter" && !event.shiftKey) {
@@ -233,7 +233,8 @@ export function KefuMessageEditor({
   }
 
   return (
-    <div className="border-t border-border bg-card px-3 pb-3 pt-2">
+    // <div className="border-t border-border bg-card px-3 pb-3 pt-2">
+    <div className="p-3">
       <div className="rounded-xl border border-border bg-background p-2 shadow-[0_8px_24px_rgba(15,23,42,0.05)] dark:shadow-none">
         <input
           ref={imageInputRef}
@@ -295,7 +296,7 @@ export function KefuMessageEditor({
               disabled={disabled || isUploading}
               aria-label="发送"
               title="发送"
-              className="bg-[var(--primary)] text-white shadow-[0_10px_20px_color-mix(in_srgb,var(--primary)_24%,transparent)] hover:bg-[var(--primary)] hover:brightness-105"
+              className="bg-primary text-white shadow-[0_10px_20px_color-mix(in_srgb,var(--primary)_24%,transparent)] hover:bg-primary hover:brightness-105"
             >
               <SendHorizonalIcon />
             </Button>
