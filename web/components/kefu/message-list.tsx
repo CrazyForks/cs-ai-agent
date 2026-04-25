@@ -168,6 +168,7 @@ export const KefuMessageList = forwardRef<KefuMessageListHandle, KefuMessageList
 
       handleScroll()
       container.addEventListener("scroll", handleScroll)
+      resizeObserver.observe(container)
       resizeObserver.observe(content)
       scrollToBottom()
 
