@@ -10,7 +10,7 @@
 - 知识库检索驱动回答，支持 RAG 场景
 - 在低置信度、无答案或命中规则时转人工
 - 后台可管理会话、工单、客服组、知识库、AI 配置、Skills 和 MCP
-- 提供管理后台与客服工作台两套视角
+- 提供管理后台、客服工作台与客户侧 Web 接入入口
 
 ## 核心能力
 
@@ -20,13 +20,13 @@
 - 工单系统：支持会话转工单、工单分类、状态流转与处理闭环
 - 客服组织管理：支持客服档案、客服组、排班与分配能力
 - AI 扩展能力：支持 Skills、MCP 调试与外部能力接入
-- 双工作区体验：管理后台负责配置和运营，客服工作台负责处理会话
+- 统一前端工程：管理后台、客服工作台、客户侧 Web 接入页与嵌入式 SDK 统一放在 `web` 目录
 
 ## AI Agent 工作流程
 
 ```mermaid
 flowchart TD
-    A[用户发起咨询<br/>Web Widget / Open API] --> B[创建或匹配会话]
+    A[用户发起咨询<br/>Web 客服入口 / Open API] --> B[创建或匹配会话]
     B --> C[客户发送消息]
     C --> D[触发 AI Reply Runtime]
     D --> E[加载会话历史 / AI 配置 / 可用工具]
@@ -64,7 +64,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A[用户进入 Web Widget / Open IM] --> B[创建或匹配会话]
+    A[用户进入 Web 客服入口 / Open IM] --> B[创建或匹配会话]
     B --> C[客户发送消息]
     C --> D[写入 message / 更新 conversation]
     D --> E{当前是否允许 AI 回复?}
@@ -181,8 +181,13 @@ flowchart TD
 │   ├── models/             # GORM models
 │   ├── migration/          # data migrations
 │   └── ai/                 # LLM / RAG / MCP related logic
-├── dashboard/              # dashboard (Next.js)
-├── widget/                 # embeddable customer chat widget
+├── web/                    # unified Next.js frontend
+│   ├── app/dashboard/      # admin dashboard
+│   ├── app/kefu/           # customer service entry and chat pages
+│   ├── components/         # React components
+│   ├── lib/                # API client, SDK source and utilities
+│   ├── public/sdk/         # built embeddable SDK assets
+│   └── scripts/            # frontend build scripts
 ├── config/                 # config files
 └── docs/                   # project docs
 ```
@@ -241,13 +246,23 @@ make run-server
 make run-web
 ```
 
+开发环境默认入口：
+
+- 管理后台：`http://localhost:3000/dashboard`
+- 客服工作台：`http://localhost:3000/dashboard/conversations`
+- 客户侧 Web 接入示例：`http://localhost:3000/kefu`
+- 客户侧聊天页：`http://localhost:3000/kefu/chat`
+
+生产构建时，前端统一由 `web` 工程构建，静态产物输出到 `web/out`，后端会从 `web/out` 提供静态资源。
+
 ## 常用命令
 
 ```bash
 make run          # 同时启动后端和前端
 make run-server   # 启动后端
 make run-web      # 启动前端
-make build        # 构建后端二进制
+make build        # 构建前端静态资源并打包当前平台
+make build-web    # 构建 web 应用和嵌入式 SDK
 make test         # 运行 Go 测试
 make tidy         # go mod tidy
 make generator    # 执行代码生成
@@ -259,7 +274,7 @@ make migration    # 执行 migration
 
 - 管理后台：负责 AI Agent、知识库、客服组、工单与运营配置
 - 客服工作台：负责接管会话、处理消息与人工服务
-- Widget：负责承接用户侧咨询入口
+- 客户侧 Web 接入：通过 `/kefu`、`/kefu/chat` 和 `web/public/sdk` 中的嵌入式脚本承接用户咨询入口
 
 这使得`贝壳AI客服`可以同时覆盖：
 
