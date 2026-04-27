@@ -6,13 +6,13 @@ package enums
 type ExternalSource string
 
 const (
-	ExternalSourceWebChat  ExternalSource = "web_chat"
+	ExternalSourceWebChat  ExternalSource = "guest"
 	ExternalSourceWechatMP ExternalSource = "wechat_mp"
 	ExternalSourceWxWorkKF ExternalSource = "wxwork_kf"
 )
 
 var externalSourceLabelMap = map[ExternalSource]string{
-	ExternalSourceWebChat:  "网页客服",
+	ExternalSourceWebChat:  "访客",
 	ExternalSourceWechatMP: "微信公众号",
 	ExternalSourceWxWorkKF: "企业微信客服",
 }

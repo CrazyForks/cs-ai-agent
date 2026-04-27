@@ -19,20 +19,19 @@ func (c *ChannelController) AnyConfig() *web.JsonResult {
 	if channel == nil {
 		return web.JsonErrorMsg("接入渠道未初始化")
 	}
-	cfg, externalSource, err := resolveWidgetConfig(channel.ChannelType, channel.ConfigJSON)
+	cfg, err := resolveWidgetConfig(channel.ChannelType, channel.ConfigJSON)
 	if err != nil {
 		return web.JsonError(err)
 	}
 
 	ret := response.WidgetConfigResponse{
-		ChannelID:      channel.ChannelID,
-		ChannelType:    channel.ChannelType,
-		ExternalSource: externalSource,
-		Title:          cfg.Title,
-		Subtitle:       cfg.Subtitle,
-		ThemeColor:     cfg.ThemeColor,
-		Position:       cfg.Position,
-		Width:          cfg.Width,
+		ChannelID:   channel.ChannelID,
+		ChannelType: channel.ChannelType,
+		Title:       cfg.Title,
+		Subtitle:    cfg.Subtitle,
+		ThemeColor:  cfg.ThemeColor,
+		Position:    cfg.Position,
+		Width:       cfg.Width,
 	}
 	return web.JsonData(ret)
 }
@@ -45,12 +44,12 @@ type webLikeWidgetConfig struct {
 	Width      string
 }
 
-func resolveWidgetConfig(channelType, rawConfig string) (*webLikeWidgetConfig, string, error) {
+func resolveWidgetConfig(channelType, rawConfig string) (*webLikeWidgetConfig, error) {
 	switch channelType {
 	case enums.ChannelTypeWeb:
 		cfg, err := services.ChannelService.ParseWebChannelConfig(rawConfig)
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
 		return &webLikeWidgetConfig{
 			Title:      cfg.Title,
@@ -58,11 +57,11 @@ func resolveWidgetConfig(channelType, rawConfig string) (*webLikeWidgetConfig, s
 			ThemeColor: cfg.ThemeColor,
 			Position:   cfg.Position,
 			Width:      cfg.Width,
-		}, string(enums.ExternalSourceWebChat), nil
+		}, nil
 	case enums.ChannelTypeWechatMP:
 		cfg, err := services.ChannelService.ParseWechatMPChannelConfig(rawConfig)
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
 		return &webLikeWidgetConfig{
 			Title:      cfg.Title,
@@ -70,8 +69,8 @@ func resolveWidgetConfig(channelType, rawConfig string) (*webLikeWidgetConfig, s
 			ThemeColor: cfg.ThemeColor,
 			Position:   "right",
 			Width:      "100%",
-		}, string(enums.ExternalSourceWechatMP), nil
+		}, nil
 	default:
-		return nil, "", errorsx.InvalidParam("该渠道不支持开放客服配置")
+		return nil, errorsx.InvalidParam("该渠道不支持开放客服配置")
 	}
 }
