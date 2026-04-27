@@ -4,6 +4,8 @@ export type KefuWidgetHostConfig = {
   apiBaseUrl?: string
   /** 与后端 enums.ExternalSource 一致，默认 web_chat */
   externalSource?: string
+  /** 外部访客稳定标识；微信公众号 OAuth 场景使用 openid */
+  externalId?: string
   title?: string
   subtitle?: string
   position?: "left" | "right"
@@ -48,6 +50,7 @@ export function readKefuWidgetConfig(): KefuWidgetHostConfig {
       query.get("externalSource") ??
       process.env.NEXT_PUBLIC_OPEN_IM_EXTERNAL_SOURCE?.trim() ??
       undefined,
+    externalId: query.get("externalId") ?? undefined,
     title: query.get("title") ?? undefined,
     subtitle: query.get("subtitle") ?? undefined,
     position: (query.get("position") as "left" | "right" | null) ?? undefined,

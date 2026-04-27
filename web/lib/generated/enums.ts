@@ -73,10 +73,12 @@ export const ContactTypeLabels: Record<ContactType, string> = {
 
 export enum ExternalSource {
   WebChat = "web_chat",
+  WechatMP = "wechat_mp",
   WxWorkKF = "wxwork_kf",
 }
 export const ExternalSourceLabels: Record<ExternalSource, string> = {
   [ExternalSource.WebChat]: "网页客服",
+  [ExternalSource.WechatMP]: "微信公众号",
   [ExternalSource.WxWorkKF]: "企业微信客服",
 }
 

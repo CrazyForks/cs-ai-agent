@@ -104,6 +104,8 @@ export type ImAsset = {
 
 export type ImWidgetConfig = {
   channelId?: string
+  channelType?: string
+  externalSource?: string
   title?: string
   subtitle?: string
   themeColor?: string
@@ -146,6 +148,7 @@ function getRuntimeImConfig() {
     channelId: widgetConfig.channelId || OPEN_IM_CHANNEL_ID,
     externalSource:
       (widgetConfig.externalSource || OPEN_IM_EXTERNAL_SOURCE).trim() || "web_chat",
+    externalId: (widgetConfig.externalId || "").trim(),
     externalName: (widgetConfig.subject || "").trim(),
   }
 }
@@ -154,7 +157,7 @@ function createImHeaders() {
   const config = getRuntimeImConfig()
   const headers: Record<string, string> = {
     "X-External-Source": config.externalSource,
-    "X-External-Id": getImVisitorId(),
+    "X-External-Id": config.externalId || getImVisitorId(),
     "X-Channel-Id": config.channelId,
   }
   if (config.externalName) {

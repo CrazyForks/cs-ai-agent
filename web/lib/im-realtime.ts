@@ -19,7 +19,9 @@ export function createImRealtimeConnection() {
   const baseUrl = apiBaseUrl
     ? apiBaseUrl.replace(/^http/, "ws").replace(/\/$/, "")
     : createWebSocketBaseUrl()
-  const externalId = encodeURIComponent(getImVisitorId())
+  const resolvedExternalId = encodeURIComponent(
+    (config.externalId ?? "").trim() || getImVisitorId()
+  )
   const externalSource = encodeURIComponent(
     (config.externalSource ?? "web_chat").trim() || "web_chat"
   )
@@ -30,6 +32,6 @@ export function createImRealtimeConnection() {
       ? `&externalName=${encodeURIComponent(externalName)}`
       : ""
   return new WebSocket(
-    `${baseUrl}/api/ws/open?externalId=${externalId}&externalSource=${externalSource}&channelId=${channelId}${nameQuery}`
+    `${baseUrl}/api/ws/open?externalId=${resolvedExternalId}&externalSource=${externalSource}&channelId=${channelId}${nameQuery}`
   )
 }

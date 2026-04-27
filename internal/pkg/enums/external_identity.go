@@ -7,11 +7,13 @@ type ExternalSource string
 
 const (
 	ExternalSourceWebChat  ExternalSource = "web_chat"
+	ExternalSourceWechatMP ExternalSource = "wechat_mp"
 	ExternalSourceWxWorkKF ExternalSource = "wxwork_kf"
 )
 
 var externalSourceLabelMap = map[ExternalSource]string{
 	ExternalSourceWebChat:  "网页客服",
+	ExternalSourceWechatMP: "微信公众号",
 	ExternalSourceWxWorkKF: "企业微信客服",
 }
 
@@ -25,7 +27,7 @@ func GetExternalSourceLabel(v ExternalSource) string {
 // IsAllowedOpenImExternalSource 开放 IM 入口允许的外部来源（闭集校验）。
 func IsAllowedOpenImExternalSource(s ExternalSource) bool {
 	switch s {
-	case ExternalSourceWebChat:
+	case ExternalSourceWebChat, ExternalSourceWechatMP:
 		return true
 	default:
 		return false

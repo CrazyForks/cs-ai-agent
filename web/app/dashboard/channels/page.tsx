@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import {
   Building2Icon,
+  MessagesSquareIcon,
   MessageSquareMoreIcon,
   MoreHorizontalIcon,
   PlusIcon,
@@ -58,10 +59,14 @@ const statusOptions = [
 const channelTypeOptions = [
   { value: "all", label: "全部类型" },
   { value: "web", label: "Web 站点" },
+  { value: "wechat_mp", label: "微信公众号" },
   { value: "wxwork_kf", label: "企业微信客服" },
 ] as const
 
 function getChannelTypeLabel(channelType: string) {
+  if (channelType === "wechat_mp") {
+    return "微信公众号"
+  }
   if (channelType === "wxwork_kf") {
     return "企业微信客服"
   }
@@ -69,6 +74,9 @@ function getChannelTypeLabel(channelType: string) {
 }
 
 function ChannelIcon({ channelType }: { channelType: string }) {
+  if (channelType === "wechat_mp") {
+    return <MessagesSquareIcon className="size-4" />
+  }
   if (channelType === "wxwork_kf") {
     return <MessageSquareMoreIcon className="size-4" />
   }

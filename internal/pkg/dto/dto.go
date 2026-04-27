@@ -23,3 +23,15 @@ type WebChannelConfig struct {
 	Position   string `json:"position"`
 	Width      string `json:"width"`
 }
+
+type WechatMPChannelConfig struct {
+	Title        string `json:"title"`
+	Subtitle     string `json:"subtitle"`
+	ThemeColor   string `json:"themeColor"`
+	Position     string `json:"position"`
+	Width        string `json:"width"`
+	AppID        string `json:"appId"`
+	AppSecret    string `json:"appSecret"`
+	OAuthScope   string `json:"oauthScope"`
+	OAuthEnabled bool   `json:"oauthEnabled"`
+}

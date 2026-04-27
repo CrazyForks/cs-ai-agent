@@ -17,7 +17,7 @@ import (
 const (
 	enumsPkgName = "enums"
 	enumsDir     = "internal/pkg/enums"
-	outputPath   = "dashboard/lib/generated/enums.ts"
+	outputPath   = "web/lib/generated/enums.ts"
 )
 
 type enumValueType string
