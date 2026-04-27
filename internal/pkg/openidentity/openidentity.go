@@ -15,6 +15,7 @@ import (
 // ExternalInfo 外部访客身份（IM 客户），与站内 AuthPrincipal 区分。
 type ExternalInfo struct {
 	ExternalSource enums.ExternalSource `json:"externalSource"`
+	ExternalType   enums.ExternalType   `json:"externalType"`
 	ExternalID     string               `json:"externalId"`
 	ExternalName   string               `json:"externalName"`
 }
@@ -34,8 +35,10 @@ func GetExternalInfo(ctx iris.Context) (*ExternalInfo, error) {
 	}
 	return &ExternalInfo{
 		ExternalSource: externalSource,
-		ExternalID:     externalID,
-		ExternalName:   parseExternalName(ctx),
+		// TODO: 对接业务系统后，根据业务系统用户信息识别 user；未对接时统一按访客处理。
+		ExternalType: enums.ExternalTypeGuest,
+		ExternalID:   externalID,
+		ExternalName: parseExternalName(ctx),
 	}, nil
 }
 
