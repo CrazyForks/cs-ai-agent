@@ -31,6 +31,7 @@ import {
 } from "@/lib/kefu-host-bridge"
 import { useKefuChatStore } from "@/lib/stores/kefu-chat"
 import { Button } from "@/components/ui/button"
+import { ButtonGroup } from "@/components/ui/button-group"
 import {
   Dialog,
   DialogContent,
@@ -252,60 +253,60 @@ export function KefuChatShell() {
               {status !== "connected" ? (
                 <KefuConnectionStatus status={status} />
               ) : null}
-              <div className="inline-flex items-center gap-1 rounded-lg border border-border bg-muted/60 p-1">
+              <ButtonGroup>
                 <Button
                   type="button"
-                  variant="ghost"
-                  size="icon-xs"
+                  variant="outline"
+                  size="icon-sm"
                   onClick={retry}
                   aria-label="重新连接"
                   title="重新连接"
-                  className="text-muted-foreground hover:bg-background hover:text-sky-600 dark:hover:text-sky-400"
+                  className="bg-background text-muted-foreground hover:text-sky-600 dark:hover:text-sky-400"
                 >
-                  <RotateCwIcon />
+                  <RotateCwIcon className="size-4" />
                 </Button>
                 {showHostActions ? (
                   <Button
                     type="button"
-                    variant="ghost"
-                    size="icon-xs"
+                    variant="outline"
+                    size="icon-sm"
                     onClick={handleMinimize}
                     aria-label="收起聊天窗口"
                     title="收起聊天窗口"
-                    className="text-muted-foreground hover:bg-background hover:text-foreground"
+                    className="bg-background text-muted-foreground hover:text-foreground"
                   >
-                    <MinusIcon />
+                    <MinusIcon className="size-4" />
                   </Button>
                 ) : null}
                 {showHostActions ? (
                   <Button
                     type="button"
-                    variant="ghost"
-                    size="icon-xs"
+                    variant="outline"
+                    size="icon-sm"
                     onClick={handleToggleMaximize}
                     aria-label={isMaximized ? "取消最大化" : "最大化聊天窗口"}
                     title={isMaximized ? "取消最大化" : "最大化聊天窗口"}
-                    className="text-muted-foreground hover:bg-background hover:text-emerald-700 dark:hover:text-emerald-400"
+                    className="bg-background text-muted-foreground hover:text-emerald-700 dark:hover:text-emerald-400"
                   >
                     {isMaximized ? (
-                      <Minimize2Icon />
+                      <Minimize2Icon className="size-4" />
                     ) : (
-                      <Maximize2Icon />
+                      <Maximize2Icon className="size-4" />
                     )}
                   </Button>
                 ) : null}
                 <Button
                   type="button"
-                  variant="ghost"
-                  size="icon-xs"
+                  variant="outline"
+                  size="icon-sm"
                   onClick={() => setIsCloseDialogOpen(true)}
                   aria-label="关闭聊天窗口"
                   title="关闭聊天窗口"
-                  className="text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
+                  className="bg-background text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
                 >
-                  <XIcon />
+                  <XIcon className="size-4" />
                 </Button>
-              </div>
+              </ButtonGroup>
             </div>
           </div>
         </header>
