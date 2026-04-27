@@ -165,12 +165,12 @@
     }
 
     frame.style.top = "";
-    frame.style.bottom = "88px";
+    frame.style.bottom = "112px";
     frame.style.right = config.position === "left" ? "" : "24px";
     frame.style.left = config.position === "left" ? "24px" : "";
     frame.style.width = config.width || "380px";
     frame.style.maxWidth = "calc(100vw - 24px)";
-    frame.style.height = "min(760px, calc(100vh - 112px))";
+    frame.style.height = "min(760px, calc(100vh - 136px))";
     frame.style.borderRadius = "28px";
   }
 
@@ -331,23 +331,56 @@
 
     var config = state.config;
     var button = document.createElement("button");
+    var icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    var iconPaths = [
+      'M3 11a9 9 0 1 1 18 0',
+      'M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+      'M21 11h-3a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2z',
+      'M21 16v2a4 4 0 0 1-4 4h-5',
+    ];
+    var text = document.createElement("span");
     button.type = "button";
     button.dataset.csAgentWidget = "launcher";
     button.setAttribute("aria-label", config.title || "在线客服");
-    button.textContent = config.title || "在线客服";
+    icon.setAttribute("viewBox", "0 0 24 24");
+    icon.setAttribute("fill", "none");
+    icon.setAttribute("stroke", "currentColor");
+    icon.setAttribute("stroke-width", "2");
+    icon.setAttribute("stroke-linecap", "round");
+    icon.setAttribute("stroke-linejoin", "round");
+    icon.setAttribute("aria-hidden", "true");
+    icon.style.width = "24px";
+    icon.style.height = "24px";
+    icon.style.flex = "0 0 auto";
+    iconPaths.forEach(function (pathData) {
+      var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", pathData);
+      icon.appendChild(path);
+    });
+    text.textContent = "客服";
+    text.style.display = "block";
     button.style.position = "fixed";
     button.style.bottom = "24px";
     button.style.right = config.position === "left" ? "" : "24px";
     button.style.left = config.position === "left" ? "24px" : "";
     button.style.zIndex = "2147483000";
+    button.style.display = "inline-flex";
+    button.style.flexDirection = "column";
+    button.style.alignItems = "center";
+    button.style.justifyContent = "center";
+    button.style.gap = "4px";
+    button.style.width = "64px";
+    button.style.height = "64px";
     button.style.border = "0";
     button.style.borderRadius = "999px";
-    button.style.padding = "14px 18px";
+    button.style.padding = "0";
     button.style.background = config.themeColor || "#0f6cbd";
     button.style.color = "#fff";
-    button.style.font = "600 14px/1 sans-serif";
+    button.style.font = "600 13px/1 sans-serif";
     button.style.boxShadow = "0 18px 40px rgba(15, 35, 65, 0.24)";
     button.style.cursor = "pointer";
+    button.appendChild(icon);
+    button.appendChild(text);
 
     button.addEventListener("click", function () {
       if (!state.frame) {
