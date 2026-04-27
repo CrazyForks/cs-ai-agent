@@ -13,7 +13,6 @@ import (
 	"cs-agent/internal/wxwork"
 
 	"github.com/mlogclub/simple/common/strs"
-	"github.com/mlogclub/simple/sqls"
 	"github.com/silenceper/wechat/v2/work/kf"
 	"github.com/silenceper/wechat/v2/work/kf/syncmsg"
 )
@@ -378,21 +377,9 @@ func (s *wxWorkKFInboundService) ensureConversation(base syncmsg.BaseMessage, pr
 	}
 
 	external := s.buildExternalInfo(externalID)
-	conversation := ConversationService.FindOne(sqls.NewCnd().
-		Eq("external_source", external.ExternalSource).
-		Eq("external_id", external.ExternalID).
-		In("status", []enums.IMConversationStatus{
-			enums.IMConversationStatusAIServing,
-			enums.IMConversationStatusPending,
-			enums.IMConversationStatusActive,
-		}).
-		Desc("id"))
-
-	if conversation == nil {
-		conversation, err = ConversationService.Create(external, channel.ID, channel.AIAgentID)
-		if err != nil {
-			return nil, err
-		}
+	conversation, err := ConversationService.Create(external, channel.ID, channel.AIAgentID)
+	if err != nil {
+		return nil, err
 	}
 
 	if err := s.upsertConversationMapping(

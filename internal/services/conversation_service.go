@@ -25,6 +25,7 @@ import (
 
 	"github.com/mlogclub/simple/common/strs"
 	"github.com/mlogclub/simple/sqls"
+	"gorm.io/gorm"
 )
 
 var ConversationService = newConversationService()
@@ -60,7 +61,7 @@ func (s *conversationService) ListConversations(userID int64, filter request.Age
 
 	if strs.IsNotBlank(keyword) {
 		keyword = strings.TrimSpace(keyword)
-		cnd.Where("subject LIKE ? OR external_id LIKE ? OR last_message_summary LIKE ?", "%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
+		cnd.Where("subject LIKE ? OR last_message_summary LIKE ?", "%"+keyword+"%", "%"+keyword+"%")
 	}
 
 	switch filter {
@@ -86,51 +87,56 @@ func (s *conversationService) Updates(id int64, columns map[string]interface{}) 
 	return repositories.ConversationRepository.Updates(sqls.DB(), id, columns)
 }
 
-func (s *conversationService) getLatestNotFinished(externalInfo openidentity.ExternalInfo) *models.Conversation {
+func (s *conversationService) getLatestNotFinishedByCustomerID(db *gorm.DB, customerID int64) *models.Conversation {
+	if customerID <= 0 {
+		return nil
+	}
 	cnd := sqls.NewCnd()
-	cnd.Eq("external_id", externalInfo.ExternalID)
-	cnd.Eq("external_source", externalInfo.ExternalSource)
+	cnd.Eq("customer_id", customerID)
 	cnd.In("status", []enums.IMConversationStatus{
 		enums.IMConversationStatusAIServing,
 		enums.IMConversationStatusPending,
 		enums.IMConversationStatusActive,
 	})
 	cnd.Desc("id")
-	return s.FindOne(cnd)
+	return repositories.ConversationRepository.FindOne(db, cnd)
 }
 
 func (s *conversationService) Create(externalInfo openidentity.ExternalInfo, channelID, aiAgentID int64) (*models.Conversation, error) {
 	subject := s.buildDefaultSubject(externalInfo)
-
-	// 会话存在，直接返回
-	if conversation := s.getLatestNotFinished(externalInfo); conversation != nil {
-		return conversation, nil
-	}
 
 	aiAgent := AIAgentService.Get(aiAgentID)
 	if aiAgent == nil || aiAgent.Status != enums.StatusOk {
 		return nil, errorsx.InvalidParam("AI Agent not found")
 	}
 
-	conversation := &models.Conversation{
-		AIAgentID:         aiAgentID,
-		ChannelID:         channelID,
-		ExternalSource:    externalInfo.ExternalSource,
-		Subject:           subject,
-		Status:            s.resolveInitialStatus(aiAgent.ServiceMode),
-		ServiceMode:       aiAgent.ServiceMode,
-		Priority:          0,
-		ExternalID:        externalInfo.ExternalID,
-		CurrentAssigneeID: 0,
-		CurrentTeamID:     0,
-		LastMessageAt:     time.Now(),
-		LastActiveAt:      time.Now(),
-		AuditFields:       utils.BuildAuditFields(nil),
-	}
-	if identity := repositories.CustomerIdentityRepository.GetBy(sqls.DB(), externalInfo.ExternalSource, externalInfo.ExternalID); identity != nil {
-		conversation.CustomerID = identity.CustomerID
-	}
+	var conversation *models.Conversation
+	created := false
 	if err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
+		customerID, err := s.ensureExternalCustomer(ctx.Tx, externalInfo)
+		if err != nil {
+			return err
+		}
+		if existing := s.getLatestNotFinishedByCustomerID(ctx.Tx, customerID); existing != nil {
+			conversation = existing
+			return nil
+		}
+		created = true
+		now := time.Now()
+		conversation = &models.Conversation{
+			AIAgentID:         aiAgentID,
+			ChannelID:         channelID,
+			CustomerID:        customerID,
+			Subject:           subject,
+			Status:            s.resolveInitialStatus(aiAgent.ServiceMode),
+			ServiceMode:       aiAgent.ServiceMode,
+			Priority:          0,
+			CurrentAssigneeID: 0,
+			CurrentTeamID:     0,
+			LastMessageAt:     now,
+			LastActiveAt:      now,
+			AuditFields:       utils.BuildAuditFields(nil),
+		}
 		if err := ctx.Tx.Create(conversation).Error; err != nil {
 			return err
 		}
@@ -140,6 +146,12 @@ func (s *conversationService) Create(externalInfo openidentity.ExternalInfo, cha
 		return ConversationEventLogService.CreateEvent(ctx, conversation.ID, enums.IMEventTypeCreate, enums.IMSenderTypeCustomer, 0, "用户创建会话", "")
 	}); err != nil {
 		return nil, err
+	}
+	if conversation == nil {
+		return nil, errorsx.BusinessError(1, "创建会话失败")
+	}
+	if !created {
+		return conversation, nil
 	}
 
 	// 推送会话创建事件
@@ -156,6 +168,43 @@ func (s *conversationService) Create(externalInfo openidentity.ExternalInfo, cha
 		}
 	}
 	return s.Get(conversation.ID), nil
+}
+
+func (s *conversationService) ensureExternalCustomer(db *gorm.DB, externalInfo openidentity.ExternalInfo) (int64, error) {
+	externalSource := externalInfo.ExternalSource
+	externalID := strings.TrimSpace(externalInfo.ExternalID)
+	if strings.TrimSpace(string(externalSource)) == "" || externalID == "" {
+		return 0, errorsx.Unauthorized("外部用户标识不能为空")
+	}
+	now := time.Now()
+	if identity := repositories.CustomerIdentityRepository.GetBy(db, externalSource, externalID); identity != nil {
+		_ = repositories.CustomerRepository.Updates(db, identity.CustomerID, map[string]any{
+			"last_active_at": now,
+			"updated_at":     now,
+		})
+		return identity.CustomerID, nil
+	}
+
+	customer := &models.Customer{
+		Name:         s.buildDefaultSubject(externalInfo),
+		LastActiveAt: &now,
+		Status:       enums.StatusOk,
+		AuditFields:  utils.BuildAuditFields(nil),
+	}
+	if err := repositories.CustomerRepository.Create(db, customer); err != nil {
+		return 0, err
+	}
+	identity := &models.CustomerIdentity{
+		CustomerID:     customer.ID,
+		ExternalSource: externalSource,
+		ExternalID:     externalID,
+		Status:         enums.StatusOk,
+		AuditFields:    utils.BuildAuditFields(nil),
+	}
+	if err := repositories.CustomerIdentityRepository.Create(db, identity); err != nil {
+		return 0, err
+	}
+	return customer.ID, nil
 }
 
 func (s *conversationService) AssignConversation(req request.AssignConversationRequest, operator *dto.AuthPrincipal) error {
@@ -638,20 +687,14 @@ func (s *conversationService) IsCustomerConversationOwner(conversation *models.C
 		return false
 	}
 	extID := strings.TrimSpace(externalInfo.ExternalID)
-	if extID == "" || strings.TrimSpace(conversation.ExternalID) == "" {
+	if extID == "" || strings.TrimSpace(string(externalInfo.ExternalSource)) == "" || conversation.CustomerID <= 0 {
 		return false
 	}
-	if conversation.ExternalID != extID {
+	identity := repositories.CustomerIdentityRepository.GetBy(sqls.DB(), externalInfo.ExternalSource, extID)
+	if identity == nil {
 		return false
 	}
-	reqSrc := strings.TrimSpace(string(externalInfo.ExternalSource))
-	convSrc := strings.TrimSpace(string(conversation.ExternalSource))
-	if convSrc != "" {
-		if reqSrc == "" || reqSrc != convSrc {
-			return false
-		}
-	}
-	return true
+	return identity.CustomerID == conversation.CustomerID
 }
 
 func (s *conversationService) BuildConversationSummary(conversation *models.Conversation) string {
@@ -704,7 +747,7 @@ func (s *conversationService) buildEventPayload(payload map[string]any) string {
 	return string(data)
 }
 
-// LinkConversationCustomer 将会话绑定到指定客户；若会话带外部访客标识则维护 CustomerIdentity（与创建会话时逻辑一致）。
+// LinkConversationCustomer 将会话绑定到指定客户。
 func (s *conversationService) LinkConversationCustomer(conversationID, customerID int64, operator *dto.AuthPrincipal) error {
 	if operator == nil {
 		return errorsx.Unauthorized("未登录或登录已过期")
@@ -727,32 +770,10 @@ func (s *conversationService) LinkConversationCustomer(conversationID, customerI
 		return errorsx.Forbidden("无权限关联该会话")
 	}
 
-	extID := strings.TrimSpace(conv.ExternalID)
-	extSrc := strings.TrimSpace(string(conv.ExternalSource))
-
 	err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
 		current := repositories.ConversationRepository.Get(ctx.Tx, conversationID)
 		if current == nil {
 			return errorsx.InvalidParam("会话不存在")
-		}
-		if extID != "" && extSrc != "" {
-			existing := repositories.CustomerIdentityRepository.GetBy(ctx.Tx, enums.ExternalSource(extSrc), extID)
-			if existing != nil {
-				if existing.CustomerID != customerID {
-					return errorsx.BusinessError(1, "该访客身份已绑定其他客户，无法关联到当前选择")
-				}
-			} else {
-				idRow := &models.CustomerIdentity{
-					CustomerID:     customerID,
-					ExternalSource: enums.ExternalSource(extSrc),
-					ExternalID:     extID,
-					Status:         enums.StatusOk,
-					AuditFields:    utils.BuildAuditFields(operator),
-				}
-				if err := repositories.CustomerIdentityRepository.Create(ctx.Tx, idRow); err != nil {
-					return err
-				}
-			}
 		}
 		now := time.Now()
 		return repositories.ConversationRepository.Updates(ctx.Tx, conversationID, map[string]any{
@@ -769,6 +790,38 @@ func (s *conversationService) LinkConversationCustomer(conversationID, customerI
 		WsService.PublishConversationChanged(updated, enums.IMRealtimeEventConversationUpdated)
 	}
 	return nil
+}
+
+func (s *conversationService) GetConversationExternalIdentity(conversation *models.Conversation) *models.CustomerIdentity {
+	if conversation == nil || conversation.CustomerID <= 0 {
+		return nil
+	}
+	identities := repositories.CustomerIdentityRepository.FindByCustomerID(sqls.DB(), conversation.CustomerID)
+	if len(identities) == 0 {
+		return nil
+	}
+	if channel := ChannelService.Get(conversation.ChannelID); channel != nil {
+		expected := externalSourceForChannelType(channel.ChannelType)
+		if strings.TrimSpace(string(expected)) != "" {
+			for i := range identities {
+				if identities[i].ExternalSource == expected {
+					return &identities[i]
+				}
+			}
+		}
+	}
+	return &identities[0]
+}
+
+func externalSourceForChannelType(channelType string) enums.ExternalSource {
+	switch strings.TrimSpace(channelType) {
+	case enums.ChannelTypeWxWorkKF:
+		return enums.ExternalSourceWxWorkKF
+	case enums.ChannelTypeWeb:
+		return enums.ExternalSourceGuest
+	default:
+		return ""
+	}
 }
 
 func (s *conversationService) canLinkConversationCustomer(conv *models.Conversation, operator *dto.AuthPrincipal) bool {

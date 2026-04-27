@@ -862,7 +862,7 @@ func (s *ticketService) CreateFromConversation(req request.CreateTicketFromConve
 		Title:             title,
 		Description:       description,
 		Source:            string(enums.TicketSourceConversation),
-		Channel:           string(conversation.ExternalSource),
+		Channel:           s.resolveConversationChannel(conversation),
 		CustomerID:        conversation.CustomerID,
 		ConversationID:    conversation.ID,
 		TagIDs:            req.TagIDs,
@@ -1843,6 +1843,16 @@ func parseOptionalDateTime(value string) (*time.Time, error) {
 		return &t, nil
 	}
 	return nil, fmt.Errorf("invalid datetime")
+}
+
+func (s *ticketService) resolveConversationChannel(conversation *models.Conversation) string {
+	if conversation == nil || conversation.ChannelID <= 0 {
+		return ""
+	}
+	if channel := ChannelService.Get(conversation.ChannelID); channel != nil {
+		return channel.ChannelType
+	}
+	return ""
 }
 
 func diffMinutes(start *time.Time, end time.Time) int {

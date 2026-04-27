@@ -292,9 +292,7 @@ export default function ConversationsPage() {
                   </span>
                 </div>
                 <p className="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">
-                  <span>{conversation.externalSource}</span>
-                  <span className="text-muted-foreground/60"> / </span>
-                  <span>{conversation.externalId}</span>
+                  <span>渠道 #{conversation.channelId || "-"}</span>
                   {conversation.customerId ? (
                     <>
                       <span className="text-muted-foreground/60"> / </span>

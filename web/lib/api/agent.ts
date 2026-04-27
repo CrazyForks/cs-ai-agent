@@ -37,8 +37,6 @@ export type AgentConversation = {
   aiAgentId?: number
   channelId?: number
   customerId?: number
-  externalSource: string
-  externalId: string
   subject: string
   status: number
   serviceMode: number

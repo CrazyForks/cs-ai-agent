@@ -410,7 +410,6 @@ func (s *messageService) sendMessage(conversationID int64, senderType enums.IMSe
 		slog.Error("enqueue wxwork kf outbox failed",
 			"conversation_id", conversation.ID,
 			"message_id", message.ID,
-			"external_source", conversation.ExternalSource,
 			"error", enqueueErr,
 		)
 	}

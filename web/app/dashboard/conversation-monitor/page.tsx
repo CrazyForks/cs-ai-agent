@@ -726,7 +726,7 @@ export default function DashboardConversationsPage() {
                         <div className="min-w-0">
                           <div className="font-medium">{item.subject || `会话 #${item.id}`}</div>
                           <div className="mt-1 text-sm text-muted-foreground">
-                            渠道：{item.externalSource || "-"}
+                            渠道ID：{item.channelId || "-"}
                           </div>
                           <div className="mt-1 line-clamp-2 text-sm text-muted-foreground">
                             {item.lastMessageSummary || "暂无最新消息摘要"}

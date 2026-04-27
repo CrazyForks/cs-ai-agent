@@ -168,10 +168,10 @@ function MissingCustomerEmpty({ conversation }: { conversation: AgentConversatio
         </Button>
       </div>
       <div className="space-y-2">
-        <SectionHeading>访客标识</SectionHeading>
+        <SectionHeading>会话归属</SectionHeading>
         <div className="space-y-2">
-          <DetailRow label="外部来源" value={conversation.externalSource} />
-          <DetailRow label="外部标识" value={conversation.externalId} />
+          <DetailRow label="渠道ID" value={conversation.channelId ? `${conversation.channelId}` : "-"} />
+          <DetailRow label="客户ID" value={conversation.customerId ? `${conversation.customerId}` : "-"} />
         </div>
       </div>
       <CustomerLinkOrCreateDialog

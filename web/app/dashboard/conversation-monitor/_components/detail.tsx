@@ -339,8 +339,8 @@ export function ConversationDetailDialog({
                   value={currentConversation.currentAssigneeName || "-"}
                 />
                 <InfoItem
-                  label="渠道类型"
-                  value={currentConversation.externalSource || "-"}
+                  label="渠道ID"
+                  value={`${currentConversation.channelId || "-"}`}
                 />
                 <InfoItem
                   label="客服未读"

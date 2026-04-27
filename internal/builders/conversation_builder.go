@@ -19,8 +19,6 @@ func BuildConversation(item *models.Conversation) response.ConversationResponse 
 		AIAgentID:                 item.AIAgentID,
 		ChannelID:                 item.ChannelID,
 		CustomerID:                item.CustomerID,
-		ExternalSource:            item.ExternalSource,
-		ExternalID:                item.ExternalID,
 		Subject:                   item.Subject,
 		Status:                    item.Status,
 		ServiceMode:               item.ServiceMode,
@@ -38,10 +36,12 @@ func BuildConversation(item *models.Conversation) response.ConversationResponse 
 		AgentLastReadMessageID:    readStateMessageID(agentReadState),
 		AgentLastReadSeqNo:        readStateSeqNo(agentReadState),
 		AgentLastReadAt:           readStateAt(agentReadState),
-		CustomerOnline:            services.WsService.IsGuestOnline(item.ExternalID),
 		ClosedAt:                  utils.FormatTimePtr(item.ClosedAt),
 		ClosedBy:                  item.ClosedBy,
 		CloseReason:               item.CloseReason,
+	}
+	if identity := services.ConversationService.GetConversationExternalIdentity(item); identity != nil {
+		ret.CustomerOnline = services.WsService.IsGuestOnline(identity.ExternalID)
 	}
 	if item.CurrentAssigneeID > 0 {
 		if user := services.UserService.Get(item.CurrentAssigneeID); user != nil {

@@ -101,12 +101,6 @@ export function ConversationList({ onAfterSelect }: ConversationListProps) {
                     >
                       {getEnumLabel(IMConversationStatusLabels, conversation.status)}
                     </span>
-                    {conversation.externalSource ? (
-                      <>
-                        <span className="opacity-40">·</span>
-                        <span className="truncate">{conversation.externalSource}</span>
-                      </>
-                    ) : null}
                   </div>
                 </div>
               </div>

@@ -12,7 +12,6 @@ const (
 
 type ConversationListRequest struct {
 	Status            int    `json:"status"`
-	ExternalSource    string `json:"externalSource"`
 	ServiceMode       int    `json:"serviceMode"`
 	CurrentAssigneeID int64  `json:"currentAssigneeId"`
 	Keyword           string `json:"keyword"`

@@ -28,7 +28,6 @@ func (c *ConversationController) AnyList() *web.JsonResult {
 
 	cnd := params.NewPagedSqlCnd(c.Ctx,
 		params.QueryFilter{ParamName: "status"},
-		params.QueryFilter{ParamName: "externalSource"},
 		params.QueryFilter{ParamName: "serviceMode"},
 		params.QueryFilter{ParamName: "currentAssigneeId"},
 	).Desc("last_message_at").Desc("id")
@@ -37,7 +36,7 @@ func (c *ConversationController) AnyList() *web.JsonResult {
 
 	if keyword, _ := params.Get(c.Ctx, "keyword"); strs.IsNotBlank(keyword) {
 		keywordLike := "%" + strings.TrimSpace(keyword) + "%"
-		cnd.Where("subject LIKE ? OR external_id LIKE ? OR last_message_summary LIKE ?", keywordLike, keywordLike, keywordLike)
+		cnd.Where("subject LIKE ? OR last_message_summary LIKE ?", keywordLike, keywordLike)
 	}
 
 	// 标签搜索

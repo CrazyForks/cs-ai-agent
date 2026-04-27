@@ -45,6 +45,13 @@ func (r *customerIdentityRepository) GetBy(db *gorm.DB, externalSource enums.Ext
 		Eq("external_id", externalID))
 }
 
+func (r *customerIdentityRepository) FindByCustomerID(db *gorm.DB, customerID int64) []models.CustomerIdentity {
+	if customerID <= 0 {
+		return nil
+	}
+	return r.Find(db, sqls.NewCnd().Eq("customer_id", customerID).Eq("status", enums.StatusOk).Desc("id"))
+}
+
 func (r *customerIdentityRepository) Find(db *gorm.DB, cnd *sqls.Cnd) (list []models.CustomerIdentity) {
 	cnd.Find(db, &list)
 	return

@@ -56,7 +56,7 @@ func buildConversationAssignedNotifyBody(conversation *models.Conversation, assi
 	lines := []string{
 		fmt.Sprintf("会话ID: #%d", conversation.ID),
 		fmt.Sprintf("会话主题: %s", strs.DefaultIfBlank(conversation.Subject, "-")),
-		fmt.Sprintf("接入渠道: %s", enums.GetExternalSourceLabel(conversation.ExternalSource)),
+		fmt.Sprintf("接入渠道: %s", resolveConversationChannelLabel(conversation)),
 		fmt.Sprintf("当前状态: %s", enums.GetIMConversationStatusLabel(conversation.Status)),
 		fmt.Sprintf("处理人: %s", resolveNotifyUserLabel(assigneeID)),
 	}
@@ -65,6 +65,16 @@ func buildConversationAssignedNotifyBody(conversation *models.Conversation, assi
 	}
 	lines = append(lines, fmt.Sprintf("时间: %s", time.Now().Format("2006-01-02 15:04:05")))
 	return strings.Join(lines, "\n")
+}
+
+func resolveConversationChannelLabel(conversation *models.Conversation) string {
+	if conversation == nil || conversation.ChannelID <= 0 {
+		return "-"
+	}
+	if channel := services.ChannelService.Get(conversation.ChannelID); channel != nil {
+		return strs.DefaultIfBlank(channel.Name, channel.ChannelType)
+	}
+	return "-"
 }
 
 func resolveNotifyUserLabel(userID int64) string {

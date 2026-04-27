@@ -78,7 +78,8 @@ func (s *channelMessageOutboxService) EnqueueWxWorkKFMessage(conversation *model
 	if conversation == nil || message == nil {
 		return nil
 	}
-	if conversation.ExternalSource != enums.ExternalSourceWxWorkKF {
+	channel := ChannelService.Get(conversation.ChannelID)
+	if channel == nil || channel.ChannelType != enums.ChannelTypeWxWorkKF {
 		return nil
 	}
 	if message.SenderType != enums.IMSenderTypeAgent && message.SenderType != enums.IMSenderTypeAI {

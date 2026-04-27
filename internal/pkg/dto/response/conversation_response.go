@@ -22,8 +22,6 @@ type ConversationResponse struct {
 	AIAgentID                 int64                           `json:"aiAgentId"`
 	ChannelID                 int64                           `json:"channelId"`
 	CustomerID                int64                           `json:"customerId"`
-	ExternalSource            enums.ExternalSource            `json:"externalSource"`
-	ExternalID                string                          `json:"externalId"`
 	Subject                   string                          `json:"subject"`
 	Status                    enums.IMConversationStatus      `json:"status"`
 	ServiceMode               enums.IMConversationServiceMode `json:"serviceMode"`
