@@ -60,11 +60,13 @@ type WebChannelConfig = {
   width?: string
 }
 
-type WechatMPChannelConfig = WebChannelConfig & {
+type WechatMPChannelConfig = {
+  title?: string
+  subtitle?: string
+  themeColor?: string
   appId?: string
   appSecret?: string
   oauthScope?: "snsapi_base" | "snsapi_userinfo"
-  oauthEnabled?: boolean
 }
 
 const defaultWebChannelConfig: Required<WebChannelConfig> = {
@@ -175,28 +177,28 @@ function parseWebChannelConfig(configJson: string): Required<WebChannelConfig> {
 
 function parseWechatMPChannelConfig(configJson: string): Required<WechatMPChannelConfig> {
   const fallback = {
-    ...defaultWebChannelConfig,
     title: "公众号客服",
+    subtitle: defaultWebChannelConfig.subtitle,
+    themeColor: defaultWebChannelConfig.themeColor,
     appId: "",
     appSecret: "",
     oauthScope: "snsapi_base" as const,
-    oauthEnabled: true,
   }
   if (!configJson.trim()) {
     return fallback
   }
   try {
     const parsed = JSON.parse(configJson) as WechatMPChannelConfig
-    const base = parseWebChannelConfig(configJson)
     const oauthScope =
       parsed.oauthScope === "snsapi_userinfo" ? "snsapi_userinfo" : "snsapi_base"
     return {
-      ...base,
       title: parsed.title?.trim() || fallback.title,
+      subtitle: parsed.subtitle?.trim() ?? fallback.subtitle,
+      themeColor:
+        parsed.themeColor?.trim() || defaultWebChannelConfig.themeColor,
       appId: parsed.appId?.trim() || "",
       appSecret: parsed.appSecret?.trim() || "",
       oauthScope,
-      oauthEnabled: parsed.oauthEnabled ?? true,
     }
   } catch {
     return fallback
@@ -212,7 +214,6 @@ function buildForm(item: AdminChannel | null): EditForm {
   const wechatConfig = isWechatMP
     ? parseWechatMPChannelConfig(item.configJson)
     : null
-  const widgetConfig = wechatConfig ?? webConfig
   return {
     channelType:
       item.channelType === "wxwork_kf"
@@ -223,11 +224,11 @@ function buildForm(item: AdminChannel | null): EditForm {
     aiAgentId: item.aiAgentId > 0 ? String(item.aiAgentId) : "",
     name: item.name,
     openKfId: parseOpenKfId(item.configJson),
-    widgetTitle: widgetConfig.title,
-    widgetSubtitle: widgetConfig.subtitle,
-    widgetThemeColor: widgetConfig.themeColor,
-    widgetPosition: widgetConfig.position,
-    widgetWidth: widgetConfig.width,
+    widgetTitle: wechatConfig?.title ?? webConfig.title,
+    widgetSubtitle: wechatConfig?.subtitle ?? webConfig.subtitle,
+    widgetThemeColor: wechatConfig?.themeColor ?? webConfig.themeColor,
+    widgetPosition: webConfig.position,
+    widgetWidth: webConfig.width,
     wechatAppId: wechatConfig?.appId ?? "",
     wechatAppSecret: wechatConfig?.appSecret ?? "",
     wechatOAuthScope: wechatConfig?.oauthScope ?? "snsapi_base",
@@ -244,8 +245,6 @@ function buildPayload(form: EditForm, status: number): CreateAdminChannelPayload
     subtitle: form.widgetSubtitle.trim(),
     themeColor:
       form.widgetThemeColor.trim() || defaultWebChannelConfig.themeColor,
-    position: form.widgetPosition || defaultWebChannelConfig.position,
-    width: form.widgetWidth.trim() || defaultWebChannelConfig.width,
   }
   const configJson =
     channelType === "wxwork_kf"
@@ -256,9 +255,12 @@ function buildPayload(form: EditForm, status: number): CreateAdminChannelPayload
             appId: form.wechatAppId.trim(),
             appSecret: form.wechatAppSecret.trim(),
             oauthScope: form.wechatOAuthScope || "snsapi_base",
-            oauthEnabled: true,
           })
-        : JSON.stringify(webLikeConfig)
+        : JSON.stringify({
+            ...webLikeConfig,
+            position: form.widgetPosition || defaultWebChannelConfig.position,
+            width: form.widgetWidth.trim() || defaultWebChannelConfig.width,
+          })
   return {
     channelType,
     aiAgentId: Number(form.aiAgentId),
@@ -324,7 +326,6 @@ function ChannelFormBody({
   } = form
   const channelType = useWatch({ control, name: "channelType" })
   const openKfId = useWatch({ control, name: "openKfId" })
-  const isWebLikeChannel = channelType === "web" || channelType === "wechat_mp"
 
   useEffect(() => {
     async function loadAIAgents() {
@@ -532,7 +533,7 @@ function ChannelFormBody({
               </Field>
             ) : null}
 
-            {isWebLikeChannel ? (
+            {channelType === "web" || channelType === "wechat_mp" ? (
               <>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {channelType === "wechat_mp" ? (
@@ -619,43 +620,48 @@ function ChannelFormBody({
                     </FieldContent>
                   </Field>
 
-                  <Field data-invalid={!!errors.widgetPosition}>
-                    <FieldLabel>挂载位置</FieldLabel>
-                    <FieldContent>
-                      <Controller
-                        control={control}
-                        name="widgetPosition"
-                        render={({ field }) => (
-                          <OptionCombobox
-                            value={field.value}
-                            options={[...widgetPositionOptions]}
-                            placeholder="请选择挂载位置"
-                            searchPlaceholder="搜索挂载位置"
-                            emptyText="未找到挂载位置"
-                            onChange={field.onChange}
+                  {channelType === "web" ? (
+                    <>
+                      <Field data-invalid={!!errors.widgetPosition}>
+                        <FieldLabel>挂载位置</FieldLabel>
+                        <FieldContent>
+                          <Controller
+                            control={control}
+                            name="widgetPosition"
+                            render={({ field }) => (
+                              <OptionCombobox
+                                value={field.value}
+                                options={[...widgetPositionOptions]}
+                                placeholder="请选择挂载位置"
+                                searchPlaceholder="搜索挂载位置"
+                                emptyText="未找到挂载位置"
+                                onChange={field.onChange}
+                              />
+                            )}
                           />
-                        )}
-                      />
-                      <FieldError errors={[errors.widgetPosition]} />
-                    </FieldContent>
-                  </Field>
+                          <FieldError errors={[errors.widgetPosition]} />
+                        </FieldContent>
+                      </Field>
 
-                  <Field data-invalid={!!errors.widgetWidth}>
-                    <FieldLabel htmlFor="channel-widget-width">窗口宽度</FieldLabel>
-                    <FieldContent>
-                      <Input
-                        id="channel-widget-width"
-                        placeholder="380px"
-                        {...register("widgetWidth")}
-                      />
-                      <FieldError errors={[errors.widgetWidth]} />
-                    </FieldContent>
-                  </Field>
+                      <Field data-invalid={!!errors.widgetWidth}>
+                        <FieldLabel htmlFor="channel-widget-width">窗口宽度</FieldLabel>
+                        <FieldContent>
+                          <Input
+                            id="channel-widget-width"
+                            placeholder="380px"
+                            {...register("widgetWidth")}
+                          />
+                          <FieldError errors={[errors.widgetWidth]} />
+                        </FieldContent>
+                      </Field>
+                    </>
+                  ) : null}
                 </div>
-                <WebAccessGuide
-                  channelId={channelDetail?.channelId || ""}
-                  channelType={channelType === "wechat_mp" ? "wechat_mp" : "web"}
-                />
+                {channelType === "wechat_mp" ? (
+                  <WechatMPAccessGuide channelId={channelDetail?.channelId || ""} />
+                ) : (
+                  <WebAccessGuide channelId={channelDetail?.channelId || ""} />
+                )}
               </>
             ) : null}
           </div>
@@ -673,15 +679,8 @@ function ChannelFormBody({
   )
 }
 
-function WebAccessGuide({
-  channelId,
-  channelType,
-}: {
-  channelId: string
-  channelType: "web" | "wechat_mp"
-}) {
+function WebAccessGuide({ channelId }: { channelId: string }) {
   const [origin, setOrigin] = useState("")
-  const isWechatMP = channelType === "wechat_mp"
 
   useEffect(() => {
     setOrigin(window.location.origin)
@@ -691,16 +690,10 @@ function WebAccessGuide({
     if (!origin || !channelId) {
       return ""
     }
-    const url = new URL(
-      isWechatMP ? "/api/channel/wechat_mp/oauth/authorize" : "/kefu/chat/",
-      origin
-    )
+    const url = new URL("/kefu/chat/", origin)
     url.searchParams.set("channelId", channelId)
-    if (isWechatMP) {
-      url.searchParams.set("returnPath", "/kefu/chat/")
-    }
     return url.toString()
-  }, [channelId, isWechatMP, origin])
+  }, [channelId, origin])
 
   const testUrl = useMemo(() => {
     if (!origin || !channelId) {
@@ -717,11 +710,11 @@ function WebAccessGuide({
     }
     return `<script>
   window.CSAgentConfig = {
-    channelId: "${channelId}"${isWechatMP ? ',\n    externalSource: "wechat_mp"' : ""}
+    channelId: "${channelId}"
   };
 </script>
 <script async src="${origin}/sdk/cs-ai-agent-sdk.min.js"></script>`
-  }, [channelId, isWechatMP, origin])
+  }, [channelId, origin])
 
   async function copyText(text: string, successMessage: string) {
     if (!text) {
@@ -738,14 +731,10 @@ function WebAccessGuide({
   return (
     <div className="space-y-4 border-t pt-4">
       <div>
-        <div className="text-sm font-medium">
-          {isWechatMP ? "微信公众号接入信息" : "Web 接入信息"}
-        </div>
+        <div className="text-sm font-medium">Web 接入信息</div>
         <div className="text-xs text-muted-foreground">
           {channelId
-            ? isWechatMP
-              ? "将授权链接配置到公众号菜单，用户授权后会进入客服窗口。"
-              : "复制链接或嵌入代码即可接入当前 Web 渠道。"
+            ? "复制链接或嵌入代码即可接入当前 Web 渠道。"
             : "保存渠道后生成接入链接。"}
         </div>
       </div>
@@ -757,9 +746,7 @@ function WebAccessGuide({
       ) : (
         <div className="space-y-4">
           <div className="space-y-2">
-            <div className="text-xs font-medium text-muted-foreground">
-              {isWechatMP ? "公众号菜单授权链接" : "直接访问链接"}
-            </div>
+            <div className="text-xs font-medium text-muted-foreground">直接访问链接</div>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Input readOnly value={accessUrl} className="font-mono text-xs" />
               <div className="flex gap-2">
@@ -785,55 +772,129 @@ function WebAccessGuide({
             </div>
           </div>
 
-          {!isWechatMP ? (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <div className="text-xs font-medium text-muted-foreground">
-                  嵌入式接入代码
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyText(snippet, "已复制接入代码")}
-                >
-                  <CopyIcon className="size-4" />
-                  复制代码
-                </Button>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-xs font-medium text-muted-foreground">
+                嵌入式接入代码
               </div>
-              <pre className="max-h-48 overflow-auto rounded-md bg-muted p-3 text-xs leading-5">
-                <code>{snippet}</code>
-              </pre>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => copyText(snippet, "已复制接入代码")}
+              >
+                <CopyIcon className="size-4" />
+                复制代码
+              </Button>
             </div>
-          ) : null}
+            <pre className="max-h-48 overflow-auto rounded-md bg-muted p-3 text-xs leading-5">
+              <code>{snippet}</code>
+            </pre>
+          </div>
 
           <div className="flex flex-col gap-2 rounded-md bg-muted px-3 py-3 text-xs text-muted-foreground">
             <div className="font-medium text-foreground">接入教程</div>
-            {isWechatMP ? (
-              <>
-                <div>1. 确认该渠道已启用，并在微信公众平台配置网页授权域名。</div>
-                <div>2. 将公众号菜单跳转地址设置为上方授权链接。</div>
-                <div>3. 用户点击菜单并授权后，会以 openid 作为稳定客户身份进入客服窗口。</div>
-              </>
-            ) : (
-              <>
-                <div>1. 确认该渠道已启用。</div>
-                <div>2. 将嵌入代码粘贴到目标网站 HTML 的 body 结束标签前。</div>
-                <div>3. 发布网站后刷新页面，客服入口会按渠道配置展示。</div>
-                <div>4. 独立页面或二维码场景可直接使用访问链接。</div>
-                <div className="pt-1">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(testUrl, "_blank", "noopener,noreferrer")}
-                  >
-                    <ExternalLinkIcon className="size-4" />
-                    打开测试页
-                  </Button>
-                </div>
-              </>
-            )}
+            <div>1. 确认该渠道已启用。</div>
+            <div>2. 将嵌入代码粘贴到目标网站 HTML 的 body 结束标签前。</div>
+            <div>3. 发布网站后刷新页面，客服入口会按渠道配置展示。</div>
+            <div>4. 独立页面或二维码场景可直接使用访问链接。</div>
+            <div className="pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(testUrl, "_blank", "noopener,noreferrer")}
+              >
+                <ExternalLinkIcon className="size-4" />
+                打开测试页
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function WechatMPAccessGuide({ channelId }: { channelId: string }) {
+  const [origin, setOrigin] = useState("")
+
+  useEffect(() => {
+    setOrigin(window.location.origin)
+  }, [])
+
+  const menuUrl = useMemo(() => {
+    if (!origin || !channelId) {
+      return ""
+    }
+    const url = new URL("/api/channel/wechat_mp/oauth/authorize", origin)
+    url.searchParams.set("channelId", channelId)
+    return url.toString()
+  }, [channelId, origin])
+
+  async function copyText(text: string) {
+    if (!text) {
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success("已复制公众号菜单链接")
+    } catch {
+      toast.error("复制失败")
+    }
+  }
+
+  return (
+    <div className="space-y-4 border-t pt-4">
+      <div>
+        <div className="text-sm font-medium">微信公众号接入信息</div>
+        <div className="text-xs text-muted-foreground">
+          {channelId
+            ? "将该链接配置到微信公众号自定义菜单，用户点击菜单后进入客服聊天页。"
+            : "保存渠道后生成公众号菜单链接。"}
+        </div>
+      </div>
+
+      {!channelId ? (
+        <div className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+          当前为新建渠道，保存后会生成 channelId。
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="text-xs font-medium text-muted-foreground">
+              公众号菜单链接
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input readOnly value={menuUrl} className="font-mono text-xs" />
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  title="复制链接"
+                  onClick={() => copyText(menuUrl)}
+                >
+                  <CopyIcon className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  title="打开链接"
+                  onClick={() => window.open(menuUrl, "_blank", "noopener,noreferrer")}
+                >
+                  <ExternalLinkIcon className="size-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 rounded-md bg-muted px-3 py-3 text-xs text-muted-foreground">
+            <div className="font-medium text-foreground">接入教程</div>
+            <div>1. 确认该渠道已启用，并在微信公众平台配置网页授权域名。</div>
+            <div>2. 将公众号自定义菜单跳转地址设置为上方链接。</div>
+            <div>3. 用户点击菜单并授权后，会以 openid 作为稳定客户身份进入客服聊天页。</div>
           </div>
         </div>
       )}

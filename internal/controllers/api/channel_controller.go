@@ -40,8 +40,7 @@ func (c *ChannelController) AnyConfig() *web.JsonResult {
 
 func (c *ChannelController) AnyWechat_mpOauthAuthorize() *web.JsonResult {
 	channelID, _ := params.Get(c.Ctx, "channelId")
-	returnPath, _ := params.Get(c.Ctx, "returnPath")
-	redirectURL, err := services.ChannelService.BuildWechatMPOAuthURL(c.Ctx, channelID, returnPath)
+	redirectURL, err := services.ChannelService.BuildWechatMPOAuthURL(c.Ctx, channelID)
 	if err != nil {
 		return web.JsonError(err)
 	}
@@ -91,8 +90,8 @@ func resolveWidgetConfig(channelType, rawConfig string) (*webLikeWidgetConfig, s
 			Title:      cfg.Title,
 			Subtitle:   cfg.Subtitle,
 			ThemeColor: cfg.ThemeColor,
-			Position:   cfg.Position,
-			Width:      cfg.Width,
+			Position:   "right",
+			Width:      "100%",
 		}, string(enums.ExternalSourceWechatMP), nil
 	default:
 		return nil, "", errorsx.InvalidParam("该渠道不支持开放客服配置")

@@ -42,16 +42,14 @@ type channelService struct {
 }
 
 type wechatMPOAuthState struct {
-	ChannelID  string `json:"channelId"`
-	ReturnPath string `json:"returnPath"`
-	ExpiresAt  int64  `json:"expiresAt"`
+	ChannelID string `json:"channelId"`
+	ExpiresAt int64  `json:"expiresAt"`
 }
 
 type WechatMPOAuthResult struct {
 	ChannelID    string
 	ExternalID   string
 	ExternalName string
-	ReturnPath   string
 }
 
 func (s *channelService) Get(id int64) *models.Channel {
@@ -265,13 +263,10 @@ func (s *channelService) ParseWebChannelConfig(raw string) (*dto.WebChannelConfi
 func (s *channelService) ParseWechatMPChannelConfig(raw string) (*dto.WechatMPChannelConfig, error) {
 	raw = strings.TrimSpace(raw)
 	cfg := &dto.WechatMPChannelConfig{
-		Title:        "公众号客服",
-		Subtitle:     "欢迎咨询",
-		ThemeColor:   "#2563eb",
-		Position:     "right",
-		Width:        "380px",
-		OAuthScope:   "snsapi_base",
-		OAuthEnabled: true,
+		Title:      "公众号客服",
+		Subtitle:   "欢迎咨询",
+		ThemeColor: "#2563eb",
+		OAuthScope: "snsapi_base",
 	}
 	if raw != "" {
 		if err := json.Unmarshal([]byte(raw), cfg); err != nil {
@@ -287,17 +282,6 @@ func (s *channelService) ParseWechatMPChannelConfig(raw string) (*dto.WechatMPCh
 	if cfg.ThemeColor == "" {
 		cfg.ThemeColor = "#2563eb"
 	}
-	cfg.Position = strings.TrimSpace(cfg.Position)
-	if cfg.Position == "" {
-		cfg.Position = "right"
-	}
-	if cfg.Position != "left" && cfg.Position != "right" {
-		return nil, errorsx.InvalidParam("微信公众号渠道配置 position 只能为 left 或 right")
-	}
-	cfg.Width = strings.TrimSpace(cfg.Width)
-	if cfg.Width == "" {
-		cfg.Width = "380px"
-	}
 	cfg.AppID = strings.TrimSpace(cfg.AppID)
 	cfg.AppSecret = strings.TrimSpace(cfg.AppSecret)
 	cfg.OAuthScope = strings.TrimSpace(cfg.OAuthScope)
@@ -310,7 +294,7 @@ func (s *channelService) ParseWechatMPChannelConfig(raw string) (*dto.WechatMPCh
 	return cfg, nil
 }
 
-func (s *channelService) BuildWechatMPOAuthURL(ctx iris.Context, channelID, returnPath string) (string, error) {
+func (s *channelService) BuildWechatMPOAuthURL(ctx iris.Context, channelID string) (string, error) {
 	channelID = strings.TrimSpace(channelID)
 	if channelID == "" {
 		return "", errorsx.InvalidParam("channelId不能为空")
@@ -323,17 +307,13 @@ func (s *channelService) BuildWechatMPOAuthURL(ctx iris.Context, channelID, retu
 	if err != nil {
 		return "", errorsx.InvalidParam("微信公众号渠道配置不合法")
 	}
-	if !cfg.OAuthEnabled {
-		return "", errorsx.InvalidParam("微信公众号渠道未启用 OAuth")
-	}
 	if cfg.AppID == "" || cfg.AppSecret == "" {
 		return "", errorsx.InvalidParam("微信公众号渠道缺少 appId 或 appSecret")
 	}
 
 	state, err := s.signWechatMPOAuthState(wechatMPOAuthState{
-		ChannelID:  channel.ChannelID,
-		ReturnPath: normalizeWechatMPReturnPath(returnPath),
-		ExpiresAt:  time.Now().Add(10 * time.Minute).Unix(),
+		ChannelID: channel.ChannelID,
+		ExpiresAt: time.Now().Add(10 * time.Minute).Unix(),
 	}, cfg.AppSecret)
 	if err != nil {
 		return "", err
@@ -392,7 +372,6 @@ func (s *channelService) CompleteWechatMPOAuth(ctx context.Context, code, state 
 		ChannelID:    channel.ChannelID,
 		ExternalID:   strings.TrimSpace(token.OpenID),
 		ExternalName: externalName,
-		ReturnPath:   normalizeWechatMPReturnPath(payload.ReturnPath),
 	}, nil
 }
 
@@ -533,12 +512,8 @@ func (s *channelService) signWechatMPOAuthState(payload wechatMPOAuthState, secr
 	if payload.ChannelID == "" || payload.ExpiresAt <= 0 {
 		return "", errors.New("invalid oauth state payload")
 	}
-	payload.ReturnPath = normalizeWechatMPReturnPath(payload.ReturnPath)
-	if len(payload.ReturnPath) > 14 {
-		payload.ReturnPath = "/kefu/chat/"
-	}
 	encodedPayload := base64.RawURLEncoding.EncodeToString([]byte(
-		fmt.Sprintf("%s|%d|%s", payload.ChannelID, payload.ExpiresAt, payload.ReturnPath),
+		fmt.Sprintf("%s|%d", payload.ChannelID, payload.ExpiresAt),
 	))
 	mac := hmac.New(sha256.New, []byte(secret))
 	_, _ = mac.Write([]byte(encodedPayload))
@@ -579,8 +554,8 @@ func decodeWechatMPOAuthStatePayload(raw string) (*wechatMPOAuthState, error) {
 	if err != nil {
 		return nil, err
 	}
-	stateParts := strings.SplitN(string(data), "|", 3)
-	if len(stateParts) != 3 {
+	stateParts := strings.Split(string(data), "|")
+	if len(stateParts) != 2 {
 		return nil, errors.New("invalid oauth state payload")
 	}
 	expiresAt, err := strconv.ParseInt(stateParts[1], 10, 64)
@@ -588,30 +563,14 @@ func decodeWechatMPOAuthStatePayload(raw string) (*wechatMPOAuthState, error) {
 		return nil, err
 	}
 	payload := &wechatMPOAuthState{
-		ChannelID:  strings.TrimSpace(stateParts[0]),
-		ReturnPath: strings.TrimSpace(stateParts[2]),
-		ExpiresAt:  expiresAt,
+		ChannelID: strings.TrimSpace(stateParts[0]),
+		ExpiresAt: expiresAt,
 	}
 	payload.ChannelID = strings.TrimSpace(payload.ChannelID)
-	payload.ReturnPath = normalizeWechatMPReturnPath(payload.ReturnPath)
 	if payload.ChannelID == "" || payload.ExpiresAt <= 0 {
 		return nil, errors.New("invalid oauth state payload")
 	}
 	return payload, nil
-}
-
-func normalizeWechatMPReturnPath(returnPath string) string {
-	returnPath = strings.TrimSpace(returnPath)
-	if returnPath == "" {
-		return "/kefu/chat/"
-	}
-	if !strings.HasPrefix(returnPath, "/") || strings.HasPrefix(returnPath, "//") {
-		return "/kefu/chat/"
-	}
-	if strings.Contains(returnPath, "\n") || strings.Contains(returnPath, "\r") {
-		return "/kefu/chat/"
-	}
-	return returnPath
 }
 
 func buildAbsoluteURL(ctx iris.Context, path string, values url.Values) string {
@@ -649,5 +608,5 @@ func BuildWechatMPChatRedirectURL(ctx iris.Context, result *WechatMPOAuthResult)
 	if result.ExternalName != "" {
 		values.Set("subject", result.ExternalName)
 	}
-	return buildAbsoluteURL(ctx, normalizeWechatMPReturnPath(result.ReturnPath), values)
+	return buildAbsoluteURL(ctx, "/kefu/chat/", values)
 }
