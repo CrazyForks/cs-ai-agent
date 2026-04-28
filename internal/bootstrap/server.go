@@ -28,9 +28,9 @@ func NewServer() (*iris.Application, error) {
 	app := iris.New()
 	corsHandler := cors.New().
 		AllowOrigin("*").
-		AllowHeaders("Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With", "X-Guest-Id", "X-Channel-Id", "X-External-Id", "X-External-Name").
+		AllowHeaders("Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With", "X-Guest-Id", "X-Channel-Id", "X-External-Id", "X-External-Name", "X-Customer-Session-Token", "X-Customer-Session-Expires-At").
 		MaxAge(600).
-		ExposeHeaders("Content-Length", "Content-Type", "Authorization", "X-Guest-Id", "X-Channel-Id", "X-External-Id", "X-External-Name").
+		ExposeHeaders("Content-Length", "Content-Type", "Authorization", "X-Guest-Id", "X-Channel-Id", "X-External-Id", "X-External-Name", "X-Customer-Session-Token", "X-Customer-Session-Expires-At").
 		Handler()
 	app.UseRouter(func(ctx iris.Context) {
 		// WebSocket upgrade is validated by the upgrader's origin policy.
@@ -95,6 +95,7 @@ func addRouter(app *iris.Application) {
 	mvc.Configure(app.Party("/api"), func(m *mvc.Application) {
 		m.Party("/auth").Handle(new(api.AuthController))
 		m.Party("/channel").Handle(new(api.ChannelController))
+		m.Party("/customer").Handle(new(api.CustomerController))
 		m.Party("/conversation", middleware.ExternalUserMiddleware).Handle(new(api.ConversationController))
 		m.Party("/message", middleware.ExternalUserMiddleware).Handle(new(api.MessageController))
 	})

@@ -14,6 +14,7 @@ type RequestOptions = RequestInit & {
   skipAuth?: boolean
   retryOnAuthError?: boolean
   baseUrl?: string
+  onResponse?: (response: Response) => void
 }
 
 async function parseResult<T>(response: Response) {
@@ -58,9 +59,10 @@ export async function request<T>(
   options: RequestOptions = {},
   retryOnAuthError = true
 ): Promise<T> {
-  const { headers, skipAuth, baseUrl, ...rest } = options
+  const { headers, skipAuth, baseUrl, onResponse, ...rest } = options
   delete (rest as RequestOptions).retryOnAuthError
   delete (rest as RequestOptions).baseUrl
+  delete (rest as RequestOptions).onResponse
   const session = readSession()
   const authHeaders = new Headers(headers)
 
@@ -81,6 +83,7 @@ export async function request<T>(
     headers: authHeaders,
     cache: "no-store",
   })
+  onResponse?.(response)
 
   try {
     return await parseResult<T>(response)

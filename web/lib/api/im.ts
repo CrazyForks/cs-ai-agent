@@ -112,11 +112,32 @@ export type ImWidgetConfig = {
   width?: string
 }
 
+export type ImCustomerSessionCustomer = {
+  id: number
+  name: string
+}
+
+export type ImCustomerSessionExchangeResponse = {
+  customerSessionToken: string
+  expiresAt: string
+  identityKey: string
+  customer: ImCustomerSessionCustomer
+}
+
+export type ImCustomerSession = ImCustomerSessionExchangeResponse & {
+  channelId: string
+}
+
 const GUEST_STORAGE_KEY = "cs_agent_im_guest_id"
+const CUSTOMER_SESSION_STORAGE_KEY = "cs_agent_customer_session"
+const CUSTOMER_SESSION_TOKEN_HEADER = "X-Customer-Session-Token"
+const CUSTOMER_SESSION_EXPIRES_HEADER = "X-Customer-Session-Expires-At"
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || ""
 const OPEN_IM_CHANNEL_ID =
   process.env.NEXT_PUBLIC_OPEN_IM_CHANNEL_ID?.trim() || ""
+
+let entryUserTokenExchangeKey = ""
 
 function buildGuestId() {
   return `guest_${generateUUID()}`
@@ -149,7 +170,95 @@ function getRuntimeImConfig() {
   }
 }
 
-function createImHeaders() {
+function parseExpiresAt(value: string) {
+  const normalized = value.trim().replace(" ", "T")
+  const timestamp = Date.parse(normalized)
+  return Number.isFinite(timestamp) ? timestamp : 0
+}
+
+function isCustomerSessionValid(
+  session: ImCustomerSession | null,
+  channelId?: string,
+  identityKey?: string
+) {
+  if (!session?.customerSessionToken || !session.expiresAt) {
+    return false
+  }
+  if (channelId && session.channelId !== channelId) {
+    return false
+  }
+  if (identityKey && session.identityKey !== identityKey) {
+    return false
+  }
+  return parseExpiresAt(session.expiresAt) > Date.now() + 5000
+}
+
+export function readCustomerSession(): ImCustomerSession | null {
+  if (typeof window === "undefined") {
+    return null
+  }
+  const raw = window.sessionStorage.getItem(CUSTOMER_SESSION_STORAGE_KEY)
+  if (!raw) {
+    return null
+  }
+  try {
+    return JSON.parse(raw) as ImCustomerSession
+  } catch {
+    window.sessionStorage.removeItem(CUSTOMER_SESSION_STORAGE_KEY)
+    return null
+  }
+}
+
+function writeCustomerSession(session: ImCustomerSession) {
+  if (typeof window === "undefined") {
+    return
+  }
+  window.sessionStorage.setItem(CUSTOMER_SESSION_STORAGE_KEY, JSON.stringify(session))
+}
+
+export function getCustomerSessionToken() {
+  const config = getRuntimeImConfig()
+  const session = readCustomerSession()
+  return isCustomerSessionValid(session, config.channelId)
+    ? session?.customerSessionToken ?? ""
+    : ""
+}
+
+export function applyCustomerSessionRefresh(payload?: {
+  customerSessionToken?: string
+  expiresAt?: string
+}) {
+  const token = payload?.customerSessionToken?.trim()
+  const expiresAt = payload?.expiresAt?.trim()
+  if (!token || !expiresAt) {
+    return
+  }
+  const current = readCustomerSession()
+  if (!current) {
+    return
+  }
+  writeCustomerSession({
+    ...current,
+    customerSessionToken: token,
+    expiresAt,
+  })
+}
+
+function applyCustomerSessionHeaders(response: Response) {
+  applyCustomerSessionRefresh({
+    customerSessionToken: response.headers.get(CUSTOMER_SESSION_TOKEN_HEADER) ?? "",
+    expiresAt: response.headers.get(CUSTOMER_SESSION_EXPIRES_HEADER) ?? "",
+  })
+}
+
+function createChannelHeaders() {
+  const config = getRuntimeImConfig()
+  return {
+    "X-Channel-Id": config.channelId,
+  }
+}
+
+function createExchangeHeaders() {
   const config = getRuntimeImConfig()
   const headers: Record<string, string> = {
     "X-Channel-Id": config.channelId,
@@ -167,9 +276,24 @@ function createImHeaders() {
   }
 }
 
+function createImHeaders() {
+  const sessionToken = getCustomerSessionToken()
+  if (!sessionToken) {
+    throw new Error("客服会话未初始化")
+  }
+  return {
+    ...createChannelHeaders(),
+    Authorization: `Bearer ${sessionToken}`,
+  }
+}
+
 function createRequestOptions(
   init?: RequestInit
-): RequestInit & { baseUrl?: string; skipAuth?: boolean } {
+): RequestInit & {
+  baseUrl?: string
+  skipAuth?: boolean
+  onResponse?: (response: Response) => void
+} {
   return {
     ...init,
     skipAuth: true,
@@ -177,6 +301,7 @@ function createRequestOptions(
       ...createImHeaders(),
       ...(init?.headers as Record<string, string> | undefined),
     },
+    onResponse: applyCustomerSessionHeaders,
     baseUrl: getRuntimeImConfig().baseUrl,
   }
 }
@@ -197,6 +322,50 @@ function toQueryString(query?: Record<string, string | number | undefined>) {
   return output ? `?${output}` : ""
 }
 
+export async function exchangeCustomerSession() {
+  const config = getRuntimeImConfig()
+  const result = await request<ImCustomerSessionExchangeResponse>(
+    "/api/customer/session_exchange",
+    {
+      method: "POST",
+      skipAuth: true,
+      baseUrl: config.baseUrl,
+      headers: createExchangeHeaders(),
+    }
+  )
+  const session = {
+    ...result,
+    channelId: config.channelId,
+  }
+  writeCustomerSession(session)
+  if (config.userToken) {
+    entryUserTokenExchangeKey = `${config.channelId}:${config.userToken}`
+  }
+  return session
+}
+
+export async function ensureCustomerSession() {
+  const config = getRuntimeImConfig()
+  const cached = readCustomerSession()
+  if (config.userToken) {
+    const exchangeKey = `${config.channelId}:${config.userToken}`
+    if (
+      entryUserTokenExchangeKey === exchangeKey &&
+      isCustomerSessionValid(cached, config.channelId)
+    ) {
+      return cached
+    }
+    return exchangeCustomerSession()
+  }
+
+  const externalId = config.externalId || getGuestId()
+  const identityKey = `guest:${externalId}`
+  if (isCustomerSessionValid(cached, config.channelId, identityKey)) {
+    return cached
+  }
+  return exchangeCustomerSession()
+}
+
 export function fetchImConversationDetail(id: number) {
   return request<ImConversationDetail>(`/api/conversation/${id}`, {
     ...createRequestOptions(),
@@ -212,7 +381,6 @@ export function fetchImMessages(
   )
 }
 
-/** 外部身份仅通过 createImHeaders()（Authorization 或 X-External-Id/Name）传递，无 JSON body */
 export function createOrMatchImConversation() {
   return request<ImConversation>("/api/conversation/create_or_match", {
     ...createRequestOptions({ method: "POST" }),
@@ -224,7 +392,11 @@ export function fetchImWidgetConfig() {
     `/api/channel/config${toQueryString({
       channelId: getRuntimeImConfig().channelId,
     })}`,
-    createRequestOptions()
+    {
+      skipAuth: true,
+      baseUrl: getRuntimeImConfig().baseUrl,
+      headers: createChannelHeaders(),
+    }
   )
 }
 

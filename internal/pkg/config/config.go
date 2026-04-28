@@ -9,14 +9,15 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig   `yaml:"server"`
-	DB       DBConfig       `yaml:"db"`
-	Logger   LoggerConfig   `yaml:"logger"`
-	Auth     AuthConfig     `yaml:"auth"`
-	Storage  StorageConfig  `yaml:"storage"`
-	VectorDB VectorDBConfig `yaml:"vectorDB"`
-	MCP      MCPConfig      `yaml:"mcp"`
-	WxWork   WxWorkConfig   `yaml:"wxWork"`
+	Server          ServerConfig          `yaml:"server"`
+	DB              DBConfig              `yaml:"db"`
+	Logger          LoggerConfig          `yaml:"logger"`
+	Auth            AuthConfig            `yaml:"auth"`
+	Storage         StorageConfig         `yaml:"storage"`
+	VectorDB        VectorDBConfig        `yaml:"vectorDB"`
+	MCP             MCPConfig             `yaml:"mcp"`
+	WxWork          WxWorkConfig          `yaml:"wxWork"`
+	CustomerSession CustomerSessionConfig `yaml:"customerSession"`
 }
 
 type WxWorkNotifyConfig struct {
@@ -58,6 +59,26 @@ type AuthConfig struct {
 	RefreshTokenTTLDays  int `yaml:"refreshTokenTTLDays"`
 	MaxFailedAttempts    int `yaml:"maxFailedAttempts"`
 	CredentialLockMinute int `yaml:"credentialLockMinute"`
+}
+
+type CustomerSessionConfig struct {
+	Secret                  string `yaml:"secret"`
+	TTLMinutes              int    `yaml:"ttlMinutes"`
+	RefreshThresholdMinutes int    `yaml:"refreshThresholdMinutes"`
+}
+
+func (c CustomerSessionConfig) TTL() int {
+	if c.TTLMinutes <= 0 {
+		return 120
+	}
+	return c.TTLMinutes
+}
+
+func (c CustomerSessionConfig) RefreshThreshold() int {
+	if c.RefreshThresholdMinutes <= 0 {
+		return 30
+	}
+	return c.RefreshThresholdMinutes
 }
 
 type StorageConfig struct {

@@ -5,12 +5,14 @@ import { create } from "zustand"
 import {
   closeImConversation,
   createOrMatchImConversation,
+  ensureCustomerSession,
   fetchImMessages,
   fetchImWidgetConfig,
   markImMessageRead,
   sendImMessage,
   uploadImAttachment,
   uploadImImage,
+  applyCustomerSessionRefresh,
   type ImAsset,
   type ImConversation,
   type ImMessage,
@@ -159,11 +161,17 @@ export const useKefuChatStore = create<KefuChatStore>((set, get) => {
         return
       }
 
+      const payload = event.data ?? event.payload
+      if (event.type === "customer_session.refresh") {
+        applyCustomerSessionRefresh(payload)
+        return
+      }
+
       const conversationId = get().conversation?.id
       if (!conversationId) {
         return
       }
-      const payload = event.data ?? event.payload
+
       if (event.type === "resyncRequired") {
         void get().refreshMessages()
         return
@@ -280,6 +288,11 @@ export const useKefuChatStore = create<KefuChatStore>((set, get) => {
             subtitle: widgetConfig.subtitle || "",
             themeColor: widgetConfig.themeColor || "#2563eb",
           })
+
+          await ensureCustomerSession()
+          if (bootstrapToken !== token || !get().isOpen) {
+            return
+          }
 
           let currentConversation = get().conversation
           if (!get().initialized || !currentConversation) {

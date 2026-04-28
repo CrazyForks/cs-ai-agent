@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"cs-agent/internal/pkg/irisx"
-	"cs-agent/internal/pkg/openidentity"
 	"cs-agent/internal/services"
 
 	"github.com/kataras/iris/v12"
@@ -16,13 +15,13 @@ func ExternalUserMiddleware(ctx iris.Context) {
 		_ = ctx.JSON(web.JsonErrorMsg("接入渠道异常"))
 		return
 	}
-	secret := services.ChannelService.GetUserTokenSecret(channel)
-	ext, err := openidentity.GetExternalUser(ctx, secret)
+	result, err := services.CustomerSessionService.VerifyRequest(ctx, channel)
 	if err != nil {
 		ctx.StopExecution()
 		_ = ctx.JSON(web.JsonError(err))
 		return
 	}
-	irisx.SetExternalUser(ctx, ext)
+	services.CustomerSessionService.SetRefreshHeaders(ctx, result)
+	irisx.SetExternalUser(ctx, result.ExternalUser)
 	ctx.Next()
 }

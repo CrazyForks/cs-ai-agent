@@ -1,5 +1,5 @@
 import { createWebSocketBaseUrl } from "@/lib/api/websocket"
-import { getGuestId, type ImMessage } from "@/lib/api/im"
+import { getCustomerSessionToken, type ImMessage } from "@/lib/api/im"
 import { readKefuWidgetConfig } from "@/lib/kefu-widget-config"
 import type {
   RealtimeConversationPatch,
@@ -9,8 +9,16 @@ import type {
 export type ImRealtimeEnvelope = {
   type: string
   topic?: string
-  data?: RealtimeMessageCreatedPayload<ImMessage> & RealtimeConversationPatch
-  payload?: RealtimeMessageCreatedPayload<ImMessage> & RealtimeConversationPatch
+  data?: RealtimeMessageCreatedPayload<ImMessage> &
+    RealtimeConversationPatch & {
+      customerSessionToken?: string
+      expiresAt?: string
+    }
+  payload?: RealtimeMessageCreatedPayload<ImMessage> &
+    RealtimeConversationPatch & {
+      customerSessionToken?: string
+      expiresAt?: string
+    }
 }
 
 export function createImRealtimeConnection() {
@@ -19,22 +27,9 @@ export function createImRealtimeConnection() {
   const baseUrl = apiBaseUrl
     ? apiBaseUrl.replace(/^http/, "ws").replace(/\/$/, "")
     : createWebSocketBaseUrl()
-  const resolvedExternalId = encodeURIComponent(
-    (config.externalId ?? "").trim() || getGuestId()
-  )
   const channelId = encodeURIComponent(config.channelId || "")
-  const userToken = (config.userToken ?? "").trim()
-  if (userToken) {
-    return new WebSocket(
-      `${baseUrl}/api/ws/open?channelId=${channelId}&userToken=${encodeURIComponent(userToken)}`
-    )
-  }
-  const externalName = (config.externalName ?? "").trim()
-  const nameQuery =
-    externalName !== ""
-      ? `&externalName=${encodeURIComponent(externalName)}`
-      : ""
+  const customerSessionToken = getCustomerSessionToken()
   return new WebSocket(
-    `${baseUrl}/api/ws/open?externalId=${resolvedExternalId}&channelId=${channelId}${nameQuery}`
+    `${baseUrl}/api/ws/open?channelId=${channelId}&customerSessionToken=${encodeURIComponent(customerSessionToken)}`
   )
 }

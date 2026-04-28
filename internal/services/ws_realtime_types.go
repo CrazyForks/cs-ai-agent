@@ -239,6 +239,25 @@ func (e RealtimeNotificationCreatedEvent) EventPayload() RealtimeEventPayload {
 	return e.Payload
 }
 
+type RealtimeCustomerSessionRefreshPayload struct {
+	CustomerSessionToken string `json:"customerSessionToken"`
+	ExpiresAt            string `json:"expiresAt"`
+}
+
+func (RealtimeCustomerSessionRefreshPayload) realtimeEventPayload() {}
+
+type RealtimeCustomerSessionRefreshEvent struct {
+	Payload RealtimeCustomerSessionRefreshPayload
+}
+
+func (e RealtimeCustomerSessionRefreshEvent) EventType() string {
+	return enums.IMRealtimeEventCustomerSessionRefresh
+}
+
+func (e RealtimeCustomerSessionRefreshEvent) EventPayload() RealtimeEventPayload {
+	return e.Payload
+}
+
 type realtimeClientMessage struct {
 	Type    string   `json:"type"`
 	Topics  []string `json:"topics,omitempty"`

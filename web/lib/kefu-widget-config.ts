@@ -4,9 +4,9 @@ export type KefuWidgetHostConfig = {
   apiBaseUrl?: string
   /** 外部访客稳定标识；未传时使用浏览器本地访客 ID */
   externalId?: string
-  /** 访客展示名，随请求以 X-External-Name / WS query externalName 传给后端 */
+  /** 访客展示名，仅用于首次换取客服会话 token */
   externalName?: string
-  /** 业务系统签发的前台用户 JWT */
+  /** 业务系统签发的前台用户 JWT，仅用于首次换取客服会话 token */
   userToken?: string
   title?: string
   subtitle?: string

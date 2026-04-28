@@ -46,6 +46,9 @@
       delete merged.apiBaseUrl;
     }
     merged.channelId = String(merged.channelId || "");
+    if (merged.externalId) {
+      merged.externalId = String(merged.externalId);
+    }
     if (merged.userToken) {
       merged.userToken = String(merged.userToken);
     }
@@ -66,6 +69,7 @@
     frameUrl.searchParams.set("channelId", config.channelId);
     frameUrl.searchParams.set("baseUrl", config.baseUrl);
     if (config.apiBaseUrl) frameUrl.searchParams.set("apiBaseUrl", config.apiBaseUrl);
+    if (config.externalId) frameUrl.searchParams.set("externalId", config.externalId);
     if (config.externalName) frameUrl.searchParams.set("externalName", config.externalName);
     if (config.userToken) frameUrl.searchParams.set("userToken", config.userToken);
     return frameUrl;

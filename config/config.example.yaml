@@ -20,6 +20,14 @@ auth:
   maxFailedAttempts: 5
   credentialLockMinute: 15
 
+customerSession:
+  # 客服会话 token 签名密钥。必须使用独立高强度随机字符串，不要复用渠道 userTokenSecret。
+  secret: ""
+  # 客服会话 token 默认有效期，单位分钟。
+  ttlMinutes: 120
+  # token 剩余有效期小于该值时自动续期，单位分钟。
+  refreshThresholdMinutes: 30
+
 storage:
   default: local
   maxUploadSizeMB: 20

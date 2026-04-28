@@ -41,6 +41,9 @@
     merged.baseUrl = String(merged.baseUrl || window.location.origin).replace(/\/$/, "");
     merged.apiBaseUrl = String(merged.apiBaseUrl || merged.baseUrl).replace(/\/$/, "");
     merged.channelId = String(merged.channelId || "");
+    if (merged.externalId) {
+      merged.externalId = String(merged.externalId);
+    }
     if (merged.userToken) {
       merged.userToken = String(merged.userToken);
     }
@@ -66,6 +69,7 @@
     if (config.position) frameUrl.searchParams.set("position", config.position);
     if (config.themeColor) frameUrl.searchParams.set("themeColor", config.themeColor);
     if (config.width) frameUrl.searchParams.set("width", config.width);
+    if (config.externalId) frameUrl.searchParams.set("externalId", config.externalId);
     if (config.externalName) frameUrl.searchParams.set("externalName", config.externalName);
     if (config.userToken) frameUrl.searchParams.set("userToken", config.userToken);
     return frameUrl;

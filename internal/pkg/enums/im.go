@@ -251,6 +251,7 @@ const (
 	IMRealtimeEventConversationClosed      = "conversation.closed"
 	IMRealtimeEventConversationRead        = "conversation.read"
 	IMRealtimeEventNotificationCreated     = "notification.created"
+	IMRealtimeEventCustomerSessionRefresh  = "customer_session.refresh"
 )
 
 const (

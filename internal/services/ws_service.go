@@ -75,25 +75,27 @@ func (s *wsService) HandleOpenWS(ctx iris.Context) {
 	}
 
 	var (
-		principal = AuthService.GetAuthPrincipal(ctx)
-		external  *openidentity.ExternalUser
+		principal           = AuthService.GetAuthPrincipal(ctx)
+		external            *openidentity.ExternalUser
+		customerSessionInfo *CustomerSessionVerifyResult
 	)
 	if principal == nil {
-		ext, err := openidentity.GetExternalUser(ctx, ChannelService.GetUserTokenSecret(channel))
+		result, err := CustomerSessionService.VerifyRequest(ctx, channel)
 		if err != nil {
 			_ = ctx.StopWithJSON(iris.StatusUnauthorized, web.JsonError(err))
 			return
 		}
-		external = ext
+		external = result.ExternalUser
+		customerSessionInfo = result
 	}
-	if err := s.upgradeConnection(ctx, principal, external, realtimeRoleUser); err != nil {
+	if err := s.upgradeConnection(ctx, principal, external, realtimeRoleUser, customerSessionInfo); err != nil {
 		slog.Error("upgrade open im websocket failed", "error", err, "path", ctx.Path(), "channelId", channel.ChannelID, "channel_id", channel.ID)
 		ctx.StopExecution()
 		return
 	}
 }
 
-func (s *wsService) upgradeConnection(ctx iris.Context, principal *dto.AuthPrincipal, external *openidentity.ExternalUser, role string) error {
+func (s *wsService) upgradeConnection(ctx iris.Context, principal *dto.AuthPrincipal, external *openidentity.ExternalUser, role string, customerSessionInfo ...*CustomerSessionVerifyResult) error {
 	conn, err := s.upgrader.Upgrade(ctx.ResponseWriter().Naive(), ctx.Request(), nil)
 	if err != nil {
 		return err
@@ -151,6 +153,14 @@ func (s *wsService) upgradeConnection(ctx iris.Context, principal *dto.AuthPrinc
 			Topics:       session.topicList(),
 		},
 	}))
+	if len(customerSessionInfo) > 0 && customerSessionInfo[0] != nil && customerSessionInfo[0].Refreshed {
+		session.enqueueEvent(s.newEvent("", RealtimeCustomerSessionRefreshEvent{
+			Payload: RealtimeCustomerSessionRefreshPayload{
+				CustomerSessionToken: customerSessionInfo[0].Token,
+				ExpiresAt:            customerSessionInfo[0].ExpiresAt.Format(time.DateTime),
+			},
+		}))
+	}
 	return nil
 }
 
