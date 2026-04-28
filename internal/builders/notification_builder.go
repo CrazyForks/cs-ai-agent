@@ -25,9 +25,6 @@ func BuildNotification(item *models.Notification) *response.NotificationResponse
 }
 
 func BuildNotificationList(list []models.Notification) []response.NotificationResponse {
-	if len(list) == 0 {
-		return nil
-	}
 	results := make([]response.NotificationResponse, 0, len(list))
 	for i := range list {
 		if item := BuildNotification(&list[i]); item != nil {
