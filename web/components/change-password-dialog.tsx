@@ -110,7 +110,7 @@ export function ChangePasswordDialog({
       }
     >
       <form id="change-password-form" onSubmit={handleSubmit(onSubmit)}>
-        <div className="space-y-4 px-6 py-4">
+        <div className="space-y-4">
           <Field data-invalid={!!errors.password}>
             <FieldLabel htmlFor="change-password-password">新密码</FieldLabel>
             <FieldContent>
