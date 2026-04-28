@@ -11,3 +11,5 @@ __debug_bin*
 node_modules/
 .next/
 *.tsbuildinfo
+
+.superpowers
