@@ -24,13 +24,6 @@ type ExternalInfo struct {
 type UserTokenClaims struct {
 	UserID string `json:"userId"`
 	Name   string `json:"name"`
-	Exp    int64  `json:"exp"`
-	Iat    int64  `json:"iat"`
-}
-
-type userTokenJWTClaims struct {
-	UserID string `json:"userId"`
-	Name   string `json:"name"`
 	jwt.RegisteredClaims
 }
 
@@ -75,7 +68,7 @@ func VerifyUserToken(userToken, secret string) (*UserTokenClaims, error) {
 		return nil, errorsx.Unauthorized("用户身份校验未配置")
 	}
 
-	claims := &userTokenJWTClaims{}
+	claims := &UserTokenClaims{}
 	token, err := jwt.ParseWithClaims(userToken, claims, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unsupported signing method")
@@ -106,15 +99,7 @@ func VerifyUserToken(userToken, secret string) (*UserTokenClaims, error) {
 		return nil, errorsx.Unauthorized("用户身份已过期")
 	}
 
-	result := &UserTokenClaims{
-		UserID: claims.UserID,
-		Name:   claims.Name,
-		Exp:    claims.ExpiresAt.Unix(),
-	}
-	if claims.IssuedAt != nil {
-		result.Iat = claims.IssuedAt.Unix()
-	}
-	return result, nil
+	return claims, nil
 }
 
 func parseUserToken(ctx iris.Context) string {
