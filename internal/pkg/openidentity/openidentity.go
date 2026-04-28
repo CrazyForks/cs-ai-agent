@@ -28,7 +28,7 @@ type UserTokenClaims struct {
 }
 
 func GetExternalInfo(ctx iris.Context, secret string) (*ExternalInfo, error) {
-	if userToken := parseUserToken(ctx); strs.IsNotBlank(userToken) {
+	if userToken := getUserToken(ctx); strs.IsNotBlank(userToken) {
 		claims, err := VerifyUserToken(userToken, secret)
 		if err != nil {
 			return nil, err
@@ -39,7 +39,7 @@ func GetExternalInfo(ctx iris.Context, secret string) (*ExternalInfo, error) {
 			ExternalName:   claims.Name,
 		}, nil
 	}
-	externalSource, err := parseExternalSource(ctx)
+	externalSource, err := getExternalSource(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -49,14 +49,14 @@ func GetExternalInfo(ctx iris.Context, secret string) (*ExternalInfo, error) {
 	if externalSource == enums.ExternalSourceUser {
 		return nil, errorsx.Unauthorized("用户身份不能为空")
 	}
-	externalID, err := parseExternalID(ctx)
+	externalID, err := getExternalID(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return &ExternalInfo{
 		ExternalSource: externalSource,
 		ExternalID:     externalID,
-		ExternalName:   parseExternalName(ctx),
+		ExternalName:   getExternalName(ctx),
 	}, nil
 }
 
@@ -102,7 +102,7 @@ func VerifyUserToken(userToken, secret string) (*UserTokenClaims, error) {
 	return claims, nil
 }
 
-func parseUserToken(ctx iris.Context) string {
+func getUserToken(ctx iris.Context) string {
 	auth := strings.TrimSpace(ctx.GetHeader("Authorization"))
 	if len(auth) > 7 && strings.EqualFold(auth[:7], "Bearer ") {
 		if token := strings.TrimSpace(auth[7:]); token != "" {
@@ -113,7 +113,7 @@ func parseUserToken(ctx iris.Context) string {
 	return strings.TrimSpace(userToken)
 }
 
-func parseExternalSource(ctx iris.Context) (enums.ExternalSource, error) {
+func getExternalSource(ctx iris.Context) (enums.ExternalSource, error) {
 	externalSource := ctx.GetHeader("X-External-Source")
 	if strs.IsBlank(externalSource) {
 		externalSource, _ = params.Get(ctx, "externalSource")
@@ -124,7 +124,7 @@ func parseExternalSource(ctx iris.Context) (enums.ExternalSource, error) {
 	return enums.ExternalSource(strings.TrimSpace(externalSource)), nil
 }
 
-func parseExternalID(ctx iris.Context) (string, error) {
+func getExternalID(ctx iris.Context) (string, error) {
 	externalID := ctx.GetHeader("X-External-Id")
 	if strs.IsBlank(externalID) {
 		externalID, _ = params.Get(ctx, "externalId")
@@ -135,7 +135,7 @@ func parseExternalID(ctx iris.Context) (string, error) {
 	return strings.TrimSpace(externalID), nil
 }
 
-func parseExternalName(ctx iris.Context) string {
+func getExternalName(ctx iris.Context) string {
 	externalName := ctx.GetHeader("X-External-Name")
 	if strs.IsBlank(externalName) {
 		externalName, _ = params.Get(ctx, "externalName")
