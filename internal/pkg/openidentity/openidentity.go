@@ -29,7 +29,7 @@ type UserTokenClaims struct {
 
 func GetExternalInfo(ctx iris.Context, secret string) (*ExternalInfo, error) {
 	if userToken := getUserToken(ctx); strs.IsNotBlank(userToken) {
-		claims, err := VerifyUserToken(userToken, secret)
+		claims, err := verifyUserToken(userToken, secret)
 		if err != nil {
 			return nil, err
 		}
@@ -60,7 +60,7 @@ func GetExternalInfo(ctx iris.Context, secret string) (*ExternalInfo, error) {
 	}, nil
 }
 
-func VerifyUserToken(userToken, secret string) (*UserTokenClaims, error) {
+func verifyUserToken(userToken, secret string) (*UserTokenClaims, error) {
 	if strs.IsBlank(userToken) {
 		return nil, errorsx.Unauthorized("用户身份不能为空")
 	}

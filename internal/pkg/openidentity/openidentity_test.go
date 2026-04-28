@@ -14,7 +14,7 @@ func TestVerifyUserTokenOK(t *testing.T) {
 		"exp":    time.Now().Add(time.Hour).Unix(),
 	}, "secret")
 
-	claims, err := VerifyUserToken(token, "secret")
+	claims, err := verifyUserToken(token, "secret")
 	if err != nil {
 		t.Fatalf("expected token to verify: %v", err)
 	}
@@ -30,7 +30,7 @@ func TestVerifyUserTokenUsesJWTHeaderAlgorithm(t *testing.T) {
 		"exp":    time.Now().Add(time.Hour).Unix(),
 	}, "secret")
 
-	claims, err := VerifyUserToken(token, "secret")
+	claims, err := verifyUserToken(token, "secret")
 	if err != nil {
 		t.Fatalf("expected HS384 token to verify from JWT header: %v", err)
 	}
@@ -46,7 +46,7 @@ func TestVerifyUserTokenRejectsInvalidSignature(t *testing.T) {
 		"exp":    time.Now().Add(time.Hour).Unix(),
 	}, "secret")
 
-	if _, err := VerifyUserToken(token, "other-secret"); err == nil {
+	if _, err := verifyUserToken(token, "other-secret"); err == nil {
 		t.Fatalf("expected invalid signature to fail")
 	}
 }
@@ -58,7 +58,7 @@ func TestVerifyUserTokenRejectsExpiredToken(t *testing.T) {
 		"exp":    time.Now().Add(-time.Minute).Unix(),
 	}, "secret")
 
-	if _, err := VerifyUserToken(token, "secret"); err == nil {
+	if _, err := verifyUserToken(token, "secret"); err == nil {
 		t.Fatalf("expected expired token to fail")
 	}
 }
@@ -70,7 +70,7 @@ func TestVerifyUserTokenRequiresUserIDAndName(t *testing.T) {
 	}
 	for _, payload := range tests {
 		token := signTestUserToken(t, jwt.SigningMethodHS256, payload, "secret")
-		if _, err := VerifyUserToken(token, "secret"); err == nil {
+		if _, err := verifyUserToken(token, "secret"); err == nil {
 			t.Fatalf("expected payload %#v to fail", payload)
 		}
 	}
