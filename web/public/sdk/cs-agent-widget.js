@@ -3,7 +3,6 @@
     position: "right",
     themeColor: "#0f6cbd",
     width: "380px",
-    externalSource: "web_chat",
   };
 
   var state = window.__CS_AGENT_WIDGET_STATE__;
@@ -42,7 +41,6 @@
     merged.baseUrl = String(merged.baseUrl || window.location.origin).replace(/\/$/, "");
     merged.apiBaseUrl = String(merged.apiBaseUrl || merged.baseUrl).replace(/\/$/, "");
     merged.channelId = String(merged.channelId || "");
-    merged.externalSource = String(merged.externalSource || "web_chat");
     if (merged.userToken) {
       merged.userToken = String(merged.userToken);
     }
@@ -63,7 +61,6 @@
     frameUrl.searchParams.set("channelId", config.channelId);
     frameUrl.searchParams.set("baseUrl", config.baseUrl);
     if (config.apiBaseUrl) frameUrl.searchParams.set("apiBaseUrl", config.apiBaseUrl);
-    if (config.externalSource) frameUrl.searchParams.set("externalSource", config.externalSource);
     if (config.title) frameUrl.searchParams.set("title", config.title);
     if (config.subtitle) frameUrl.searchParams.set("subtitle", config.subtitle);
     if (config.position) frameUrl.searchParams.set("position", config.position);

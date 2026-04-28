@@ -268,12 +268,10 @@ export const useKefuChatStore = create<KefuChatStore>((set, get) => {
             return
           }
 
-          if (widgetConfig.channelId || widgetConfig.externalSource) {
+          if (widgetConfig.channelId) {
             setKefuWidgetConfig({
               ...readKefuWidgetConfig(),
               channelId: widgetConfig.channelId || readKefuWidgetConfig().channelId,
-              externalSource:
-                widgetConfig.externalSource || readKefuWidgetConfig().externalSource,
             })
           }
 

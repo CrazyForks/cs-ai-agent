@@ -104,7 +104,6 @@ export type ImAsset = {
 export type ImWidgetConfig = {
   channelId?: string
   channelType?: string
-  externalSource?: string
   userToken?: string
   title?: string
   subtitle?: string
@@ -118,8 +117,6 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || ""
 const OPEN_IM_CHANNEL_ID =
   process.env.NEXT_PUBLIC_OPEN_IM_CHANNEL_ID?.trim() || ""
-const OPEN_IM_EXTERNAL_SOURCE =
-  process.env.NEXT_PUBLIC_OPEN_IM_EXTERNAL_SOURCE?.trim() || "web_chat"
 
 function buildGuestId() {
   return `guest_${generateUUID()}`
@@ -146,8 +143,6 @@ function getRuntimeImConfig() {
   return {
     baseUrl,
     channelId: widgetConfig.channelId || OPEN_IM_CHANNEL_ID,
-    externalSource:
-      (widgetConfig.externalSource || OPEN_IM_EXTERNAL_SOURCE).trim() || "web_chat",
     externalId: (widgetConfig.externalId || "").trim(),
     externalName: (widgetConfig.externalName || "").trim(),
     userToken: (widgetConfig.userToken || "").trim(),
@@ -162,7 +157,6 @@ function createImHeaders() {
   if (config.userToken) {
     headers.Authorization = `Bearer ${config.userToken}`
   } else {
-    headers["X-External-Source"] = config.externalSource
     headers["X-External-Id"] = config.externalId || getGuestId()
     if (config.externalName) {
       headers["X-External-Name"] = encodeURIComponent(config.externalName)
@@ -218,7 +212,7 @@ export function fetchImMessages(
   )
 }
 
-/** 外部身份仅通过 createImHeaders()（Authorization 或 X-External-*）传递，无 JSON body */
+/** 外部身份仅通过 createImHeaders()（Authorization 或 X-External-Id/Name）传递，无 JSON body */
 export function createOrMatchImConversation() {
   return request<ImConversation>("/api/conversation/create_or_match", {
     ...createRequestOptions({ method: "POST" }),

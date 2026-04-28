@@ -2,8 +2,6 @@ export type KefuWidgetHostConfig = {
   channelId: string
   baseUrl: string
   apiBaseUrl?: string
-  /** 与后端 enums.ExternalSource 一致，默认 web_chat */
-  externalSource?: string
   /** 外部访客稳定标识；未传时使用浏览器本地访客 ID */
   externalId?: string
   /** 访客展示名，随请求以 X-External-Name / WS query externalName 传给后端 */
@@ -47,10 +45,6 @@ export function readKefuWidgetConfig(): KefuWidgetHostConfig {
     apiBaseUrl:
       query.get("apiBaseUrl") ??
       process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ??
-      undefined,
-    externalSource:
-      query.get("externalSource") ??
-      process.env.NEXT_PUBLIC_OPEN_IM_EXTERNAL_SOURCE?.trim() ??
       undefined,
     externalId: query.get("externalId") ?? undefined,
     externalName: query.get("externalName") ?? undefined,

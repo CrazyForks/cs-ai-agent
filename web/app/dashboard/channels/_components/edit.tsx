@@ -828,7 +828,6 @@ function WechatMPAccessGuide({ channelId }: { channelId: string }) {
     }
     const url = new URL("/kefu/chat/", origin)
     url.searchParams.set("channelId", channelId)
-    url.searchParams.set("externalSource", "wechat_mp")
     return url.toString()
   }, [channelId, origin])
 
