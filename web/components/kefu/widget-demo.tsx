@@ -1,6 +1,7 @@
 "use client"
 
 import { SignJWT } from "jose"
+import { CheckIcon, CopyIcon } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
 import type { KefuWidgetHostConfig } from "@/lib/kefu-widget-config"
@@ -134,6 +135,7 @@ export function KefuWidgetDemo() {
   const [origin, setOrigin] = useState("")
   const [generatedToken, setGeneratedToken] = useState("")
   const [copied, setCopied] = useState(false)
+  const [snippetCopied, setSnippetCopied] = useState(false)
 
   async function mountWidget(configToMount: WidgetDemoConfig) {
     let userToken = ""
@@ -241,6 +243,15 @@ ${configLines.join(",\n")}
     window.setTimeout(() => setCopied(false), 1600)
   }
 
+  async function handleCopySnippet() {
+    if (typeof navigator === "undefined") {
+      return
+    }
+    await navigator.clipboard.writeText(snippet)
+    setSnippetCopied(true)
+    window.setTimeout(() => setSnippetCopied(false), 1600)
+  }
+
   return (
     <main className="min-h-svh bg-slate-50 px-6 py-8 text-slate-950">
       <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
@@ -319,9 +330,24 @@ ${configLines.join(",\n")}
               当前页面仅用于本地模拟。正式接入时，userToken 应由业务系统后端签发。
             </div>
           ) : null}
-          <pre className="mt-4 overflow-x-auto rounded-md bg-slate-950 p-4 text-xs leading-5 text-slate-100">
-            <code>{snippet}</code>
-          </pre>
+          <div className="relative mt-4">
+            <button
+              type="button"
+              onClick={() => void handleCopySnippet()}
+              className="absolute right-2 top-2 inline-flex size-8 items-center justify-center rounded-md border border-white/10 bg-white/10 text-slate-200 transition hover:bg-white/20 hover:text-white"
+              aria-label={snippetCopied ? "已复制接入代码" : "复制接入代码"}
+              title={snippetCopied ? "已复制" : "复制代码"}
+            >
+              {snippetCopied ? (
+                <CheckIcon className="size-4" />
+              ) : (
+                <CopyIcon className="size-4" />
+              )}
+            </button>
+            <pre className="overflow-x-auto rounded-md bg-slate-950 p-4 pr-12 text-xs leading-5 text-slate-100">
+              <code>{snippet}</code>
+            </pre>
+          </div>
           <div className="mt-5">
             <div className="text-sm font-medium text-slate-700">直接访问客户对话</div>
             <div className="mt-2 flex flex-col gap-2 sm:flex-row">
