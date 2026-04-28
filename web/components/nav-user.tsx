@@ -97,14 +97,6 @@ export function NavUser({
               <DropdownMenuGroup>
                 <DropdownMenuItem
                   onClick={() => {
-                    setChangePasswordOpen(true)
-                  }}
-                >
-                  <KeyRoundIcon />
-                  修改密码
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
                     router.push("/dashboard/notifications")
                   }}
                   className="gap-2"
@@ -116,6 +108,14 @@ export function NavUser({
                       {unreadCount > 99 ? "99+" : unreadCount}
                     </Badge>
                   ) : null}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setChangePasswordOpen(true)
+                  }}
+                >
+                  <KeyRoundIcon />
+                  修改密码
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
