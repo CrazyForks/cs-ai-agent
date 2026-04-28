@@ -1261,7 +1261,7 @@ func (s *ticketService) AddInternalNote(req request.InternalNoteRequest, operato
 			if userID <= 0 || userID == operator.UserID {
 				continue
 			}
-			if user := UserService.Get(userID); user != nil {
+			if user := repositories.UserRepository.Get(ctx.Tx, userID); user != nil {
 				name := user.Nickname
 				if name == "" {
 					name = user.Username
