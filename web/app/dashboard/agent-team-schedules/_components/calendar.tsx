@@ -18,6 +18,7 @@ const minuteMs = 60 * 1000
 const minDurationMs = 15 * minuteMs
 
 type ScheduleCalendarProps = {
+  variant?: "month" | "week"
   monthStart: Date
   calendarStart: Date
   calendarEnd: Date
@@ -218,6 +219,7 @@ function buildCalendarDays(calendarStart: Date, calendarEnd: Date) {
 }
 
 export function ScheduleCalendar({
+  variant = "month",
   monthStart,
   calendarStart,
   calendarEnd,
@@ -374,6 +376,187 @@ export function ScheduleCalendar({
     )
   }
 
+  function renderDayCell(day: Date, dayIndex: number, options?: { inMonth?: boolean; className?: string; showFullDate?: boolean }) {
+    const date = formatDate(day)
+    const inMonth = options?.inMonth ?? day.getMonth() === monthStart.getMonth()
+    const historical = isHistoricalDay(day)
+    const daySchedules = schedules
+      .filter((item) => intersectsDay(item, day))
+      .sort((a, b) => parseLocalDateTime(a.startAt).getTime() - parseLocalDateTime(b.startAt).getTime())
+    const dayTimeLayout = buildDayTimeLayout(daySchedules, day)
+    return (
+      <div
+        key={date}
+        data-schedule-cell
+        data-date={date}
+        role="button"
+        tabIndex={0}
+        className={cn(
+          "border-l border-t bg-background p-2 text-left outline-none transition-colors first:border-l-0 hover:bg-muted/20 focus-visible:ring-2 focus-visible:ring-ring",
+          dayIndex % 7 === 0 && "border-l-0",
+          !inMonth && "bg-muted/20 text-muted-foreground",
+          historical && "cursor-not-allowed bg-muted/30 hover:bg-muted/30",
+          interactionPreview?.date === date &&
+            (interactionPreview.invalid ? "bg-destructive/5 ring-2 ring-destructive/30" : "bg-primary/5 ring-2 ring-primary/35"),
+          options?.className
+        )}
+        onClick={(event) => {
+          if ((event.target as HTMLElement).closest("[data-schedule-block]")) {
+            return
+          }
+          if (historical) {
+            return
+          }
+          handleBlankCellClick(day)
+        }}
+        onKeyDown={(event) => {
+          if (historical) {
+            return
+          }
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault()
+            handleBlankCellClick(day)
+          }
+        }}
+      >
+        <div className="mb-2 flex items-start justify-between gap-2">
+          <div>
+            <div className={cn("text-sm font-medium", !inMonth && "text-muted-foreground")}>
+              {options?.showFullDate ? date : day.getDate()}
+            </div>
+            {dayTimeLayout.rangeLabel ? (
+              <div className="mt-0.5 text-[10px] leading-none text-muted-foreground">{dayTimeLayout.rangeLabel}</div>
+            ) : null}
+          </div>
+          {historical ? null : <CalendarPlusIcon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />}
+        </div>
+        <div className="space-y-1">
+          {daySchedules.slice(0, 5).map((item) => {
+            const teamName = item.teamName || teams.find((team) => team.id === item.teamId)?.name || `客服组#${item.teamId}`
+            const busy = savingId === item.id
+            const active = interactionPreview?.itemId === item.id
+            const timeLayout = dayTimeLayout.items.get(item.id)
+            const readonly = historical || isHistoricalDay(parseLocalDateTime(item.startAt))
+            return (
+              <div key={`${item.id}-${date}`} className="relative h-10 rounded-sm bg-muted/25">
+                <div
+                  data-schedule-block
+                  data-time-left={timeLayout?.leftPercent ?? 0}
+                  data-time-width={timeLayout?.widthPercent ?? 100}
+                  role="button"
+                  tabIndex={0}
+                  className={cn(
+                    "absolute inset-y-0 cursor-grab overflow-hidden rounded-md border border-primary/20 bg-primary/10 px-2 py-1.5 pl-4 pr-4 text-primary shadow-sm outline-none transition active:cursor-grabbing",
+                    active && "scale-[0.98] border-primary/50 bg-primary/15 opacity-80 ring-2 ring-primary/30",
+                    readonly && "cursor-not-allowed opacity-60",
+                    busy && "pointer-events-none opacity-60"
+                  )}
+                  style={{
+                    left: `${timeLayout?.leftPercent ?? 0}%`,
+                    width: `${timeLayout?.widthPercent ?? 100}%`,
+                    minWidth: 34,
+                  }}
+                  onPointerDown={(event) => {
+                    if (readonly) {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      return
+                    }
+                    handlePointerDown(event, item, "move")
+                  }}
+                  onKeyDown={(event) => {
+                    if (readonly) {
+                      return
+                    }
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault()
+                      onEdit(item)
+                    }
+                  }}
+                >
+                  <div
+                    className="absolute left-0 top-0 flex h-full w-3 cursor-ew-resize items-center justify-center bg-primary/15"
+                    onPointerDown={(event) => {
+                      if (readonly) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        return
+                      }
+                      handlePointerDown(event, item, "resize", "start")
+                    }}
+                  >
+                    <GripVerticalIcon className="size-3" />
+                  </div>
+                  <div
+                    className="absolute right-0 top-0 flex h-full w-3 cursor-ew-resize items-center justify-center bg-primary/15"
+                    onPointerDown={(event) => {
+                      if (readonly) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        return
+                      }
+                      handlePointerDown(event, item, "resize", "end")
+                    }}
+                  >
+                    <GripVerticalIcon className="size-3" />
+                  </div>
+                  <div className="truncate text-xs font-medium">{teamName}</div>
+                  <div className="truncate text-xs">
+                    {timeLayout ? `${timeLayout.startLabel} - ${timeLayout.endLabel}` : `${formatTime(item.startAt)} - ${formatTime(item.endAt)}`}
+                  </div>
+                  {item.remark ? <div className="truncate text-[11px] text-primary/80">{item.remark}</div> : null}
+                </div>
+              </div>
+            )
+          })}
+          {daySchedules.length > 5 ? (
+            <div className="text-xs text-muted-foreground">还有 {daySchedules.length - 5} 条</div>
+          ) : null}
+        </div>
+      </div>
+    )
+  }
+
+  if (variant === "week") {
+    return (
+      <div className="min-w-[760px] overflow-hidden rounded-lg border bg-background">
+        <div className={cn("divide-y", loading && "opacity-60")}>
+          {days.map((day, dayIndex) => {
+            const date = formatDate(day)
+            return (
+              <div key={date} className="grid grid-cols-[112px_minmax(0,1fr)]">
+                <div className="border-r bg-muted/40 px-3 py-3 text-sm font-medium">
+                  <div>周{weekDayNames[dayIndex] ?? ""}</div>
+                  <div className="mt-1 text-xs font-normal text-muted-foreground">{date.slice(5)}</div>
+                </div>
+                {renderDayCell(day, dayIndex, {
+                  inMonth: true,
+                  className: "min-h-24 border-l-0 border-t-0",
+                  showFullDate: false,
+                })}
+              </div>
+            )
+          })}
+        </div>
+        {interactionPreview ? (
+          <div
+            data-schedule-preview
+            className={cn(
+              "pointer-events-none fixed z-50 rounded-md border bg-popover px-3 py-2 text-xs font-medium text-popover-foreground shadow-md",
+              interactionPreview.invalid && "border-destructive/40 bg-destructive text-destructive-foreground"
+            )}
+            style={{
+              left: interactionPreview.x + 12,
+              top: interactionPreview.y + 12,
+            }}
+          >
+            {interactionPreview.label}
+          </div>
+        ) : null}
+      </div>
+    )
+  }
+
   return (
     <div className="min-w-[960px] overflow-hidden rounded-lg border bg-background">
       <div className="grid grid-cols-7 border-b bg-muted/40">
@@ -384,143 +567,7 @@ export function ScheduleCalendar({
         ))}
       </div>
       <div className={cn("grid grid-cols-7", loading && "opacity-60")}>
-        {days.map((day, dayIndex) => {
-          const date = formatDate(day)
-          const inMonth = day.getMonth() === monthStart.getMonth()
-          const historical = isHistoricalDay(day)
-          const daySchedules = schedules
-            .filter((item) => intersectsDay(item, day))
-            .sort((a, b) => parseLocalDateTime(a.startAt).getTime() - parseLocalDateTime(b.startAt).getTime())
-          const dayTimeLayout = buildDayTimeLayout(daySchedules, day)
-          return (
-            <div
-              key={date}
-              data-schedule-cell
-              data-date={date}
-              role="button"
-              tabIndex={0}
-              className={cn(
-                "min-h-36 border-l border-t bg-background p-2 text-left outline-none transition-colors first:border-l-0 hover:bg-muted/20 focus-visible:ring-2 focus-visible:ring-ring",
-                dayIndex % 7 === 0 && "border-l-0",
-                !inMonth && "bg-muted/20 text-muted-foreground",
-                historical && "cursor-not-allowed bg-muted/30 hover:bg-muted/30",
-                interactionPreview?.date === date &&
-                  (interactionPreview.invalid ? "bg-destructive/5 ring-2 ring-destructive/30" : "bg-primary/5 ring-2 ring-primary/35")
-              )}
-              onClick={(event) => {
-                if ((event.target as HTMLElement).closest("[data-schedule-block]")) {
-                  return
-                }
-                if (historical) {
-                  return
-                }
-                handleBlankCellClick(day)
-              }}
-              onKeyDown={(event) => {
-                if (historical) {
-                  return
-                }
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault()
-                  handleBlankCellClick(day)
-                }
-              }}
-            >
-              <div className="mb-2 flex items-start justify-between gap-2">
-                <div>
-                  <div className={cn("text-sm font-medium", !inMonth && "text-muted-foreground")}>{day.getDate()}</div>
-                  {dayTimeLayout.rangeLabel ? (
-                    <div className="mt-0.5 text-[10px] leading-none text-muted-foreground">{dayTimeLayout.rangeLabel}</div>
-                  ) : null}
-                </div>
-                {historical ? null : <CalendarPlusIcon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />}
-              </div>
-              <div className="space-y-1">
-                {daySchedules.slice(0, 5).map((item) => {
-                  const teamName = item.teamName || teams.find((team) => team.id === item.teamId)?.name || `客服组#${item.teamId}`
-                  const busy = savingId === item.id
-                  const active = interactionPreview?.itemId === item.id
-                  const timeLayout = dayTimeLayout.items.get(item.id)
-                  const readonly = historical || isHistoricalDay(parseLocalDateTime(item.startAt))
-                  return (
-                    <div key={`${item.id}-${date}`} className="relative h-10 rounded-sm bg-muted/25">
-                      <div
-                        data-schedule-block
-                        data-time-left={timeLayout?.leftPercent ?? 0}
-                        data-time-width={timeLayout?.widthPercent ?? 100}
-                        role="button"
-                        tabIndex={0}
-                        className={cn(
-                          "absolute inset-y-0 cursor-grab overflow-hidden rounded-md border border-primary/20 bg-primary/10 px-2 py-1.5 pl-4 pr-4 text-primary shadow-sm outline-none transition active:cursor-grabbing",
-                          active && "scale-[0.98] border-primary/50 bg-primary/15 opacity-80 ring-2 ring-primary/30",
-                          readonly && "cursor-not-allowed opacity-60",
-                          busy && "pointer-events-none opacity-60"
-                        )}
-                        style={{
-                          left: `${timeLayout?.leftPercent ?? 0}%`,
-                          width: `${timeLayout?.widthPercent ?? 100}%`,
-                          minWidth: 34,
-                        }}
-                        onPointerDown={(event) => {
-                          if (readonly) {
-                            event.preventDefault()
-                            event.stopPropagation()
-                            return
-                          }
-                          handlePointerDown(event, item, "move")
-                        }}
-                        onKeyDown={(event) => {
-                          if (readonly) {
-                            return
-                          }
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault()
-                            onEdit(item)
-                          }
-                        }}
-                      >
-                        <div
-                          className="absolute left-0 top-0 flex h-full w-3 cursor-ew-resize items-center justify-center bg-primary/15"
-                          onPointerDown={(event) => {
-                            if (readonly) {
-                              event.preventDefault()
-                              event.stopPropagation()
-                              return
-                            }
-                            handlePointerDown(event, item, "resize", "start")
-                          }}
-                        >
-                          <GripVerticalIcon className="size-3" />
-                        </div>
-                        <div
-                          className="absolute right-0 top-0 flex h-full w-3 cursor-ew-resize items-center justify-center bg-primary/15"
-                          onPointerDown={(event) => {
-                            if (readonly) {
-                              event.preventDefault()
-                              event.stopPropagation()
-                              return
-                            }
-                            handlePointerDown(event, item, "resize", "end")
-                          }}
-                        >
-                          <GripVerticalIcon className="size-3" />
-                        </div>
-                        <div className="truncate text-xs font-medium">{teamName}</div>
-                        <div className="truncate text-xs">
-                          {timeLayout ? `${timeLayout.startLabel} - ${timeLayout.endLabel}` : `${formatTime(item.startAt)} - ${formatTime(item.endAt)}`}
-                        </div>
-                        {item.remark ? <div className="truncate text-[11px] text-primary/80">{item.remark}</div> : null}
-                      </div>
-                    </div>
-                  )
-                })}
-                {daySchedules.length > 5 ? (
-                  <div className="text-xs text-muted-foreground">还有 {daySchedules.length - 5} 条</div>
-                ) : null}
-              </div>
-            </div>
-          )
-        })}
+        {days.map((day, dayIndex) => renderDayCell(day, dayIndex, { className: "min-h-36" }))}
       </div>
       {interactionPreview ? (
         <div
