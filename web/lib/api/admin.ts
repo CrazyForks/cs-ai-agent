@@ -1092,6 +1092,14 @@ export function fetchAgentTeamSchedules(
   )
 }
 
+export function fetchAgentTeamScheduleCalendar(
+  query: Record<string, string | number | undefined>
+) {
+  return request<AdminAgentTeamSchedule[]>(
+    `/api/dashboard/agent-team-schedule/calendar${toQueryString(query)}`
+  )
+}
+
 export function fetchAgentTeamSchedule(id: number) {
   return request<AdminAgentTeamSchedule>(`/api/dashboard/agent-team-schedule/${id}`)
 }

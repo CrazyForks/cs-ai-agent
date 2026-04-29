@@ -53,6 +53,21 @@ func (s *agentTeamScheduleService) Count(cnd *sqls.Cnd) int64 {
 	return repositories.AgentTeamScheduleRepository.Count(sqls.DB(), cnd)
 }
 
+func (s *agentTeamScheduleService) FindCalendarSchedules(req request.AgentTeamScheduleCalendarRequest) ([]models.AgentTeamSchedule, error) {
+	startAtValue, err := parseRequiredDateTime(req.StartAt, "开始时间格式错误")
+	if err != nil {
+		return nil, err
+	}
+	endAtValue, err := parseRequiredDateTime(req.EndAt, "结束时间格式错误")
+	if err != nil {
+		return nil, err
+	}
+	if !endAtValue.After(startAtValue) {
+		return nil, errorsx.InvalidParam("结束时间必须晚于开始时间")
+	}
+	return repositories.AgentTeamScheduleRepository.FindByTimeRange(sqls.DB(), startAtValue, endAtValue, req.TeamID), nil
+}
+
 func (s *agentTeamScheduleService) Create(t *models.AgentTeamSchedule) error {
 	return repositories.AgentTeamScheduleRepository.Create(sqls.DB(), t)
 }

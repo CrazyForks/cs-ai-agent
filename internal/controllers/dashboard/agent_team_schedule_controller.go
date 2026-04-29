@@ -31,6 +31,28 @@ func (c *AgentTeamScheduleController) AnyList() *web.JsonResult {
 	return web.JsonData(&web.PageResult{Results: results, Page: paging})
 }
 
+func (c *AgentTeamScheduleController) AnyCalendar() *web.JsonResult {
+	if _, err := services.AuthService.RequirePermission(c.Ctx, constants.PermissionAgentTeamScheduleView); err != nil {
+		return web.JsonError(err)
+	}
+	startAt, _ := params.Get(c.Ctx, "startAt")
+	endAt, _ := params.Get(c.Ctx, "endAt")
+	teamID, _ := params.GetInt64(c.Ctx, "teamId")
+	list, err := services.AgentTeamScheduleService.FindCalendarSchedules(request.AgentTeamScheduleCalendarRequest{
+		StartAt: startAt,
+		EndAt:   endAt,
+		TeamID:  teamID,
+	})
+	if err != nil {
+		return web.JsonError(err)
+	}
+	results := make([]response.AgentTeamScheduleResponse, 0, len(list))
+	for _, item := range list {
+		results = append(results, buildAgentTeamScheduleResponse(&item))
+	}
+	return web.JsonData(results)
+}
+
 func (c *AgentTeamScheduleController) GetBy(id int64) *web.JsonResult {
 	if _, err := services.AuthService.RequirePermission(c.Ctx, constants.PermissionAgentTeamScheduleView); err != nil {
 		return web.JsonError(err)

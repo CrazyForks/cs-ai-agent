@@ -62,3 +62,9 @@ type UpdateAgentTeamScheduleRequest struct {
 type DeleteAgentTeamScheduleRequest struct {
 	ID int64 `json:"id"`
 }
+
+type AgentTeamScheduleCalendarRequest struct {
+	StartAt string `json:"startAt"`
+	EndAt   string `json:"endAt"`
+	TeamID  int64  `json:"teamId"`
+}

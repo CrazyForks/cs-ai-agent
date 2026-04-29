@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"cs-agent/internal/models"
+	"time"
 
 	"github.com/mlogclub/simple/sqls"
 	"github.com/mlogclub/simple/web/params"
@@ -38,6 +39,16 @@ func (r *agentTeamScheduleRepository) Find(db *gorm.DB, cnd *sqls.Cnd) (list []m
 	return
 }
 
+func (r *agentTeamScheduleRepository) FindByTimeRange(db *gorm.DB, startAt, endAt time.Time, teamID int64) (list []models.AgentTeamSchedule) {
+	query := db.Model(&models.AgentTeamSchedule{}).
+		Where("start_at < ? AND end_at > ?", endAt, startAt)
+	if teamID > 0 {
+		query = query.Where("team_id = ?", teamID)
+	}
+	query.Order("team_id ASC").Order("start_at ASC").Order("id ASC").Find(&list)
+	return
+}
+
 func (r *agentTeamScheduleRepository) FindOne(db *gorm.DB, cnd *sqls.Cnd) *models.AgentTeamSchedule {
 	ret := &models.AgentTeamSchedule{}
 	if err := cnd.FindOne(db, &ret); err != nil {
@@ -62,12 +73,12 @@ func (r *agentTeamScheduleRepository) FindPageByCnd(db *gorm.DB, cnd *sqls.Cnd) 
 	return
 }
 
-func (r *agentTeamScheduleRepository) FindBySql(db *gorm.DB, sqlStr string, paramArr... interface{}) (list []models.AgentTeamSchedule) {
+func (r *agentTeamScheduleRepository) FindBySql(db *gorm.DB, sqlStr string, paramArr ...interface{}) (list []models.AgentTeamSchedule) {
 	db.Raw(sqlStr, paramArr...).Scan(&list)
 	return
 }
 
-func (r *agentTeamScheduleRepository) CountBySql(db *gorm.DB, sqlStr string, paramArr... interface{}) (count int64) {
+func (r *agentTeamScheduleRepository) CountBySql(db *gorm.DB, sqlStr string, paramArr ...interface{}) (count int64) {
 	db.Raw(sqlStr, paramArr...).Count(&count)
 	return
 }
@@ -99,4 +110,3 @@ func (r *agentTeamScheduleRepository) UpdateColumn(db *gorm.DB, id int64, name s
 func (r *agentTeamScheduleRepository) Delete(db *gorm.DB, id int64) {
 	db.Delete(&models.AgentTeamSchedule{}, "id = ?", id)
 }
-

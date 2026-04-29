@@ -35,8 +35,10 @@ type ScheduleEditDialogProps = {
   open: boolean
   saving: boolean
   itemId: number | null
+  defaultValues?: Partial<CreateAdminAgentTeamSchedulePayload> | null
   onOpenChange: (open: boolean) => void
   onSubmit: (payload: CreateAdminAgentTeamSchedulePayload) => Promise<void>
+  onDelete?: (id: number) => Promise<void>
 }
 
 const sourceTypeOptions = [
@@ -75,9 +77,15 @@ function toDateTimeLocal(value?: string) {
   return value.replace(" ", "T").slice(0, 16)
 }
 
-function buildForm(item: AdminAgentTeamSchedule | null): EditForm {
+function buildForm(item: AdminAgentTeamSchedule | null, defaultValues?: Partial<CreateAdminAgentTeamSchedulePayload> | null): EditForm {
   if (!item) {
-    return emptyForm
+    return {
+      teamId: defaultValues?.teamId ? String(defaultValues.teamId) : emptyForm.teamId,
+      startAt: toDateTimeLocal(defaultValues?.startAt),
+      endAt: toDateTimeLocal(defaultValues?.endAt),
+      sourceType: (defaultValues?.sourceType as EditForm["sourceType"] | undefined) ?? emptyForm.sourceType,
+      remark: defaultValues?.remark ?? emptyForm.remark,
+    }
   }
   return {
     teamId: String(item.teamId),
@@ -102,8 +110,10 @@ export function EditDialog({
   open,
   saving,
   itemId,
+  defaultValues,
   onOpenChange,
   onSubmit,
+  onDelete,
 }: ScheduleEditDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -111,9 +121,11 @@ export function EditDialog({
         <ScheduleEditDialogBody
           key={itemId ? `edit-${itemId}` : "create"}
           itemId={itemId}
+          defaultValues={defaultValues}
           saving={saving}
           onOpenChange={onOpenChange}
           onSubmit={onSubmit}
+          onDelete={onDelete}
         />
       ) : null}
     </Dialog>
@@ -125,8 +137,10 @@ type ScheduleEditDialogBodyProps = Omit<ScheduleEditDialogProps, "open">
 function ScheduleEditDialogBody({
   saving,
   itemId,
+  defaultValues,
   onOpenChange,
   onSubmit,
+  onDelete,
 }: ScheduleEditDialogBodyProps) {
   const [teams, setTeams] = useState<AdminAgentTeam[]>([])
   const [loading, setLoading] = useState(false)
@@ -157,7 +171,7 @@ function ScheduleEditDialogBody({
   useEffect(() => {
     async function loadDetail() {
       if (!itemId) {
-        reset(emptyForm)
+        reset(buildForm(null, defaultValues))
         return
       }
       setLoading(true)
@@ -171,7 +185,7 @@ function ScheduleEditDialogBody({
       }
     }
     void loadDetail()
-  }, [itemId, reset])
+  }, [defaultValues, itemId, reset])
 
   useEffect(() => {
     void loadOptions()
@@ -269,6 +283,11 @@ function ScheduleEditDialogBody({
             </Field>
           </div>
           <DialogFooter className="mx-0 mb-0 px-6 py-4">
+            {itemId && onDelete ? (
+              <Button type="button" variant="destructive" onClick={() => void onDelete(itemId)} disabled={saving}>
+                删除
+              </Button>
+            ) : null}
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
               取消
             </Button>
