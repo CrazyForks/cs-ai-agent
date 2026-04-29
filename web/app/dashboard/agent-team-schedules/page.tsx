@@ -18,13 +18,13 @@ import { toast } from "sonner"
 import { ListPagination } from "@/components/list-pagination"
 import { Button } from "@/components/ui/button"
 import { ButtonGroup } from "@/components/ui/button-group"
+import { OptionCombobox } from "@/components/option-combobox"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -66,6 +66,26 @@ function startOfWeek(date: Date) {
   return ret
 }
 
+function startOfMonth(date: Date) {
+  const ret = startOfDay(date)
+  ret.setDate(1)
+  return ret
+}
+
+function startOfMonthCalendar(date: Date) {
+  return startOfWeek(startOfMonth(date))
+}
+
+function endOfMonthCalendar(date: Date) {
+  const monthEnd = startOfMonth(date)
+  monthEnd.setMonth(monthEnd.getMonth() + 1)
+  const ret = startOfWeek(monthEnd)
+  if (ret.getTime() < monthEnd.getTime()) {
+    ret.setDate(ret.getDate() + 7)
+  }
+  return ret
+}
+
 function addDays(date: Date, days: number) {
   const ret = new Date(date)
   ret.setDate(ret.getDate() + days)
@@ -81,16 +101,21 @@ function formatDateTimeValue(date: Date) {
   return `${date.getFullYear()}-${month}-${day} ${hour}:${minute}:${second}`
 }
 
-function formatWeekRange(weekStart: Date) {
-  const weekEnd = addDays(weekStart, 6)
-  return `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, "0")}-${String(weekStart.getDate()).padStart(2, "0")} 至 ${String(weekEnd.getMonth() + 1).padStart(2, "0")}-${String(weekEnd.getDate()).padStart(2, "0")}`
+function addMonths(date: Date, months: number) {
+  const ret = startOfMonth(date)
+  ret.setMonth(ret.getMonth() + months)
+  return ret
+}
+
+function formatMonthTitle(monthStart: Date) {
+  return `${monthStart.getFullYear()}年${String(monthStart.getMonth() + 1).padStart(2, "0")}月`
 }
 
 export default function DashboardAgentTeamSchedulesPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("calendar")
   const [teamFilterInput, setTeamFilterInput] = useState("all")
   const [teamFilter, setTeamFilter] = useState("all")
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
+  const [monthStart, setMonthStart] = useState(() => startOfMonth(new Date()))
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(20)
   const [loading, setLoading] = useState(true)
@@ -134,8 +159,8 @@ export default function DashboardAgentTeamSchedulesPage() {
     setCalendarLoading(true)
     try {
       const data = await fetchAgentTeamScheduleCalendar({
-        startAt: formatDateTimeValue(weekStart),
-        endAt: formatDateTimeValue(addDays(weekStart, 7)),
+        startAt: formatDateTimeValue(startOfMonthCalendar(monthStart)),
+        endAt: formatDateTimeValue(endOfMonthCalendar(monthStart)),
         teamId: teamFilter === "all" ? undefined : teamFilter,
       })
       setCalendarItems(data)
@@ -144,7 +169,7 @@ export default function DashboardAgentTeamSchedulesPage() {
     } finally {
       setCalendarLoading(false)
     }
-  }, [teamFilter, weekStart])
+  }, [monthStart, teamFilter])
 
   const loadTeams = useCallback(async () => {
     try {
@@ -294,36 +319,36 @@ export default function DashboardAgentTeamSchedulesPage() {
             </ButtonGroup>
             {viewMode === "calendar" ? (
               <ButtonGroup>
-                <Button variant="outline" size="icon-sm" onClick={() => setWeekStart(addDays(weekStart, -7))} aria-label="上一周">
+                <Button variant="outline" size="icon-sm" onClick={() => setMonthStart(addMonths(monthStart, -1))} aria-label="上一月">
                   <ChevronLeftIcon />
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setWeekStart(startOfWeek(new Date()))}>
-                  本周
+                <Button variant="outline" size="sm" onClick={() => setMonthStart(startOfMonth(new Date()))}>
+                  本月
                 </Button>
-                <Button variant="outline" size="icon-sm" onClick={() => setWeekStart(addDays(weekStart, 7))} aria-label="下一周">
+                <Button variant="outline" size="icon-sm" onClick={() => setMonthStart(addMonths(monthStart, 1))} aria-label="下一月">
                   <ChevronRightIcon />
                 </Button>
               </ButtonGroup>
             ) : null}
             {viewMode === "calendar" ? (
-              <div className="text-sm text-muted-foreground">{formatWeekRange(weekStart)}</div>
+              <div className="text-sm text-muted-foreground">{formatMonthTitle(monthStart)}</div>
             ) : null}
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center xl:justify-end">
-            <Select value={teamFilterInput} onValueChange={(value) => setTeamFilterInput(value ?? "all")}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="筛选客服组" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部客服组</SelectItem>
-                {teams.map((team) => (
-                  <SelectItem key={team.id} value={String(team.id)}>
-                    {team.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="w-full sm:w-48">
+              <OptionCombobox
+                value={teamFilterInput}
+                options={[
+                  { value: "all", label: "全部客服组" },
+                  ...teams.map((team) => ({ value: String(team.id), label: team.name })),
+                ]}
+                placeholder="筛选客服组"
+                searchPlaceholder="搜索客服组"
+                emptyText="未找到客服组"
+                onChange={(value) => setTeamFilterInput(value)}
+              />
+            </div>
             <Button variant="outline" onClick={applyFilters} disabled={loading || calendarLoading}>
               <SearchIcon />
               查询
@@ -345,7 +370,9 @@ export default function DashboardAgentTeamSchedulesPage() {
 
         {viewMode === "calendar" ? (
           <ScheduleCalendar
-            weekStart={weekStart}
+            monthStart={monthStart}
+            calendarStart={startOfMonthCalendar(monthStart)}
+            calendarEnd={endOfMonthCalendar(monthStart)}
             teams={visibleTeams}
             schedules={calendarItems}
             loading={calendarLoading}

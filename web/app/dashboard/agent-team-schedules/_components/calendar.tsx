@@ -10,13 +10,15 @@ import type {
 } from "@/lib/api/admin"
 import { cn, formatDateTime } from "@/lib/utils"
 
-const dayNames = ["一", "二", "三", "四", "五", "六", "日"]
+const weekDayNames = ["一", "二", "三", "四", "五", "六", "日"]
 const dayMs = 24 * 60 * 60 * 1000
 const minuteMs = 60 * 1000
 const minDurationMs = 15 * minuteMs
 
 type ScheduleCalendarProps = {
-  weekStart: Date
+  monthStart: Date
+  calendarStart: Date
+  calendarEnd: Date
   teams: AdminAgentTeam[]
   schedules: AdminAgentTeamSchedule[]
   loading: boolean
@@ -84,10 +86,6 @@ function formatDateTimeValue(date: Date) {
   return `${date.getFullYear()}-${month}-${day} ${hour}:${minute}:${second}`
 }
 
-function formatDayTitle(date: Date) {
-  return `${date.getMonth() + 1}/${date.getDate()}`
-}
-
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
 }
@@ -101,25 +99,19 @@ function roundToQuarterHour(date: Date) {
   return ret
 }
 
-function getPointerDateInCell(event: PointerEvent | React.PointerEvent, cell: Element) {
+function getPointerDateInCell(event: PointerEvent, cell: Element) {
   const rect = cell.getBoundingClientRect()
   const day = startOfDay(parseLocalDateTime(`${cell.getAttribute("data-date")} 00:00:00`))
   const ratio = clamp((event.clientX - rect.left) / rect.width, 0, 1)
   return roundToQuarterHour(new Date(day.getTime() + ratio * dayMs))
 }
 
-function getDropCell(event: PointerEvent | React.PointerEvent) {
+function getDropCell(event: PointerEvent) {
   const element = document.elementFromPoint(event.clientX, event.clientY)
   return element?.closest("[data-schedule-cell]")
 }
 
-function getCellTeamAndDate(cell: Element) {
-  const teamID = Number(cell.getAttribute("data-team-id"))
-  const date = cell.getAttribute("data-date") ?? ""
-  return { teamID, date }
-}
-
-function buildMovePayload(item: AdminAgentTeamSchedule, teamId: number, date: string): UpdateAdminAgentTeamSchedulePayload {
+function buildMovePayload(item: AdminAgentTeamSchedule, date: string): UpdateAdminAgentTeamSchedulePayload {
   const originalStart = parseLocalDateTime(item.startAt)
   const originalEnd = parseLocalDateTime(item.endAt)
   const duration = originalEnd.getTime() - originalStart.getTime()
@@ -130,7 +122,7 @@ function buildMovePayload(item: AdminAgentTeamSchedule, teamId: number, date: st
 
   return {
     id: item.id,
-    teamId,
+    teamId: item.teamId,
     startAt: formatDateTimeValue(nextStart),
     endAt: formatDateTimeValue(nextEnd),
     sourceType: item.sourceType,
@@ -166,23 +158,26 @@ function buildResizePayload(
   }
 }
 
-function sliceScheduleForDay(item: AdminAgentTeamSchedule, day: Date) {
+function intersectsDay(item: AdminAgentTeamSchedule, day: Date) {
   const dayStart = startOfDay(day)
   const dayEnd = addDays(dayStart, 1)
   const scheduleStart = parseLocalDateTime(item.startAt)
   const scheduleEnd = parseLocalDateTime(item.endAt)
-  const visibleStart = new Date(Math.max(scheduleStart.getTime(), dayStart.getTime()))
-  const visibleEnd = new Date(Math.min(scheduleEnd.getTime(), dayEnd.getTime()))
-  if (!visibleEnd.getTime() || visibleEnd <= visibleStart) {
-    return null
+  return scheduleStart < dayEnd && scheduleEnd > dayStart
+}
+
+function buildCalendarDays(calendarStart: Date, calendarEnd: Date) {
+  const days: Date[] = []
+  for (let current = startOfDay(calendarStart); current < calendarEnd; current = addDays(current, 1)) {
+    days.push(current)
   }
-  const left = ((visibleStart.getTime() - dayStart.getTime()) / dayMs) * 100
-  const width = ((visibleEnd.getTime() - visibleStart.getTime()) / dayMs) * 100
-  return { left, width, visibleStart, visibleEnd }
+  return days
 }
 
 export function ScheduleCalendar({
-  weekStart,
+  monthStart,
+  calendarStart,
+  calendarEnd,
   teams,
   schedules,
   loading,
@@ -192,15 +187,16 @@ export function ScheduleCalendar({
   onMove,
   onResize,
 }: ScheduleCalendarProps) {
-  const days = Array.from({ length: 7 }, (_, index) => startOfDay(addDays(weekStart, index)))
+  const days = buildCalendarDays(calendarStart, calendarEnd)
+  const defaultTeamID = teams[0]?.id ?? 0
 
-  function handleBlankCellClick(teamId: number, day: Date) {
+  function handleBlankCellClick(day: Date) {
     const startAt = new Date(day)
     startAt.setHours(9, 0, 0, 0)
     const endAt = new Date(day)
     endAt.setHours(18, 0, 0, 0)
     onCreate({
-      teamId,
+      teamId: defaultTeamID || undefined,
       startAt: formatDateTimeValue(startAt),
       endAt: formatDateTimeValue(endAt),
       sourceType: "manual",
@@ -241,11 +237,11 @@ export function ScheduleCalendar({
         return
       }
       if (state.type === "move") {
-        const next = getCellTeamAndDate(cell)
-        if (!next.teamID || !next.date) {
+        const date = cell.getAttribute("data-date")
+        if (!date) {
           return
         }
-        await onMove(buildMovePayload(item, next.teamID, next.date))
+        await onMove(buildMovePayload(item, date))
         return
       }
       const payload = buildResizePayload(item, state.edge, getPointerDateInCell(upEvent, cell))
@@ -267,107 +263,97 @@ export function ScheduleCalendar({
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border bg-background">
-      <div className="min-w-[980px]">
-        <div className="grid grid-cols-[168px_repeat(7,minmax(112px,1fr))] border-b bg-muted/40">
-          <div className="flex h-14 items-center px-4 text-sm font-medium text-muted-foreground">客服组</div>
-          {days.map((day, index) => (
-            <div key={day.toISOString()} className="flex h-14 flex-col justify-center border-l px-3">
-              <div className="text-sm font-medium">周{dayNames[index]}</div>
-              <div className="text-xs text-muted-foreground">{formatDayTitle(day)}</div>
-            </div>
-          ))}
-        </div>
-
-        <div className={cn("relative", loading && "opacity-60")}>
-          {teams.map((team) => (
-            <div key={team.id} className="grid min-h-28 grid-cols-[168px_repeat(7,minmax(112px,1fr))] border-b last:border-b-0">
-              <div className="flex min-h-28 items-center px-4">
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium">{team.name}</div>
-                  <div className="text-xs text-muted-foreground">组ID：{team.id}</div>
-                </div>
+    <div className="overflow-hidden rounded-lg border bg-background">
+      <div className="grid grid-cols-7 border-b bg-muted/40">
+        {weekDayNames.map((name) => (
+          <div key={name} className="flex h-10 items-center justify-center border-l first:border-l-0 text-sm font-medium">
+            周{name}
+          </div>
+        ))}
+      </div>
+      <div className={cn("grid grid-cols-7", loading && "opacity-60")}>
+        {days.map((day, dayIndex) => {
+          const date = formatDate(day)
+          const inMonth = day.getMonth() === monthStart.getMonth()
+          const daySchedules = schedules.filter((item) => intersectsDay(item, day))
+          return (
+            <div
+              key={date}
+              data-schedule-cell
+              data-date={date}
+              role="button"
+              tabIndex={0}
+              className={cn(
+                "min-h-36 border-l border-t bg-background p-2 text-left outline-none transition-colors first:border-l-0 hover:bg-muted/20 focus-visible:ring-2 focus-visible:ring-ring",
+                dayIndex % 7 === 0 && "border-l-0",
+                !inMonth && "bg-muted/20 text-muted-foreground"
+              )}
+              onClick={(event) => {
+                if ((event.target as HTMLElement).closest("[data-schedule-block]")) {
+                  return
+                }
+                handleBlankCellClick(day)
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault()
+                  handleBlankCellClick(day)
+                }
+              }}
+            >
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className={cn("text-sm font-medium", !inMonth && "text-muted-foreground")}>{day.getDate()}</div>
+                <CalendarPlusIcon className="size-3.5 text-muted-foreground" />
               </div>
-              {days.map((day) => {
-                const date = formatDate(day)
-                const daySchedules = schedules.filter((item) => item.teamId === team.id && sliceScheduleForDay(item, day))
-                return (
-                  <button
-                    key={`${team.id}-${date}`}
-                    type="button"
-                    data-schedule-cell
-                    data-team-id={team.id}
-                    data-date={date}
-                    className="relative min-h-28 border-l bg-background p-2 text-left transition-colors hover:bg-muted/20"
-                    onClick={(event) => {
-                      if (event.target === event.currentTarget) {
-                        handleBlankCellClick(team.id, day)
-                      }
-                    }}
-                  >
-                    {daySchedules.length === 0 ? (
-                      <div className="flex h-full min-h-20 items-center justify-center text-xs text-muted-foreground/70">
-                        <CalendarPlusIcon className="mr-1 size-3.5" />
-                        新增
+              <div className="space-y-1">
+                {daySchedules.slice(0, 5).map((item) => {
+                  const teamName = item.teamName || teams.find((team) => team.id === item.teamId)?.name || `客服组#${item.teamId}`
+                  const busy = savingId === item.id
+                  return (
+                    <div
+                      key={`${item.id}-${date}`}
+                      data-schedule-block
+                      role="button"
+                      tabIndex={0}
+                      className={cn(
+                        "relative cursor-grab rounded-md border border-primary/20 bg-primary/10 px-2 py-1.5 pl-4 pr-4 text-primary shadow-sm outline-none active:cursor-grabbing",
+                        busy && "pointer-events-none opacity-60"
+                      )}
+                      onPointerDown={(event) => handlePointerDown(event, item, "move")}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault()
+                          onEdit(item)
+                        }
+                      }}
+                    >
+                      <div
+                        className="absolute left-0 top-0 flex h-full w-3 cursor-ew-resize items-center justify-center bg-primary/15"
+                        onPointerDown={(event) => handlePointerDown(event, item, "resize", "start")}
+                      >
+                        <GripVerticalIcon className="size-3" />
                       </div>
-                    ) : null}
-                    {daySchedules.map((item, index) => {
-                      const slice = sliceScheduleForDay(item, day)
-                      if (!slice) {
-                        return null
-                      }
-                      const busy = savingId === item.id
-                      return (
-                        <div
-                          key={`${item.id}-${date}`}
-                          role="button"
-                          tabIndex={0}
-                          className={cn(
-                            "absolute top-2 z-10 h-20 cursor-grab overflow-hidden rounded-md border border-primary/20 bg-primary/10 px-2 py-1.5 text-primary shadow-sm outline-none transition active:cursor-grabbing",
-                            busy && "pointer-events-none opacity-60"
-                          )}
-                          style={{
-                            left: `calc(${slice.left}% + 8px)`,
-                            width: `calc(${slice.width}% - 16px)`,
-                            top: `${8 + index * 28}px`,
-                            minWidth: "42px",
-                          }}
-                          onPointerDown={(event) => handlePointerDown(event, item, "move")}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault()
-                              onEdit(item)
-                            }
-                          }}
-                        >
-                          <div
-                            className="absolute left-0 top-0 flex h-full w-2 cursor-ew-resize items-center justify-center bg-primary/15"
-                            onPointerDown={(event) => handlePointerDown(event, item, "resize", "start")}
-                          >
-                            <GripVerticalIcon className="size-3" />
-                          </div>
-                          <div
-                            className="absolute right-0 top-0 flex h-full w-2 cursor-ew-resize items-center justify-center bg-primary/15"
-                            onPointerDown={(event) => handlePointerDown(event, item, "resize", "end")}
-                          >
-                            <GripVerticalIcon className="size-3" />
-                          </div>
-                          <div className="truncate pl-2 pr-2 text-xs font-medium">{item.sourceType}</div>
-                          <div className="truncate pl-2 pr-2 text-xs">
-                            {formatDateTime(item.startAt).slice(11, 16)} - {formatDateTime(item.endAt).slice(11, 16)}
-                          </div>
-                          {item.remark ? (
-                            <div className="truncate pl-2 pr-2 text-[11px] text-primary/80">{item.remark}</div>
-                          ) : null}
-                        </div>
-                      )
-                    })}
-                  </button>
-                )
-              })}
+                      <div
+                        className="absolute right-0 top-0 flex h-full w-3 cursor-ew-resize items-center justify-center bg-primary/15"
+                        onPointerDown={(event) => handlePointerDown(event, item, "resize", "end")}
+                      >
+                        <GripVerticalIcon className="size-3" />
+                      </div>
+                      <div className="truncate text-xs font-medium">{teamName}</div>
+                      <div className="truncate text-xs">
+                        {formatDateTime(item.startAt).slice(11, 16)} - {formatDateTime(item.endAt).slice(11, 16)}
+                      </div>
+                      {item.remark ? <div className="truncate text-[11px] text-primary/80">{item.remark}</div> : null}
+                    </div>
+                  )
+                })}
+                {daySchedules.length > 5 ? (
+                  <div className="text-xs text-muted-foreground">还有 {daySchedules.length - 5} 条</div>
+                ) : null}
+              </div>
             </div>
-          ))}
-        </div>
+          )
+        })}
       </div>
     </div>
   )
