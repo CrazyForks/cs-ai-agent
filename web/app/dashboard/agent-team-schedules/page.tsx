@@ -406,7 +406,6 @@ export default function DashboardAgentTeamSchedulesPage() {
                   <TableRow>
                     <TableHead>客服组</TableHead>
                     <TableHead>时间范围</TableHead>
-                    <TableHead>来源</TableHead>
                     <TableHead className="w-[92px] text-right">操作</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -427,9 +426,6 @@ export default function DashboardAgentTeamSchedulesPage() {
                       <TableCell>
                         <div className="text-sm">{formatDateTime(item.startAt)}</div>
                         <div className="text-sm text-muted-foreground">{formatDateTime(item.endAt)}</div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">{item.sourceType}</div>
                       </TableCell>
                       <TableCell className="text-right">
                         <ButtonGroup className="ml-auto">
@@ -459,7 +455,7 @@ export default function DashboardAgentTeamSchedulesPage() {
                   ))}
                   {!loading && result.results.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="py-12 text-center text-muted-foreground">
+                      <TableCell colSpan={3} className="py-12 text-center text-muted-foreground">
                         没有匹配的客服组排班
                       </TableCell>
                     </TableRow>

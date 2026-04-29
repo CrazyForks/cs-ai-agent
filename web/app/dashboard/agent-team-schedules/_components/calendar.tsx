@@ -146,7 +146,6 @@ function buildMovePayload(item: AdminAgentTeamSchedule, date: string): UpdateAdm
     teamId: item.teamId,
     startAt: formatDateTimeValue(nextStart),
     endAt: formatDateTimeValue(nextEnd),
-    sourceType: item.sourceType,
     remark: item.remark,
   }
 }
@@ -177,7 +176,6 @@ function buildResizePayload(
     teamId: item.teamId,
     startAt: formatDateTimeValue(startAt),
     endAt: formatDateTimeValue(endAt),
-    sourceType: item.sourceType,
     remark: item.remark,
   }
 }
@@ -242,7 +240,6 @@ export function ScheduleCalendar({
       teamId: defaultTeamID || undefined,
       startAt: formatDateTimeValue(startAt),
       endAt: formatDateTimeValue(endAt),
-      sourceType: "manual",
       remark: "",
     })
   }

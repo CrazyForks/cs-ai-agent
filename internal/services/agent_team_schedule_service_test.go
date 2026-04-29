@@ -83,10 +83,9 @@ func TestAgentTeamScheduleServiceCreateRejectsCrossDaySchedule(t *testing.T) {
 
 	tomorrow := time.Now().AddDate(0, 0, 1)
 	_, err := services.AgentTeamScheduleService.CreateAgentTeamSchedule(request.CreateAgentTeamScheduleRequest{
-		TeamID:     1,
-		StartAt:    formatTestDateTime(tomorrow, "22:00:00"),
-		EndAt:      formatTestDateTime(tomorrow.AddDate(0, 0, 1), "08:00:00"),
-		SourceType: "manual",
+		TeamID:  1,
+		StartAt: formatTestDateTime(tomorrow, "22:00:00"),
+		EndAt:   formatTestDateTime(tomorrow.AddDate(0, 0, 1), "08:00:00"),
 	}, testOperator())
 	if err == nil {
 		t.Fatalf("expected cross-day schedule to fail")
@@ -102,10 +101,9 @@ func TestAgentTeamScheduleServiceCreateRejectsHistoricalScheduleByDay(t *testing
 
 	yesterday := time.Now().AddDate(0, 0, -1)
 	_, err := services.AgentTeamScheduleService.CreateAgentTeamSchedule(request.CreateAgentTeamScheduleRequest{
-		TeamID:     1,
-		StartAt:    formatTestDateTime(yesterday, "09:00:00"),
-		EndAt:      formatTestDateTime(yesterday, "18:00:00"),
-		SourceType: "manual",
+		TeamID:  1,
+		StartAt: formatTestDateTime(yesterday, "09:00:00"),
+		EndAt:   formatTestDateTime(yesterday, "18:00:00"),
 	}, testOperator())
 	if err == nil {
 		t.Fatalf("expected historical schedule to fail")
@@ -121,10 +119,9 @@ func TestAgentTeamScheduleServiceCreateAllowsTodayEarlierThanCurrentTime(t *test
 
 	today := time.Now()
 	item, err := services.AgentTeamScheduleService.CreateAgentTeamSchedule(request.CreateAgentTeamScheduleRequest{
-		TeamID:     1,
-		StartAt:    formatTestDateTime(today, "00:00:00"),
-		EndAt:      formatTestDateTime(today, "01:00:00"),
-		SourceType: "manual",
+		TeamID:  1,
+		StartAt: formatTestDateTime(today, "00:00:00"),
+		EndAt:   formatTestDateTime(today, "01:00:00"),
 	}, testOperator())
 	if err != nil {
 		t.Fatalf("expected today's schedule to pass, got %v", err)
@@ -143,10 +140,9 @@ func TestAgentTeamScheduleServiceUpdateRejectsCrossDaySchedule(t *testing.T) {
 	err := services.AgentTeamScheduleService.UpdateAgentTeamSchedule(request.UpdateAgentTeamScheduleRequest{
 		ID: existingID,
 		CreateAgentTeamScheduleRequest: request.CreateAgentTeamScheduleRequest{
-			TeamID:     1,
-			StartAt:    formatTestDateTime(tomorrow, "22:00:00"),
-			EndAt:      formatTestDateTime(tomorrow.AddDate(0, 0, 1), "08:00:00"),
-			SourceType: "manual",
+			TeamID:  1,
+			StartAt: formatTestDateTime(tomorrow, "22:00:00"),
+			EndAt:   formatTestDateTime(tomorrow.AddDate(0, 0, 1), "08:00:00"),
 		},
 	}, testOperator())
 	if err == nil {
@@ -166,10 +162,9 @@ func TestAgentTeamScheduleServiceUpdateRejectsHistoricalScheduleByDay(t *testing
 	err := services.AgentTeamScheduleService.UpdateAgentTeamSchedule(request.UpdateAgentTeamScheduleRequest{
 		ID: existingID,
 		CreateAgentTeamScheduleRequest: request.CreateAgentTeamScheduleRequest{
-			TeamID:     1,
-			StartAt:    formatTestDateTime(yesterday, "09:00:00"),
-			EndAt:      formatTestDateTime(yesterday, "18:00:00"),
-			SourceType: "manual",
+			TeamID:  1,
+			StartAt: formatTestDateTime(yesterday, "09:00:00"),
+			EndAt:   formatTestDateTime(yesterday, "18:00:00"),
 		},
 	}, testOperator())
 	if err == nil {
@@ -220,11 +215,11 @@ func createAgentTeamScheduleTestData(t *testing.T, db *gorm.DB) {
 		return ret
 	}
 	schedules := []models.AgentTeamSchedule{
-		{ID: 1, TeamID: 1, StartAt: parse("2026-04-26 20:00:00"), EndAt: parse("2026-04-27 10:00:00"), SourceType: "manual", Status: enums.StatusOk},
-		{ID: 2, TeamID: 1, StartAt: parse("2026-04-28 09:00:00"), EndAt: parse("2026-04-28 18:00:00"), SourceType: "manual", Status: enums.StatusOk},
-		{ID: 3, TeamID: 2, StartAt: parse("2026-05-03 20:00:00"), EndAt: parse("2026-05-04 08:00:00"), SourceType: "manual", Status: enums.StatusOk},
-		{ID: 4, TeamID: 1, StartAt: parse("2026-04-20 09:00:00"), EndAt: parse("2026-04-20 18:00:00"), SourceType: "manual", Status: enums.StatusOk},
-		{ID: 5, TeamID: 2, StartAt: parse("2026-05-04 09:00:00"), EndAt: parse("2026-05-04 18:00:00"), SourceType: "manual", Status: enums.StatusOk},
+		{ID: 1, TeamID: 1, StartAt: parse("2026-04-26 20:00:00"), EndAt: parse("2026-04-27 10:00:00"), Status: enums.StatusOk},
+		{ID: 2, TeamID: 1, StartAt: parse("2026-04-28 09:00:00"), EndAt: parse("2026-04-28 18:00:00"), Status: enums.StatusOk},
+		{ID: 3, TeamID: 2, StartAt: parse("2026-05-03 20:00:00"), EndAt: parse("2026-05-04 08:00:00"), Status: enums.StatusOk},
+		{ID: 4, TeamID: 1, StartAt: parse("2026-04-20 09:00:00"), EndAt: parse("2026-04-20 18:00:00"), Status: enums.StatusOk},
+		{ID: 5, TeamID: 2, StartAt: parse("2026-05-04 09:00:00"), EndAt: parse("2026-05-04 18:00:00"), Status: enums.StatusOk},
 	}
 	if err := db.Create(&schedules).Error; err != nil {
 		t.Fatalf("create schedules error = %v", err)
@@ -250,11 +245,10 @@ func createFutureAgentTeamSchedule(t *testing.T, db *gorm.DB) int64 {
 	t.Helper()
 	tomorrow := time.Now().AddDate(0, 0, 1)
 	item := models.AgentTeamSchedule{
-		TeamID:     1,
-		StartAt:    parseTestDateTime(t, formatTestDateTime(tomorrow, "09:00:00")),
-		EndAt:      parseTestDateTime(t, formatTestDateTime(tomorrow, "18:00:00")),
-		SourceType: "manual",
-		Status:     enums.StatusOk,
+		TeamID:  1,
+		StartAt: parseTestDateTime(t, formatTestDateTime(tomorrow, "09:00:00")),
+		EndAt:   parseTestDateTime(t, formatTestDateTime(tomorrow, "18:00:00")),
+		Status:  enums.StatusOk,
 	}
 	if err := db.Create(&item).Error; err != nil {
 		t.Fatalf("create future schedule error = %v", err)

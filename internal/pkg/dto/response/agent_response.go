@@ -34,11 +34,10 @@ type AgentTeamResponse struct {
 }
 
 type AgentTeamScheduleResponse struct {
-	ID         int64  `json:"id"`
-	TeamID     int64  `json:"teamId"`
-	TeamName   string `json:"teamName,omitempty"`
-	StartAt    string `json:"startAt"`
-	EndAt      string `json:"endAt"`
-	SourceType string `json:"sourceType"`
-	Remark     string `json:"remark"`
+	ID       int64  `json:"id"`
+	TeamID   int64  `json:"teamId"`
+	TeamName string `json:"teamName,omitempty"`
+	StartAt  string `json:"startAt"`
+	EndAt    string `json:"endAt"`
+	Remark   string `json:"remark"`
 }

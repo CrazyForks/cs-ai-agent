@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { OptionCombobox } from "@/components/option-combobox"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import {
   type AdminAgentTeam,
@@ -41,17 +40,10 @@ type ScheduleEditDialogProps = {
   onDelete?: (id: number) => Promise<void>
 }
 
-const sourceTypeOptions = [
-  { value: "manual", label: "手工录入" },
-  { value: "batch_import", label: "批量导入" },
-  { value: "template_generate", label: "模板生成" },
-] as const
-
 const emptyForm: EditForm = {
   teamId: "",
   startAt: "",
   endAt: "",
-  sourceType: "manual",
   remark: "",
 }
 
@@ -59,7 +51,6 @@ const editFormSchema = z.object({
   teamId: z.string().trim().regex(/^\d+$/, "请选择客服组"),
   startAt: z.string().trim().min(1, "开始时间不能为空"),
   endAt: z.string().trim().min(1, "结束时间不能为空"),
-  sourceType: z.enum(["manual", "batch_import", "template_generate"], { message: "请选择排班来源" }),
   remark: z.string().trim(),
 }).superRefine((value, ctx) => {
   const startAt = parseDateTimeLocal(value.startAt)
@@ -133,7 +124,6 @@ function buildForm(item: AdminAgentTeamSchedule | null, defaultValues?: Partial<
       teamId: defaultValues?.teamId ? String(defaultValues.teamId) : emptyForm.teamId,
       startAt: toDateTimeLocal(defaultValues?.startAt),
       endAt: toDateTimeLocal(defaultValues?.endAt),
-      sourceType: (defaultValues?.sourceType as EditForm["sourceType"] | undefined) ?? emptyForm.sourceType,
       remark: defaultValues?.remark ?? emptyForm.remark,
     }
   }
@@ -141,7 +131,6 @@ function buildForm(item: AdminAgentTeamSchedule | null, defaultValues?: Partial<
     teamId: String(item.teamId),
     startAt: toDateTimeLocal(item.startAt),
     endAt: toDateTimeLocal(item.endAt),
-    sourceType: item.sourceType as EditForm["sourceType"],
     remark: item.remark || "",
   }
 }
@@ -151,7 +140,6 @@ function buildPayload(form: EditForm): CreateAdminAgentTeamSchedulePayload {
     teamId: Number(form.teamId),
     startAt: form.startAt.trim(),
     endAt: form.endAt.trim(),
-    sourceType: form.sourceType,
     remark: form.remark.trim(),
   }
 }
@@ -295,34 +283,6 @@ function ScheduleEditDialogBody({
                 <FieldContent>
                   <Input id="agent-team-schedule-end-at" type="datetime-local" min={minDateTime} {...register("endAt")} />
                   <FieldError errors={[errors.endAt]} />
-                </FieldContent>
-              </Field>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field data-invalid={!!errors.sourceType}>
-                <FieldLabel>排班来源</FieldLabel>
-                <FieldContent>
-                  <Controller
-                    control={control}
-                    name="sourceType"
-                    render={({ field }) => (
-                      <Select value={field.value} onValueChange={field.onChange} modal={false}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue>
-                            {sourceTypeOptions.find((item) => item.value === field.value)?.label ?? "请选择来源"}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {sourceTypeOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                  <FieldError errors={[errors.sourceType]} />
                 </FieldContent>
               </Field>
             </div>

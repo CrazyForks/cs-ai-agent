@@ -510,7 +510,6 @@ export type AdminAgentTeamSchedule = {
   teamName?: string
   startAt: string
   endAt: string
-  sourceType: string
   remark: string
 }
 
@@ -518,7 +517,6 @@ export type CreateAdminAgentTeamSchedulePayload = {
   teamId: number
   startAt: string
   endAt: string
-  sourceType: string
   remark: string
 }
 

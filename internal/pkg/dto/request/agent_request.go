@@ -47,11 +47,10 @@ type DeleteAgentTeamRequest struct {
 }
 
 type CreateAgentTeamScheduleRequest struct {
-	TeamID     int64  `json:"teamId"`
-	StartAt    string `json:"startAt"`
-	EndAt      string `json:"endAt"`
-	SourceType string `json:"sourceType"`
-	Remark     string `json:"remark"`
+	TeamID  int64  `json:"teamId"`
+	StartAt string `json:"startAt"`
+	EndAt   string `json:"endAt"`
+	Remark  string `json:"remark"`
 }
 
 type UpdateAgentTeamScheduleRequest struct {

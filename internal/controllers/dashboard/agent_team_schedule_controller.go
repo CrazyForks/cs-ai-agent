@@ -111,12 +111,11 @@ func (c *AgentTeamScheduleController) PostDelete() *web.JsonResult {
 
 func buildAgentTeamScheduleResponse(item *models.AgentTeamSchedule) response.AgentTeamScheduleResponse {
 	ret := response.AgentTeamScheduleResponse{
-		ID:         item.ID,
-		TeamID:     item.TeamID,
-		StartAt:    item.StartAt.Format("2006-01-02 15:04:05"),
-		EndAt:      item.EndAt.Format("2006-01-02 15:04:05"),
-		SourceType: item.SourceType,
-		Remark:     item.Remark,
+		ID:      item.ID,
+		TeamID:  item.TeamID,
+		StartAt: item.StartAt.Format("2006-01-02 15:04:05"),
+		EndAt:   item.EndAt.Format("2006-01-02 15:04:05"),
+		Remark:  item.Remark,
 	}
 	if team := services.AgentTeamService.Get(item.TeamID); team != nil {
 		ret.TeamName = team.Name

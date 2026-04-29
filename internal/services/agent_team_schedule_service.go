@@ -92,7 +92,7 @@ func (s *agentTeamScheduleService) CreateAgentTeamSchedule(req request.CreateAge
 	if operator == nil {
 		return nil, errorsx.Unauthorized("未登录或登录已过期")
 	}
-	item, err := s.buildScheduleModel(0, req.TeamID, req.StartAt, req.EndAt, req.SourceType, req.Remark)
+	item, err := s.buildScheduleModel(0, req.TeamID, req.StartAt, req.EndAt, req.Remark)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +111,7 @@ func (s *agentTeamScheduleService) UpdateAgentTeamSchedule(req request.UpdateAge
 	if s.Get(req.ID) == nil {
 		return errorsx.InvalidParam("客服组排班不存在")
 	}
-	item, err := s.buildScheduleModel(req.ID, req.TeamID, req.StartAt, req.EndAt, req.SourceType, req.Remark)
+	item, err := s.buildScheduleModel(req.ID, req.TeamID, req.StartAt, req.EndAt, req.Remark)
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,6 @@ func (s *agentTeamScheduleService) UpdateAgentTeamSchedule(req request.UpdateAge
 		"team_id":          item.TeamID,
 		"start_at":         item.StartAt,
 		"end_at":           item.EndAt,
-		"source_type":      item.SourceType,
 		"remark":           item.Remark,
 		"update_user_id":   operator.UserID,
 		"update_user_name": operator.Username,
@@ -139,7 +138,7 @@ func (s *agentTeamScheduleService) DeleteAgentTeamSchedule(id int64) error {
 	return nil
 }
 
-func (s *agentTeamScheduleService) buildScheduleModel(id, teamID int64, startAt, endAt, sourceType, remark string) (*models.AgentTeamSchedule, error) {
+func (s *agentTeamScheduleService) buildScheduleModel(id, teamID int64, startAt, endAt, remark string) (*models.AgentTeamSchedule, error) {
 	if teamID <= 0 {
 		return nil, errorsx.InvalidParam("请选择客服组")
 	}
@@ -149,10 +148,6 @@ func (s *agentTeamScheduleService) buildScheduleModel(id, teamID int64, startAt,
 	}
 	if !slices.Contains(enums.StatusValues, team.Status) {
 		return nil, errorsx.InvalidParam("客服组状态不合法")
-	}
-	sourceType = strings.TrimSpace(sourceType)
-	if sourceType == "" {
-		return nil, errorsx.InvalidParam("排班来源不能为空")
 	}
 	startAtValue, err := parseRequiredDateTime(startAt, "开始时间格式错误")
 	if err != nil {
@@ -179,11 +174,10 @@ func (s *agentTeamScheduleService) buildScheduleModel(id, teamID int64, startAt,
 		return nil, errorsx.InvalidParam("该客服组在所选时间段已存在排班")
 	}
 	return &models.AgentTeamSchedule{
-		TeamID:     teamID,
-		StartAt:    startAtValue,
-		EndAt:      endAtValue,
-		SourceType: sourceType,
-		Remark:     strings.TrimSpace(remark),
+		TeamID:  teamID,
+		StartAt: startAtValue,
+		EndAt:   endAtValue,
+		Remark:  strings.TrimSpace(remark),
 	}, nil
 }
 
