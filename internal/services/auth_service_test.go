@@ -155,11 +155,43 @@ func TestAuthServiceLoginCredentialLockout(t *testing.T) {
 	}
 }
 
+func TestAuthServiceCredentialLockoutDisabledWhenMaxAttemptsNonPositive(t *testing.T) {
+	db := setupAuthServiceTestDB(t)
+	user := createAuthTestUser(t, db, "admin", "secret")
+	now := time.Now()
+	for i := 0; i < 3; i++ {
+		if err := db.Create(&models.LoginCredentialLog{
+			Principal: "admin",
+			UserID:    user.ID,
+			Success:   false,
+			Reason:    "credential locked",
+			CreatedAt: now.Add(-time.Duration(i+1) * time.Minute),
+		}).Error; err != nil {
+			t.Fatalf("seed credential log: %v", err)
+		}
+	}
+
+	ret, err := newAuthService().Login(request.LoginRequest{Username: "admin", Password: "secret"}, config.AuthConfig{
+		TokenTTLHours:        2,
+		MaxFailedAttempts:    0,
+		CredentialLockMinute: 15,
+	}, "127.0.0.1", "go-test")
+	if err != nil {
+		t.Fatalf("expected lockout to be disabled, got %v", err)
+	}
+	if ret == nil || ret.AccessToken == "" {
+		t.Fatalf("expected login response with access token, got %+v", ret)
+	}
+}
+
 func TestValidateSessionTokenStates(t *testing.T) {
 	db := setupAuthServiceTestDB(t)
 	svc := newAuthService()
 	now := time.Now()
 
+	if _, err := svc.validateSessionToken("  "); !hasCode(err, errorsx.CodeAuthUnauthorized) {
+		t.Fatalf("expected unauthorized for empty token, got %v", err)
+	}
 	if _, err := svc.validateSessionToken("missing"); !hasCode(err, errorsx.CodeAuthInvalidToken) {
 		t.Fatalf("expected invalid token for missing session, got %v", err)
 	}

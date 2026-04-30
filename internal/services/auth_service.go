@@ -278,7 +278,7 @@ func (s *authService) resolveTokenTTL(authCfg config.AuthConfig) time.Duration {
 
 func (s *authService) validateSessionToken(token string) (*models.LoginSession, error) {
 	if strings.TrimSpace(token) == "" {
-		return nil, errorsx.InvalidToken("token 不能为空")
+		return nil, errorsx.Unauthorized("未登录或登录已过期")
 	}
 	session := LoginSessionService.FindOne(sqls.NewCnd().Eq("token", token))
 	if session == nil {
@@ -411,7 +411,7 @@ func (s *authService) createLoginCredentialLog(principal string, userID int64, s
 func (s *authService) isCredentialLocked(username string, authCfg config.AuthConfig) bool {
 	maxFailedAttempts := authCfg.MaxFailedAttempts
 	if maxFailedAttempts <= 0 {
-		maxFailedAttempts = 5
+		return false
 	}
 	lockMinute := authCfg.CredentialLockMinute
 	if lockMinute <= 0 {
@@ -421,7 +421,6 @@ func (s *authService) isCredentialLocked(username string, authCfg config.AuthCon
 	return LoginCredentialLogService.Count(sqls.NewCnd().
 		Eq("principal", username).
 		Eq("success", false).
-		NotEq("reason", "credential locked").
 		Where("created_at >= ?", since)) >= int64(maxFailedAttempts)
 }
 
