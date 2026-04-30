@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"cs-agent/internal/builders"
 	"cs-agent/internal/models"
 	"cs-agent/internal/pkg/constants"
 	"cs-agent/internal/pkg/dto/request"
@@ -29,6 +30,60 @@ func (c *AgentTeamScheduleController) AnyList() *web.JsonResult {
 		results = append(results, buildAgentTeamScheduleResponse(&item))
 	}
 	return web.JsonData(&web.PageResult{Results: results, Page: paging})
+}
+
+func (c *AgentTeamScheduleController) AnyCalendar() *web.JsonResult {
+	if _, err := services.AuthService.RequirePermission(c.Ctx, constants.PermissionAgentTeamScheduleView); err != nil {
+		return web.JsonError(err)
+	}
+	startAt, _ := params.Get(c.Ctx, "startAt")
+	endAt, _ := params.Get(c.Ctx, "endAt")
+	teamID, _ := params.GetInt64(c.Ctx, "teamId")
+	list, err := services.AgentTeamScheduleService.FindCalendarSchedules(request.AgentTeamScheduleCalendarRequest{
+		StartAt: startAt,
+		EndAt:   endAt,
+		TeamID:  teamID,
+	})
+	if err != nil {
+		return web.JsonError(err)
+	}
+	results := make([]response.AgentTeamScheduleResponse, 0, len(list))
+	for _, item := range list {
+		results = append(results, buildAgentTeamScheduleResponse(&item))
+	}
+	return web.JsonData(results)
+}
+
+func (c *AgentTeamScheduleController) PostBatch_preview() *web.JsonResult {
+	operator, err := services.AuthService.RequirePermission(c.Ctx, constants.PermissionAgentTeamScheduleBatchGenerate)
+	if err != nil {
+		return web.JsonError(err)
+	}
+	req := request.AgentTeamScheduleBatchRequest{}
+	if err := params.ReadJSON(c.Ctx, &req); err != nil {
+		return web.JsonError(err)
+	}
+	ret, err := services.AgentTeamScheduleService.BatchPreview(req, operator)
+	if err != nil {
+		return web.JsonError(err)
+	}
+	return web.JsonData(builders.BuildAgentTeamScheduleBatchPreviewResponse(ret))
+}
+
+func (c *AgentTeamScheduleController) PostBatch_generate() *web.JsonResult {
+	operator, err := services.AuthService.RequirePermission(c.Ctx, constants.PermissionAgentTeamScheduleBatchGenerate)
+	if err != nil {
+		return web.JsonError(err)
+	}
+	req := request.AgentTeamScheduleBatchRequest{}
+	if err := params.ReadJSON(c.Ctx, &req); err != nil {
+		return web.JsonError(err)
+	}
+	ret, err := services.AgentTeamScheduleService.BatchGenerate(req, operator)
+	if err != nil {
+		return web.JsonError(err)
+	}
+	return web.JsonData(builders.BuildAgentTeamScheduleBatchGenerateResponse(ret))
 }
 
 func (c *AgentTeamScheduleController) GetBy(id int64) *web.JsonResult {
@@ -89,12 +144,11 @@ func (c *AgentTeamScheduleController) PostDelete() *web.JsonResult {
 
 func buildAgentTeamScheduleResponse(item *models.AgentTeamSchedule) response.AgentTeamScheduleResponse {
 	ret := response.AgentTeamScheduleResponse{
-		ID:         item.ID,
-		TeamID:     item.TeamID,
-		StartAt:    item.StartAt.Format("2006-01-02 15:04:05"),
-		EndAt:      item.EndAt.Format("2006-01-02 15:04:05"),
-		SourceType: item.SourceType,
-		Remark:     item.Remark,
+		ID:      item.ID,
+		TeamID:  item.TeamID,
+		StartAt: item.StartAt.Format("2006-01-02 15:04:05"),
+		EndAt:   item.EndAt.Format("2006-01-02 15:04:05"),
+		Remark:  item.Remark,
 	}
 	if team := services.AgentTeamService.Get(item.TeamID); team != nil {
 		ret.TeamName = team.Name

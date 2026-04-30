@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { OptionCombobox } from "@/components/option-combobox"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import {
   type AdminAgentTeam,
@@ -35,21 +34,16 @@ type ScheduleEditDialogProps = {
   open: boolean
   saving: boolean
   itemId: number | null
+  defaultValues?: Partial<CreateAdminAgentTeamSchedulePayload> | null
   onOpenChange: (open: boolean) => void
   onSubmit: (payload: CreateAdminAgentTeamSchedulePayload) => Promise<void>
+  onDelete?: (id: number) => Promise<void>
 }
-
-const sourceTypeOptions = [
-  { value: "manual", label: "手工录入" },
-  { value: "batch_import", label: "批量导入" },
-  { value: "template_generate", label: "模板生成" },
-] as const
 
 const emptyForm: EditForm = {
   teamId: "",
   startAt: "",
   endAt: "",
-  sourceType: "manual",
   remark: "",
 }
 
@@ -57,8 +51,35 @@ const editFormSchema = z.object({
   teamId: z.string().trim().regex(/^\d+$/, "请选择客服组"),
   startAt: z.string().trim().min(1, "开始时间不能为空"),
   endAt: z.string().trim().min(1, "结束时间不能为空"),
-  sourceType: z.enum(["manual", "batch_import", "template_generate"], { message: "请选择排班来源" }),
   remark: z.string().trim(),
+}).superRefine((value, ctx) => {
+  const startAt = parseDateTimeLocal(value.startAt)
+  const endAt = parseDateTimeLocal(value.endAt)
+  if (!startAt || !endAt) {
+    return
+  }
+  if (!endAt || endAt <= startAt) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["endAt"],
+      message: "结束时间必须晚于开始时间",
+    })
+    return
+  }
+  if (!isSameLocalDay(startAt, endAt)) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["endAt"],
+      message: "单条排班记录不能跨天",
+    })
+  }
+  if (startAt < startOfLocalDay(new Date())) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["startAt"],
+      message: "不能添加或修改历史日期的排班",
+    })
+  }
 })
 
 type EditForm = z.infer<typeof editFormSchema>
@@ -75,15 +96,41 @@ function toDateTimeLocal(value?: string) {
   return value.replace(" ", "T").slice(0, 16)
 }
 
-function buildForm(item: AdminAgentTeamSchedule | null): EditForm {
+function parseDateTimeLocal(value: string) {
+  const ret = new Date(value)
+  return Number.isNaN(ret.getTime()) ? null : ret
+}
+
+function startOfLocalDay(value: Date) {
+  const ret = new Date(value)
+  ret.setHours(0, 0, 0, 0)
+  return ret
+}
+
+function isSameLocalDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+}
+
+function todayDateTimeLocalMin() {
+  const today = startOfLocalDay(new Date())
+  const month = String(today.getMonth() + 1).padStart(2, "0")
+  const day = String(today.getDate()).padStart(2, "0")
+  return `${today.getFullYear()}-${month}-${day}T00:00`
+}
+
+function buildForm(item: AdminAgentTeamSchedule | null, defaultValues?: Partial<CreateAdminAgentTeamSchedulePayload> | null): EditForm {
   if (!item) {
-    return emptyForm
+    return {
+      teamId: defaultValues?.teamId ? String(defaultValues.teamId) : emptyForm.teamId,
+      startAt: toDateTimeLocal(defaultValues?.startAt),
+      endAt: toDateTimeLocal(defaultValues?.endAt),
+      remark: defaultValues?.remark ?? emptyForm.remark,
+    }
   }
   return {
     teamId: String(item.teamId),
     startAt: toDateTimeLocal(item.startAt),
     endAt: toDateTimeLocal(item.endAt),
-    sourceType: item.sourceType as EditForm["sourceType"],
     remark: item.remark || "",
   }
 }
@@ -93,7 +140,6 @@ function buildPayload(form: EditForm): CreateAdminAgentTeamSchedulePayload {
     teamId: Number(form.teamId),
     startAt: form.startAt.trim(),
     endAt: form.endAt.trim(),
-    sourceType: form.sourceType,
     remark: form.remark.trim(),
   }
 }
@@ -102,8 +148,10 @@ export function EditDialog({
   open,
   saving,
   itemId,
+  defaultValues,
   onOpenChange,
   onSubmit,
+  onDelete,
 }: ScheduleEditDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -111,9 +159,11 @@ export function EditDialog({
         <ScheduleEditDialogBody
           key={itemId ? `edit-${itemId}` : "create"}
           itemId={itemId}
+          defaultValues={defaultValues}
           saving={saving}
           onOpenChange={onOpenChange}
           onSubmit={onSubmit}
+          onDelete={onDelete}
         />
       ) : null}
     </Dialog>
@@ -125,8 +175,10 @@ type ScheduleEditDialogBodyProps = Omit<ScheduleEditDialogProps, "open">
 function ScheduleEditDialogBody({
   saving,
   itemId,
+  defaultValues,
   onOpenChange,
   onSubmit,
+  onDelete,
 }: ScheduleEditDialogBodyProps) {
   const [teams, setTeams] = useState<AdminAgentTeam[]>([])
   const [loading, setLoading] = useState(false)
@@ -153,11 +205,12 @@ function ScheduleEditDialogBody({
     register,
     formState: { errors },
   } = form
+  const minDateTime = todayDateTimeLocalMin()
 
   useEffect(() => {
     async function loadDetail() {
       if (!itemId) {
-        reset(emptyForm)
+        reset(buildForm(null, defaultValues))
         return
       }
       setLoading(true)
@@ -171,7 +224,7 @@ function ScheduleEditDialogBody({
       }
     }
     void loadDetail()
-  }, [itemId, reset])
+  }, [defaultValues, itemId, reset])
 
   useEffect(() => {
     void loadOptions()
@@ -221,43 +274,15 @@ function ScheduleEditDialogBody({
               <Field data-invalid={!!errors.startAt}>
                 <FieldLabel htmlFor="agent-team-schedule-start-at">开始时间</FieldLabel>
                 <FieldContent>
-                  <Input id="agent-team-schedule-start-at" type="datetime-local" {...register("startAt")} />
+                  <Input id="agent-team-schedule-start-at" type="datetime-local" min={minDateTime} {...register("startAt")} />
                   <FieldError errors={[errors.startAt]} />
                 </FieldContent>
               </Field>
               <Field data-invalid={!!errors.endAt}>
                 <FieldLabel htmlFor="agent-team-schedule-end-at">结束时间</FieldLabel>
                 <FieldContent>
-                  <Input id="agent-team-schedule-end-at" type="datetime-local" {...register("endAt")} />
+                  <Input id="agent-team-schedule-end-at" type="datetime-local" min={minDateTime} {...register("endAt")} />
                   <FieldError errors={[errors.endAt]} />
-                </FieldContent>
-              </Field>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field data-invalid={!!errors.sourceType}>
-                <FieldLabel>排班来源</FieldLabel>
-                <FieldContent>
-                  <Controller
-                    control={control}
-                    name="sourceType"
-                    render={({ field }) => (
-                      <Select value={field.value} onValueChange={field.onChange} modal={false}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue>
-                            {sourceTypeOptions.find((item) => item.value === field.value)?.label ?? "请选择来源"}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {sourceTypeOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                  <FieldError errors={[errors.sourceType]} />
                 </FieldContent>
               </Field>
             </div>
@@ -269,6 +294,11 @@ function ScheduleEditDialogBody({
             </Field>
           </div>
           <DialogFooter className="mx-0 mb-0 px-6 py-4">
+            {itemId && onDelete ? (
+              <Button type="button" variant="destructive" onClick={() => void onDelete(itemId)} disabled={saving}>
+                删除
+              </Button>
+            ) : null}
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
               取消
             </Button>

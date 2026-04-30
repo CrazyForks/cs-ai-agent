@@ -510,7 +510,6 @@ export type AdminAgentTeamSchedule = {
   teamName?: string
   startAt: string
   endAt: string
-  sourceType: string
   remark: string
 }
 
@@ -518,7 +517,6 @@ export type CreateAdminAgentTeamSchedulePayload = {
   teamId: number
   startAt: string
   endAt: string
-  sourceType: string
   remark: string
 }
 
@@ -526,6 +524,38 @@ export type UpdateAdminAgentTeamSchedulePayload =
   CreateAdminAgentTeamSchedulePayload & {
     id: number
   }
+
+export type BatchAdminAgentTeamSchedulePayload = {
+  teamIds: number[]
+  startDate: string
+  endDate: string
+  weekdays: number[]
+  startTime: string
+  endTime: string
+  remark: string
+}
+
+export type AdminAgentTeamScheduleBatchPreviewItem = {
+  teamId: number
+  teamName: string
+  date: string
+  weekday: number
+  startAt: string
+  endAt: string
+  remark: string
+  conflict: boolean
+  conflictReason: string
+}
+
+export type AdminAgentTeamScheduleBatchPreview = {
+  total: number
+  conflict: boolean
+  items: AdminAgentTeamScheduleBatchPreviewItem[]
+}
+
+export type AdminAgentTeamScheduleBatchGenerateResult = {
+  created: number
+}
 
 function toQueryString(query?: Record<string, string | number | undefined>) {
   if (!query) {
@@ -1092,6 +1122,14 @@ export function fetchAgentTeamSchedules(
   )
 }
 
+export function fetchAgentTeamScheduleCalendar(
+  query: Record<string, string | number | undefined>
+) {
+  return request<AdminAgentTeamSchedule[]>(
+    `/api/dashboard/agent-team-schedule/calendar${toQueryString(query)}`
+  )
+}
+
 export function fetchAgentTeamSchedule(id: number) {
   return request<AdminAgentTeamSchedule>(`/api/dashboard/agent-team-schedule/${id}`)
 }
@@ -1115,6 +1153,26 @@ export function deleteAgentTeamSchedule(id: number) {
     method: "POST",
     body: JSON.stringify({ id }),
   })
+}
+
+export function previewAgentTeamScheduleBatch(payload: BatchAdminAgentTeamSchedulePayload) {
+  return request<AdminAgentTeamScheduleBatchPreview>(
+    "/api/dashboard/agent-team-schedule/batch_preview",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  )
+}
+
+export function generateAgentTeamScheduleBatch(payload: BatchAdminAgentTeamSchedulePayload) {
+  return request<AdminAgentTeamScheduleBatchGenerateResult>(
+    "/api/dashboard/agent-team-schedule/batch_generate",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  )
 }
 
 export type AIConfig = {

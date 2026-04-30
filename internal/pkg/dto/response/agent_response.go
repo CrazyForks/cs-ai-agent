@@ -34,11 +34,32 @@ type AgentTeamResponse struct {
 }
 
 type AgentTeamScheduleResponse struct {
-	ID         int64  `json:"id"`
-	TeamID     int64  `json:"teamId"`
-	TeamName   string `json:"teamName,omitempty"`
-	StartAt    string `json:"startAt"`
-	EndAt      string `json:"endAt"`
-	SourceType string `json:"sourceType"`
-	Remark     string `json:"remark"`
+	ID       int64  `json:"id"`
+	TeamID   int64  `json:"teamId"`
+	TeamName string `json:"teamName,omitempty"`
+	StartAt  string `json:"startAt"`
+	EndAt    string `json:"endAt"`
+	Remark   string `json:"remark"`
+}
+
+type AgentTeamScheduleBatchPreviewResponse struct {
+	Total    int                                 `json:"total"`
+	Conflict bool                                `json:"conflict"`
+	Items    []AgentTeamScheduleBatchPreviewItem `json:"items"`
+}
+
+type AgentTeamScheduleBatchPreviewItem struct {
+	TeamID         int64  `json:"teamId"`
+	TeamName       string `json:"teamName"`
+	Date           string `json:"date"`
+	Weekday        int    `json:"weekday"`
+	StartAt        string `json:"startAt"`
+	EndAt          string `json:"endAt"`
+	Remark         string `json:"remark"`
+	Conflict       bool   `json:"conflict"`
+	ConflictReason string `json:"conflictReason"`
+}
+
+type AgentTeamScheduleBatchGenerateResponse struct {
+	Created int `json:"created"`
 }

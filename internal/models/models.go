@@ -742,13 +742,12 @@ type AgentTeam struct {
 
 // AgentTeamSchedule 客服组排班。
 type AgentTeamSchedule struct {
-	ID         int64        `gorm:"primaryKey;autoIncrement"`                   // ID 为组排班主键。
-	TeamID     int64        `gorm:"type:bigint;not null;index"`                 // TeamID 为被排班的客服组ID。
-	StartAt    time.Time    `gorm:"type:datetime;not null;index"`               // StartAt 为班次开始时间。
-	EndAt      time.Time    `gorm:"type:datetime;not null;index"`               // EndAt 为班次结束时间。
-	SourceType string       `gorm:"type:varchar(30);not null;default:'';index"` // SourceType 表示排班来源，如 manual、batch_import、template_generate。
-	Remark     string       `gorm:"type:varchar(255);not null;default:''"`      // Remark 记录排班备注。
-	Status     enums.Status `gorm:"type:int;not null;default:0;index"`          // Status 表示组排班记录状态。
+	ID      int64        `gorm:"primaryKey;autoIncrement"`              // ID 为组排班主键。
+	TeamID  int64        `gorm:"type:bigint;not null;index"`            // TeamID 为被排班的客服组ID。
+	StartAt time.Time    `gorm:"type:datetime;not null;index"`          // StartAt 为班次开始时间。
+	EndAt   time.Time    `gorm:"type:datetime;not null;index"`          // EndAt 为班次结束时间。
+	Remark  string       `gorm:"type:varchar(255);not null;default:''"` // Remark 记录排班备注。
+	Status  enums.Status `gorm:"type:int;not null;default:0;index"`     // Status 表示组排班记录状态。
 	AuditFields
 }
 
