@@ -86,7 +86,7 @@ export default function DashboardAgentTeamSchedulesPage() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(20)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [calendarLoading, setCalendarLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null)
@@ -107,6 +107,8 @@ export default function DashboardAgentTeamSchedulesPage() {
     }
     return teams.filter((team) => String(team.id) === teamFilter)
   }, [teamFilter, teams])
+
+  const refreshing = viewMode === "list" ? loading || calendarLoading : calendarLoading
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -369,16 +371,16 @@ export default function DashboardAgentTeamSchedulesPage() {
                 onChange={(value) => setTeamFilterInput(value)}
               />
             </div>
-            <Button variant="outline" onClick={applyFilters} disabled={loading || calendarLoading}>
+            <Button variant="outline" onClick={applyFilters} disabled={refreshing}>
               <SearchIcon />
               查询
             </Button>
             <Button
               variant="outline"
               onClick={() => void refreshActiveView()}
-              disabled={loading || calendarLoading}
+              disabled={refreshing}
             >
-              <RefreshCwIcon className={loading || calendarLoading ? "animate-spin" : ""} />
+              <RefreshCwIcon className={refreshing ? "animate-spin" : ""} />
               刷新
             </Button>
             <Button variant="outline" onClick={() => setBatchDialogOpen(true)}>
