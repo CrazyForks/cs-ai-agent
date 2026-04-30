@@ -15,8 +15,7 @@ logger:
   addSource: false
 
 auth:
-  accessTokenTTLHours: 12
-  refreshTokenTTLDays: 7
+  tokenTTLHours: 12
   maxFailedAttempts: 5
   credentialLockMinute: 15
 

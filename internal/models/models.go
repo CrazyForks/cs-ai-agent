@@ -287,31 +287,30 @@ type UserPermission struct {
 	AuditFields
 }
 
-// LoginSession 登录会话或刷新令牌记录。
+// LoginSession 表示一次后台登录会话。
 type LoginSession struct {
-	ID         int64      `gorm:"primaryKey;autoIncrement"`
-	UserID     int64      `gorm:"type:bigint;not null;index"`
-	TokenID    string     `gorm:"type:varchar(128);not null;uniqueIndex"`
-	TokenType  string     `gorm:"type:varchar(20);not null;default:'';index"`
-	ClientType string     `gorm:"type:varchar(50);not null;default:'';index"`
-	ClientIP   string     `gorm:"type:varchar(64);not null;default:''"`
-	UserAgent  string     `gorm:"type:varchar(255);not null;default:''"`
-	ExpiredAt  time.Time  `gorm:"type:datetime;not null;index"`
-	RevokedAt  *time.Time `gorm:"type:datetime;index"`
-	LastSeenAt *time.Time `gorm:"type:datetime"`
+	ID         int64      `gorm:"primaryKey;autoIncrement"`                   // ID 为登录会话主键。
+	UserID     int64      `gorm:"type:bigint;not null;index"`                 // UserID 为登录用户 ID。
+	Token      string     `gorm:"type:varchar(128);not null;uniqueIndex"`     // Token 为随机不透明登录凭证，使用 ak_ 前缀。
+	ClientType string     `gorm:"type:varchar(50);not null;default:'';index"` // ClientType 为客户端类型，后台 Web 端固定为 admin_web。
+	ClientIP   string     `gorm:"type:varchar(64);not null;default:''"`       // ClientIP 为登录请求来源 IP。
+	UserAgent  string     `gorm:"type:varchar(255);not null;default:''"`      // UserAgent 为登录请求浏览器或客户端 UA。
+	ExpiredAt  time.Time  `gorm:"type:datetime;not null;index"`               // ExpiredAt 为 token 过期时间。
+	RevokedAt  *time.Time `gorm:"type:datetime;index"`                        // RevokedAt 为主动注销或踢下线时间，非空表示已失效。
+	LastSeenAt *time.Time `gorm:"type:datetime"`                              // LastSeenAt 为最近一次成功鉴权时间。
 	AuditFields
 }
 
-// LoginCredentialLog 登录凭证校验日志。
+// LoginCredentialLog 记录一次后台登录凭证校验结果。
 type LoginCredentialLog struct {
-	ID        int64     `gorm:"primaryKey;autoIncrement"`
-	Principal string    `gorm:"type:varchar(100);not null;default:'';index"`
-	UserID    int64     `gorm:"type:bigint;not null;default:0;index"`
-	Success   bool      `gorm:"not null;default:false;index"`
-	ClientIP  string    `gorm:"type:varchar(64);not null;default:''"`
-	UserAgent string    `gorm:"type:varchar(255);not null;default:''"`
-	Reason    string    `gorm:"type:varchar(255);not null;default:''"`
-	CreatedAt time.Time `gorm:"type:datetime;not null;index"`
+	ID        int64     `gorm:"primaryKey;autoIncrement"`                    // ID 为登录凭证日志主键。
+	Principal string    `gorm:"type:varchar(100);not null;default:'';index"` // Principal 为用户输入的登录名。
+	UserID    int64     `gorm:"type:bigint;not null;default:0;index"`        // UserID 为匹配到的用户 ID，未匹配时为 0。
+	Success   bool      `gorm:"not null;default:false;index"`                // Success 表示本次凭证校验是否成功。
+	ClientIP  string    `gorm:"type:varchar(64);not null;default:''"`        // ClientIP 为登录请求来源 IP。
+	UserAgent string    `gorm:"type:varchar(255);not null;default:''"`       // UserAgent 为登录请求浏览器或客户端 UA。
+	Reason    string    `gorm:"type:varchar(255);not null;default:''"`       // Reason 为校验结果原因。
+	CreatedAt time.Time `gorm:"type:datetime;not null;index"`                // CreatedAt 为日志创建时间。
 }
 
 // Asset 存储的文件资源，如上传的附件等。

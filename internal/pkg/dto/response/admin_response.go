@@ -47,12 +47,11 @@ type CreateUserResultResponse struct {
 type SessionResponse struct {
 	ID         int64  `json:"id"`
 	UserID     int64  `json:"userId"`
-	Username   string `json:"username,omitempty"`
-	TokenType  string `json:"tokenType"`
+	Username   string `json:"username"`
 	ClientType string `json:"clientType"`
 	ClientIP   string `json:"clientIp"`
 	UserAgent  string `json:"userAgent"`
 	ExpiredAt  string `json:"expiredAt"`
-	RevokedAt  string `json:"revokedAt,omitempty"`
-	LastSeenAt string `json:"lastSeenAt,omitempty"`
+	RevokedAt  string `json:"revokedAt"`
+	LastSeenAt string `json:"lastSeenAt"`
 }

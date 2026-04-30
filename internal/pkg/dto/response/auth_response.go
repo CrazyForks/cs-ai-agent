@@ -12,10 +12,9 @@ type AuthUserResponse struct {
 }
 
 type LoginResponse struct {
-	AccessToken  string            `json:"accessToken"`
-	RefreshToken string            `json:"refreshToken"`
-	ExpiresAt    string            `json:"expiresAt"`
-	User         *AuthUserResponse `json:"user"`
-	Permissions  []string          `json:"permissions"`
-	Roles        []string          `json:"roles"`
+	AccessToken string            `json:"accessToken"`
+	ExpiresAt   string            `json:"expiresAt"`
+	User        *AuthUserResponse `json:"user"`
+	Permissions []string          `json:"permissions"`
+	Roles       []string          `json:"roles"`
 }
