@@ -55,8 +55,7 @@ type LoggerConfig struct {
 }
 
 type AuthConfig struct {
-	AccessTokenTTLHours  int `yaml:"accessTokenTTLHours"`
-	RefreshTokenTTLDays  int `yaml:"refreshTokenTTLDays"`
+	TokenTTLHours        int `yaml:"tokenTTLHours"`
 	MaxFailedAttempts    int `yaml:"maxFailedAttempts"`
 	CredentialLockMinute int `yaml:"credentialLockMinute"`
 }

@@ -30,20 +30,6 @@ func (c *AuthController) PostLogin() *web.JsonResult {
 	return web.JsonData(ret)
 }
 
-func (c *AuthController) PostRefresh_token() *web.JsonResult {
-	cfg := config.Current()
-	req := request.RefreshTokenRequest{}
-	if err := params.ReadJSON(c.Ctx, &req); err != nil {
-		return web.JsonError(err)
-	}
-
-	ret, err := services.AuthService.RefreshToken(req.RefreshToken, cfg.Auth, c.Ctx.RemoteAddr(), c.Ctx.GetHeader("User-Agent"))
-	if err != nil {
-		return web.JsonError(err)
-	}
-	return web.JsonData(ret)
-}
-
 func (c *AuthController) GetWxwork_login() {
 	loginURL, err := services.WxWorkLoginService.BuildWxWorkLoginURL(c.Ctx.URLParam("next"))
 	if err != nil {
@@ -91,14 +77,7 @@ func (c *AuthController) PostWxwork_exchange() *web.JsonResult {
 }
 
 func (c *AuthController) PostLogout() *web.JsonResult {
-	req := request.LogoutRequest{}
-	if c.Ctx.GetContentLength() > 0 {
-		if err := params.ReadJSON(c.Ctx, &req); err != nil {
-			return web.JsonError(err)
-		}
-	}
-
-	if err := services.AuthService.Logout(c.Ctx.GetHeader("Authorization"), req.RefreshToken); err != nil {
+	if err := services.AuthService.Logout(c.Ctx.GetHeader("Authorization")); err != nil {
 		return web.JsonError(err)
 	}
 	return web.JsonSuccess()

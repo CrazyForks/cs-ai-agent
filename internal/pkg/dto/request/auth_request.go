@@ -5,14 +5,6 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
-type RefreshTokenRequest struct {
-	RefreshToken string `json:"refreshToken"`
-}
-
-type LogoutRequest struct {
-	RefreshToken string `json:"refreshToken"`
-}
-
 type WxWorkExchangeRequest struct {
 	Ticket string `json:"ticket"`
 }

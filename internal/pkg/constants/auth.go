@@ -8,13 +8,7 @@ const (
 )
 
 const (
-	AccessTokenPrefix  = "atk_"
-	RefreshTokenPrefix = "rtk_"
-)
-
-const (
-	TokenTypeAccess  = "access"
-	TokenTypeRefresh = "refresh"
+	AuthTokenPrefix = "ak_"
 )
 
 const (

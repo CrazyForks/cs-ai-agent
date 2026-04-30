@@ -30,13 +30,10 @@ export async function fetchProfile() {
   return request<AuthSession>("/api/auth/profile")
 }
 
-export async function logout(refreshToken?: string) {
+export async function logout() {
   try {
     await request("/api/auth/logout", {
       method: "POST",
-      body: JSON.stringify({
-        refreshToken,
-      }),
     })
   } finally {
     clearSession()

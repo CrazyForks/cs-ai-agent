@@ -24,7 +24,6 @@ func (c *SessionController) AnyList() *web.JsonResult {
 
 	cnd := params.NewPagedSqlCnd(c.Ctx,
 		params.QueryFilter{ParamName: "userId"},
-		params.QueryFilter{ParamName: "tokenType"},
 		params.QueryFilter{ParamName: "clientType"},
 	).Desc("id")
 	list, paging := services.LoginSessionService.FindPageByCnd(cnd)
@@ -38,7 +37,6 @@ func (c *SessionController) AnyList() *web.JsonResult {
 			ID:         item.ID,
 			UserID:     item.UserID,
 			Username:   username,
-			TokenType:  item.TokenType,
 			ClientType: item.ClientType,
 			ClientIP:   item.ClientIP,
 			UserAgent:  item.UserAgent,
