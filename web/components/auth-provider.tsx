@@ -68,8 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [requiresAuth, router])
 
   async function signOut() {
-    const current = readSession()
-    await logout(current?.refreshToken)
+    await logout()
     setSession(null)
     startTransition(() => {
       router.replace("/dashboard/login")

@@ -1,4 +1,4 @@
-import { clearSession, readSession, writeSession, type AuthSession } from "@/lib/auth"
+import { clearSession, readSession } from "@/lib/auth"
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || ""
@@ -12,7 +12,6 @@ type JsonResult<T> = {
 
 type RequestOptions = RequestInit & {
   skipAuth?: boolean
-  retryOnAuthError?: boolean
   baseUrl?: string
   onResponse?: (response: Response) => void
 }
@@ -20,6 +19,9 @@ type RequestOptions = RequestInit & {
 async function parseResult<T>(response: Response) {
   const payload = (await response.json()) as JsonResult<T>
   if (!response.ok || !payload.success) {
+    if (payload.errorCode === 3000 || payload.errorCode === 3002) {
+      clearSession()
+    }
     const error = new Error(payload.message || "请求失败")
     ;(error as Error & { errorCode?: number }).errorCode = payload.errorCode
     throw error
@@ -27,40 +29,11 @@ async function parseResult<T>(response: Response) {
   return payload.data
 }
 
-async function refreshAccessToken() {
-  const session = readSession()
-  if (!session?.refreshToken) {
-    clearSession()
-    return null
-  }
-
-  const data = await request<AuthSession>(
-    "/api/auth/refresh_token",
-    {
-      method: "POST",
-      body: JSON.stringify({ refreshToken: session.refreshToken }),
-      skipAuth: true,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    },
-    false
-  )
-  const merged = {
-    ...data,
-    refreshToken: data.refreshToken || session.refreshToken,
-  }
-  writeSession(merged)
-  return merged
-}
-
 export async function request<T>(
   path: string,
-  options: RequestOptions = {},
-  retryOnAuthError = true
+  options: RequestOptions = {}
 ): Promise<T> {
   const { headers, skipAuth, baseUrl, onResponse, ...rest } = options
-  delete (rest as RequestOptions).retryOnAuthError
   delete (rest as RequestOptions).baseUrl
   delete (rest as RequestOptions).onResponse
   const session = readSession()
@@ -85,26 +58,5 @@ export async function request<T>(
   })
   onResponse?.(response)
 
-  try {
-    return await parseResult<T>(response)
-  } catch (error) {
-    const errorCode = (error as Error & { errorCode?: number }).errorCode
-    if (
-      !skipAuth &&
-      retryOnAuthError &&
-      (errorCode === 3000 || errorCode === 3002) &&
-      session?.refreshToken
-    ) {
-      const refreshed = await refreshAccessToken()
-      if (!refreshed) {
-        throw error
-      }
-      return request<T>(path, options, false)
-    }
-
-    if (errorCode === 3000 || errorCode === 3002) {
-      clearSession()
-    }
-    throw error
-  }
+  return parseResult<T>(response)
 }
