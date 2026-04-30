@@ -86,15 +86,12 @@ func (s *authService) Login(req request.LoginRequest, authCfg config.AuthConfig,
 		return nil, errorsx.InvalidParam("用户名和密码不能为空")
 	}
 
-	user := UserService.GetByUsername(username)
 	if s.isCredentialLocked(username, authCfg) {
-		userID := int64(0)
-		if user != nil {
-			userID = user.ID
-		}
-		_ = s.createLoginCredentialLog(username, userID, false, clientIP, userAgent, "credential locked")
+		_ = s.createLoginCredentialLog(username, 0, false, clientIP, userAgent, "credential locked")
 		return nil, errorsx.CredentialLocked("登录失败次数过多，请稍后再试")
 	}
+
+	user := UserService.GetByUsername(username)
 	if user == nil || user.Status != enums.StatusOk {
 		_ = s.createLoginCredentialLog(username, 0, false, clientIP, userAgent, "user not found")
 		return nil, errorsx.InvalidAccount("用户名或密码错误")
