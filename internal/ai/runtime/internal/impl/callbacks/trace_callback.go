@@ -65,6 +65,15 @@ type RetrieverTraceSummary struct {
 	Policies         []RetrieverPolicyTraceItem
 }
 
+type AnswerabilityTraceData struct {
+	Status             string   `json:"status,omitempty"`
+	Reason             string   `json:"reason,omitempty"`
+	SupportingChunkIDs []string `json:"supportingChunkIds,omitempty"`
+	MissingInfo        []string `json:"missingInfo,omitempty"`
+	LatencyMs          int64    `json:"latencyMs,omitempty"`
+	ErrorMessage       string   `json:"errorMessage,omitempty"`
+}
+
 type RetrieverPolicyTraceItem struct {
 	KnowledgeBaseID int64   `json:"knowledgeBaseId,omitempty"`
 	TopK            int     `json:"topK,omitempty"`
@@ -119,7 +128,8 @@ type RuntimeTraceData struct {
 		Policies         []RetrieverPolicyTraceItem `json:"policies,omitempty"`
 		Items            []RetrieverTraceItem       `json:"items,omitempty"`
 	} `json:"retriever"`
-	Tools struct {
+	Answerability AnswerabilityTraceData `json:"answerability,omitempty"`
+	Tools         struct {
 		Count int             `json:"count,omitempty"`
 		Items []ToolTraceItem `json:"items,omitempty"`
 	} `json:"tools"`

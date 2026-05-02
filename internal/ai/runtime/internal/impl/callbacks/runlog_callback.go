@@ -106,6 +106,19 @@ func (c *RuntimeTraceCollector) SetRetrieverSummary(summary RetrieverTraceSummar
 	c.Data.Retriever.Policies = append([]RetrieverPolicyTraceItem(nil), summary.Policies...)
 }
 
+func (c *RuntimeTraceCollector) SetAnswerability(data AnswerabilityTraceData) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.Data.Answerability = AnswerabilityTraceData{
+		Status:             data.Status,
+		Reason:             data.Reason,
+		SupportingChunkIDs: append([]string(nil), data.SupportingChunkIDs...),
+		MissingInfo:        append([]string(nil), data.MissingInfo...),
+		LatencyMs:          data.LatencyMs,
+		ErrorMessage:       data.ErrorMessage,
+	}
+}
+
 func (c *RuntimeTraceCollector) AddToolItem(item ToolTraceItem) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
