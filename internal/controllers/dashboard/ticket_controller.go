@@ -213,11 +213,7 @@ func (c *TicketController) PostChange_status() *web.JsonResult {
 	return web.JsonSuccess()
 }
 
-func (c *TicketController) PostAdd_progress() *web.JsonResult {
-	return c.createProgress()
-}
-
-func (c *TicketController) AnyProgress_list() *web.JsonResult {
+func (c *TicketController) AnyProgressList() *web.JsonResult {
 	if _, err := services.AuthService.RequirePermission(c.Ctx, constants.PermissionTicketView); err != nil {
 		return web.JsonError(err)
 	}
@@ -232,7 +228,7 @@ func (c *TicketController) AnyProgress_list() *web.JsonResult {
 	return web.JsonData(builders.BuildTicketProgressList(progresses))
 }
 
-func (c *TicketController) PostProgress_create() *web.JsonResult {
+func (c *TicketController) PostProgressCreate() *web.JsonResult {
 	return c.createProgress()
 }
 
