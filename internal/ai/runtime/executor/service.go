@@ -35,6 +35,23 @@ func (s *Service) ExecuteRun(ctx context.Context, req RunInput) (*RunResult, err
 	}
 	collector := callbacks.NewRuntimeTraceCollector()
 	collector.Data.RunID = summary.RunID
+	summary.ModelName = req.AIConfig.ModelName
+	collector.Data.Model.Provider = string(req.AIConfig.Provider)
+	collector.Data.Model.Name = req.AIConfig.ModelName
+
+	checkPointID := resolveCheckPointID(req.CheckPointID, summary.RunID)
+	summary.CheckPointID = checkPointID
+	messages := buildRunMessages(ctx, req, summary, collector, s.answerabilityGate)
+	if strings.TrimSpace(summary.ReplyText) != "" {
+		summary.Status = "completed"
+		summary.ModelName = req.AIConfig.ModelName
+		collector.Data.Status = summary.Status
+		collector.Data.Output.ReplyText = summary.ReplyText
+		collector.Data.Output.FinishReason = summary.Status
+		summary.TraceData = collector.Marshal()
+		return summary, nil
+	}
+
 	toolDefs, err := factory.NewToolFactory().BuildMCPTools(req.AIAgent)
 	if err != nil {
 		summary.Status = "error"
@@ -50,9 +67,6 @@ func (s *Service) ExecuteRun(ctx context.Context, req RunInput) (*RunResult, err
 	summary.ToolCodes = append(summary.ToolCodes, tooling.toolCodes...)
 	collector.Data.Input.ToolCodes = append(collector.Data.Input.ToolCodes, summary.ToolCodes...)
 	collector.SetTooling(tooling.staticToolCodes, definitionToolCodes(tooling.definitions), len(tooling.definitions) > 0)
-
-	collector.Data.Model.Provider = string(req.AIConfig.Provider)
-	collector.Data.Model.Name = req.AIConfig.ModelName
 
 	agent, err := s.agentFactory.BuildCustomerServiceAgent(ctx, factory.BuildCustomerServiceAgentInput{
 		AIAgent:                    req.AIAgent,
@@ -74,8 +88,6 @@ func (s *Service) ExecuteRun(ctx context.Context, req RunInput) (*RunResult, err
 		return summary, err
 	}
 
-	checkPointID := resolveCheckPointID(req.CheckPointID, summary.RunID)
-	summary.CheckPointID = checkPointID
 	runner := s.runnerFactory.Build(ctx, agent, false, true)
 	if runner == nil {
 		summary.Status = "error"
@@ -85,16 +97,6 @@ func (s *Service) ExecuteRun(ctx context.Context, req RunInput) (*RunResult, err
 		collector.Data.Error.Stage = "prepare"
 		summary.TraceData = collector.Marshal()
 		return summary, fmt.Errorf("%s", summary.ErrorMessage)
-	}
-	messages := buildRunMessages(ctx, req, summary, collector, s.answerabilityGate)
-	if strings.TrimSpace(summary.ReplyText) != "" {
-		summary.Status = "completed"
-		summary.ModelName = req.AIConfig.ModelName
-		collector.Data.Status = summary.Status
-		collector.Data.Output.ReplyText = summary.ReplyText
-		collector.Data.Output.FinishReason = summary.Status
-		summary.TraceData = collector.Marshal()
-		return summary, nil
 	}
 	collector.Data.Interrupt.CheckPointID = checkPointID
 	consumeAgentEvents(runner.Run(ctx, messages, buildRunOptions(checkPointID)...), summary, collector, tooling.toolDefsByModelName)

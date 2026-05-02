@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
@@ -183,6 +184,128 @@ func TestKnowledgeAnswerabilityGateEvaluateAllowsAnswerableDecisionAndProducesKn
 	}
 	if len(chatModel.input) == 0 || !strings.Contains(chatModel.input[len(chatModel.input)-1].Content, "chunkId: 101") {
 		t.Fatalf("expected grader prompt to include chunk id, got %#v", chatModel.input)
+	}
+}
+
+func TestKnowledgeAnswerabilityGateEvaluateFallsBackWhenSupportingChunkIDsAreInvalid(t *testing.T) {
+	collector := callbacks.NewRuntimeTraceCollector()
+	chatModel := &fakeAnswerabilityChatModel{
+		response: `{"answerable": true, "reason": "refund condition is directly supported", "supportingChunkIds": ["not-real"]}`,
+	}
+	gate := newTestKnowledgeAnswerabilityGate(newAnswerabilityRetrieverWithHit(), chatModel)
+
+	state, err := gate.Evaluate(context.Background(), answerabilityGateInput{
+		Request:   newAnswerabilityGateRunInput("满足什么条件可以退款？", "1"),
+		Collector: collector,
+	})
+	if err != nil {
+		t.Fatalf("Evaluate returned error: %v", err)
+	}
+
+	if !strings.Contains(state.FallbackReply, "建议你联系人工客服进一步确认。") {
+		t.Fatalf("expected human-support fallback, got %q", state.FallbackReply)
+	}
+	if len(state.Decision.Instructions) != 0 {
+		t.Fatalf("expected no knowledge instruction, got %d", len(state.Decision.Instructions))
+	}
+	if collector.Data.Answerability.Status != answerabilityStatusUnanswerable {
+		t.Fatalf("unexpected answerability status: %q", collector.Data.Answerability.Status)
+	}
+	if collector.Data.Answerability.Reason != "answerability supporting chunks invalid" {
+		t.Fatalf("unexpected reason: %q", collector.Data.Answerability.Reason)
+	}
+	if strings.TrimSpace(collector.Data.Answerability.ErrorMessage) == "" {
+		t.Fatal("expected invalid supporting chunk error message")
+	}
+}
+
+func TestValidateAnswerabilitySupportAcceptsSupportedIDForms(t *testing.T) {
+	result := &retrievers.KnowledgeRetrieveResult{
+		ContextResults: []rag.RetrieveResult{
+			{KnowledgeBaseID: 1, DocumentID: 10, FaqID: 20, ChunkID: 101},
+		},
+		Hits: []rag.RetrieveResult{
+			{KnowledgeBaseID: 2, DocumentID: 30, ChunkID: 202},
+		},
+	}
+	supportedIDs := []string{
+		"101",
+		"chunk:101",
+		"chunkId:101",
+		"chunk-101",
+		"kb:1:doc:10:chunk:101",
+		"kb:1:faq:20:chunk:101",
+	}
+
+	for _, supportingChunkID := range supportedIDs {
+		t.Run(supportingChunkID, func(t *testing.T) {
+			err := validateAnswerabilitySupport(answerabilityDecision{
+				Answerable:         true,
+				SupportingChunkIDs: []string{supportingChunkID},
+			}, result)
+			if err != nil {
+				t.Fatalf("expected %q to be accepted: %v", supportingChunkID, err)
+			}
+		})
+	}
+}
+
+func TestValidateAnswerabilitySupportUsesContextResultsBeforeHits(t *testing.T) {
+	result := &retrievers.KnowledgeRetrieveResult{
+		ContextResults: []rag.RetrieveResult{
+			{KnowledgeBaseID: 1, DocumentID: 10, ChunkID: 101},
+		},
+		Hits: []rag.RetrieveResult{
+			{KnowledgeBaseID: 2, DocumentID: 20, ChunkID: 202},
+		},
+	}
+
+	err := validateAnswerabilitySupport(answerabilityDecision{
+		Answerable:         true,
+		SupportingChunkIDs: []string{"202"},
+	}, result)
+
+	if err == nil {
+		t.Fatal("expected hit outside context results to be rejected")
+	}
+}
+
+func TestExecuteRunReturnsKnowledgeFallbackBeforeInvalidMCPToolConfig(t *testing.T) {
+	gate := newTestKnowledgeAnswerabilityGate(&fakeKnowledgeContextRetriever{
+		knowledgeBaseIDs: []int64{1},
+		err:              errors.New("vector store unavailable"),
+	}, nil)
+	service := &Service{
+		answerabilityGate: gate,
+	}
+
+	result, err := service.ExecuteRun(context.Background(), RunInput{
+		UserMessage: models.Message{Content: "是否支持退款？"},
+		AIAgent: models.AIAgent{
+			KnowledgeIDs:    "1",
+			AllowedMCPTools: "{invalid",
+		},
+		AIConfig: models.AIConfig{ModelName: "fake-model"},
+	})
+	if err != nil {
+		t.Fatalf("ExecuteRun returned error before fallback: %v", err)
+	}
+
+	if result.Status != "completed" {
+		t.Fatalf("expected completed fallback result, got %q", result.Status)
+	}
+	if !strings.Contains(result.ReplyText, "建议你联系人工客服进一步确认。") {
+		t.Fatalf("expected human-support fallback, got %q", result.ReplyText)
+	}
+	var trace callbacks.RuntimeTraceData
+	if err := json.Unmarshal([]byte(result.TraceData), &trace); err != nil {
+		t.Fatalf("unmarshal trace data: %v", err)
+	}
+	if trace.Answerability.Status != answerabilityStatusUnanswerable {
+		t.Fatalf("unexpected answerability status: %q", trace.Answerability.Status)
+	}
+	if trace.Model.Name != "fake-model" {
+		t.Fatalf("expected model name to be recorded before fallback, got %q", trace.Model.Name)
 	}
 }
 

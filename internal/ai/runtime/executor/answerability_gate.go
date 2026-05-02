@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
+	"cs-agent/internal/ai/rag"
 	"cs-agent/internal/ai/runtime/internal/impl/callbacks"
 	"cs-agent/internal/ai/runtime/internal/impl/factory"
 	"cs-agent/internal/ai/runtime/internal/impl/retrievers"
@@ -283,6 +285,12 @@ func (g *KnowledgeAnswerabilityGate) gradeAnswerability(ctx context.Context, sta
 		return state, nil
 	}
 	state.Grade = decision
+	if err := validateAnswerabilitySupport(decision, state.RetrieveResult); err != nil {
+		state.FallbackReply = resolveKnowledgeHumanSupportFallback(req.AIAgent)
+		state.ErrorMessage = err.Error()
+		state.recordAnswerabilityWithLatency(answerabilityStatusUnanswerable, "answerability supporting chunks invalid", err, started)
+		return state, nil
+	}
 	if !decision.Answerable {
 		state.FallbackReply = resolveKnowledgeHumanSupportFallback(req.AIAgent)
 		state.recordAnswerabilityWithLatency(answerabilityStatusUnanswerable, decision.Reason, nil, started)
@@ -350,6 +358,76 @@ func buildAnswerabilityContext(result *retrievers.KnowledgeRetrieveResult) strin
 		))
 	}
 	return strings.TrimSpace(builder.String())
+}
+
+func validateAnswerabilitySupport(decision answerabilityDecision, result *retrievers.KnowledgeRetrieveResult) error {
+	if !decision.Answerable {
+		return nil
+	}
+	if len(decision.SupportingChunkIDs) == 0 {
+		return fmt.Errorf("answerable decision requires supportingChunkIds")
+	}
+	items := []ragRetrieveItem(nil)
+	if result != nil {
+		if len(result.ContextResults) > 0 {
+			items = appendRetrieveItems(items, result.ContextResults)
+		} else {
+			items = appendRetrieveItems(items, result.Hits)
+		}
+	}
+	if len(items) == 0 {
+		return fmt.Errorf("answerable decision has no retrieved chunks to support it")
+	}
+	allowed := make(map[string]struct{})
+	for _, item := range items {
+		addAllowedSupportingChunkIDs(allowed, item)
+	}
+	for _, supportingChunkID := range decision.SupportingChunkIDs {
+		supportingChunkID = strings.TrimSpace(supportingChunkID)
+		if supportingChunkID == "" {
+			continue
+		}
+		if _, ok := allowed[supportingChunkID]; !ok {
+			return fmt.Errorf("supporting chunk id %q was not retrieved", supportingChunkID)
+		}
+	}
+	return nil
+}
+
+type ragRetrieveItem struct {
+	KnowledgeBaseID int64
+	DocumentID      int64
+	FaqID           int64
+	ChunkID         int64
+}
+
+func appendRetrieveItems(dst []ragRetrieveItem, src []rag.RetrieveResult) []ragRetrieveItem {
+	for _, item := range src {
+		dst = append(dst, ragRetrieveItem{
+			KnowledgeBaseID: item.KnowledgeBaseID,
+			DocumentID:      item.DocumentID,
+			FaqID:           item.FaqID,
+			ChunkID:         item.ChunkID,
+		})
+	}
+	return dst
+}
+
+func addAllowedSupportingChunkIDs(allowed map[string]struct{}, item ragRetrieveItem) {
+	if item.ChunkID <= 0 {
+		return
+	}
+	chunkID := strconv.FormatInt(item.ChunkID, 10)
+	allowed[chunkID] = struct{}{}
+	allowed["chunk:"+chunkID] = struct{}{}
+	allowed["chunkId:"+chunkID] = struct{}{}
+	allowed["chunk-"+chunkID] = struct{}{}
+	if item.KnowledgeBaseID > 0 && item.DocumentID > 0 {
+		allowed[fmt.Sprintf("kb:%d:doc:%d:chunk:%d", item.KnowledgeBaseID, item.DocumentID, item.ChunkID)] = struct{}{}
+	}
+	if item.KnowledgeBaseID > 0 && item.FaqID > 0 {
+		allowed[fmt.Sprintf("kb:%d:faq:%d:chunk:%d", item.KnowledgeBaseID, item.FaqID, item.ChunkID)] = struct{}{}
+	}
 }
 
 func parseAnswerabilityDecision(raw string) (answerabilityDecision, error) {

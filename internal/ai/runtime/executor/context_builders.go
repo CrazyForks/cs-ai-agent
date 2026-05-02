@@ -48,6 +48,19 @@ func appendRetrievedContext(ctx context.Context, req RunInput, summary *RunResul
 		Messages:  append([]*schema.Message(nil), (*messages)...),
 	})
 	if err != nil || state == nil {
+		errorMessage := ""
+		if err != nil {
+			errorMessage = err.Error()
+		} else {
+			errorMessage = "answerability gate returned nil state"
+		}
+		if collector != nil {
+			collector.SetAnswerability(callbacks.AnswerabilityTraceData{
+				Status:       answerabilityStatusUnanswerable,
+				Reason:       "answerability gate failed",
+				ErrorMessage: errorMessage,
+			})
+		}
 		decision := buildKnowledgeUnavailableDecision(req.AIAgent, utils.SplitInt64s(req.AIAgent.KnowledgeIDs))
 		if strings.TrimSpace(decision.FallbackReply) != "" {
 			decision.FallbackReply = resolveKnowledgeHumanSupportFallback(req.AIAgent)
