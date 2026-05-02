@@ -137,7 +137,7 @@ export function KefuChatShell() {
     void markConversationRead().catch((readError) => {
       console.error("Failed to mark kefu conversation read", readError)
     })
-  }, [conversation, isVisible, markConversationRead])
+  }, [conversation?.id, isVisible, markConversationRead])
 
   useEffect(() => {
     return bindKefuHostBridge({

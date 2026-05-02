@@ -173,7 +173,7 @@ export function ChatPanel() {
       toast.error(error instanceof Error ? error.message : "设置已读失败");
     });
   }, [
-    conversation,
+    conversation?.id,
     getViewport,
     isNearBottom,
     loading,
