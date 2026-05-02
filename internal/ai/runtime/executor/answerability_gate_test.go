@@ -349,6 +349,64 @@ func TestBuildRunMessagesInjectsKnowledgeWhenGateAllows(t *testing.T) {
 	}
 }
 
+func TestBuildRunMessagesSkipsAnswerabilityGateForExplicitHandoffIntent(t *testing.T) {
+	summary := &RunResult{}
+	retriever := &fakeKnowledgeContextRetriever{
+		knowledgeBaseIDs: []int64{1},
+		err:              errors.New("retriever should not be called for handoff intent"),
+	}
+	gate := newTestKnowledgeAnswerabilityGate(retriever, nil)
+
+	messages := buildRunMessages(context.Background(), newAnswerabilityGateRunInput("我要转人工", "1"), summary, nil, gate)
+
+	if summary.ReplyText != "" {
+		t.Fatalf("expected handoff intent to continue to agent/tool routing, got fallback %q", summary.ReplyText)
+	}
+	if retriever.lastQuery != "" {
+		t.Fatalf("expected retriever to be skipped for handoff intent, got query %q", retriever.lastQuery)
+	}
+	if !messagesContainContent(messages, "我要转人工") {
+		t.Fatalf("expected current user message in messages, got %#v", messages)
+	}
+}
+
+func TestBuildRunMessagesSkipsAnswerabilityGateForExplicitTicketIntent(t *testing.T) {
+	summary := &RunResult{}
+	retriever := &fakeKnowledgeContextRetriever{
+		knowledgeBaseIDs: []int64{1},
+		err:              errors.New("retriever should not be called for ticket intent"),
+	}
+	gate := newTestKnowledgeAnswerabilityGate(retriever, nil)
+
+	messages := buildRunMessages(context.Background(), newAnswerabilityGateRunInput("帮我创建一个工单", "1"), summary, nil, gate)
+
+	if summary.ReplyText != "" {
+		t.Fatalf("expected ticket intent to continue to agent/tool routing, got fallback %q", summary.ReplyText)
+	}
+	if retriever.lastQuery != "" {
+		t.Fatalf("expected retriever to be skipped for ticket intent, got query %q", retriever.lastQuery)
+	}
+	if !messagesContainContent(messages, "帮我创建一个工单") {
+		t.Fatalf("expected current user message in messages, got %#v", messages)
+	}
+}
+
+func TestRuntimeActionIntentDoesNotMatchKnowledgeQuestions(t *testing.T) {
+	cases := []string{
+		"人工客服服务时间是什么？",
+		"工单状态怎么查询？",
+		"需要查询工单状态怎么操作？",
+	}
+
+	for _, tc := range cases {
+		t.Run(tc, func(t *testing.T) {
+			if isRuntimeActionIntent(tc) {
+				t.Fatalf("expected %q to stay in knowledge answerability flow", tc)
+			}
+		})
+	}
+}
+
 func newTestKnowledgeAnswerabilityGate(retriever knowledgeContextRetriever, chatModel model.BaseChatModel) *KnowledgeAnswerabilityGate {
 	return &KnowledgeAnswerabilityGate{
 		newRetriever: func(aiAgent models.AIAgent) knowledgeContextRetriever {

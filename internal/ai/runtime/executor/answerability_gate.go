@@ -181,6 +181,11 @@ func (g *KnowledgeAnswerabilityGate) retrieveKnowledge(ctx context.Context, stat
 	}
 	gate := g.withDefaults()
 	req := state.Input.Request
+	if isRuntimeActionIntent(req.UserMessage.Content) {
+		state.SkipGate = true
+		state.recordAnswerability(answerabilityStatusSkipped, "runtime action intent", nil)
+		return state, nil
+	}
 	configuredKnowledgeIDs := utils.SplitInt64s(req.AIAgent.KnowledgeIDs)
 	retriever := gate.newRetriever(req.AIAgent)
 	if retriever == nil {
@@ -230,6 +235,72 @@ func (g *KnowledgeAnswerabilityGate) retrieveKnowledge(ctx context.Context, stat
 		return state, nil
 	}
 	return state, nil
+}
+
+func isRuntimeActionIntent(content string) bool {
+	text := strings.ToLower(strings.TrimSpace(content))
+	if text == "" {
+		return false
+	}
+	compact := strings.NewReplacer(" ", "", "\t", "", "\n", "", "\r", "").Replace(text)
+	handoffPhrases := []string{
+		"我要转人工",
+		"帮我转人工",
+		"转人工",
+		"接人工",
+		"找人工",
+		"真人客服",
+		"humanagent",
+		"liveagent",
+	}
+	for _, phrase := range handoffPhrases {
+		if strings.Contains(compact, phrase) {
+			return true
+		}
+	}
+	if containsAny(compact, []string{"人工客服", "人工服务", "人工处理"}) &&
+		!containsAny(compact, []string{"是什么", "怎么", "如何", "多少", "几", "吗", "?"}) &&
+		(isShortActionPhrase(compact) || containsAny(compact, []string{"我要", "帮我", "请", "联系", "需要"})) {
+		return true
+	}
+	ticketPhrases := []string{
+		"创建工单",
+		"新建工单",
+		"提交工单",
+		"发起工单",
+		"建工单",
+		"开工单",
+		"我要建单",
+		"帮我建单",
+		"创建ticket",
+		"createticket",
+	}
+	for _, phrase := range ticketPhrases {
+		if strings.Contains(compact, phrase) {
+			return true
+		}
+	}
+	if strings.Contains(compact, "工单") {
+		for _, action := range []string{"创建", "新建", "提交", "发起", "建", "开", "帮我", "我要", "请"} {
+			if strings.Contains(compact, action) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func containsAny(text string, values []string) bool {
+	for _, value := range values {
+		if strings.Contains(text, value) {
+			return true
+		}
+	}
+	return false
+}
+
+func isShortActionPhrase(text string) bool {
+	return len([]rune(text)) <= 8
 }
 
 func (g *KnowledgeAnswerabilityGate) gradeAnswerability(ctx context.Context, state *answerabilityGateState) (*answerabilityGateState, error) {

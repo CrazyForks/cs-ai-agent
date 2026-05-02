@@ -57,7 +57,11 @@ func resolveKnowledgeHumanSupportFallback(aiAgent models.AIAgent) string {
 	if strs.IsBlank(base) {
 		base = "当前知识库暂无明确信息。"
 	}
-	return base
+	humanSupport := "建议你联系人工客服进一步确认。"
+	if strings.Contains(base, humanSupport) {
+		return base
+	}
+	return base + " " + humanSupport
 }
 
 func buildKnowledgeRuntimeInstruction(answerMode enums.KnowledgeAnswerMode, fallbackReply string) string {
