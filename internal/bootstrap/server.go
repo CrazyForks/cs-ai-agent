@@ -119,8 +119,6 @@ func addRouter(app *iris.Application) {
 		m.Party("/conversation").Handle(new(dashboard.ConversationController))
 		m.Party("/ticket").Handle(new(dashboard.TicketController))
 		m.Party("/notification").Handle(new(dashboard.NotificationController))
-		m.Party("/ticket-resolution-code").Handle(new(dashboard.TicketResolutionCodeController))
-		m.Party("/ticket-priority-config").Handle(new(dashboard.TicketPriorityConfigController))
 		m.Party("/quick-reply").Handle(new(dashboard.QuickReplyController))
 		m.Party("/channel").Handle(new(dashboard.ChannelController))
 		m.Party("/agent").Handle(new(dashboard.AgentController))

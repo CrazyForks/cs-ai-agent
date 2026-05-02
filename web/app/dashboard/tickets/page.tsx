@@ -1,24 +1,11 @@
 "use client"
 
-import Link from "next/link"
-import {
-  ArrowRightLeftIcon,
-  CircleOffIcon,
-  ClipboardListIcon,
-  PlusIcon,
-  RefreshCcwIcon,
-  SearchIcon,
-  SaveIcon,
-  Settings2Icon,
-  SquarePenIcon,
-  StarIcon,
-  Trash2Icon,
-} from "lucide-react"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { PlusIcon, RefreshCcwIcon, SearchXIcon } from "lucide-react"
+import { useSearchParams } from "next/navigation"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 
-import { ListPagination } from "@/components/list-pagination"
-import { OptionCombobox } from "@/components/option-combobox"
+import { OptionCombobox, type ComboboxOption } from "@/components/option-combobox"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -33,89 +20,61 @@ import {
 } from "@/components/ui/table"
 import {
   fetchAgentProfilesAll,
-  fetchAgentTeamsAll,
-  type AdminAgentProfile,
-  type AdminAgentTeam,
   fetchTagsAll,
+  type AdminAgentProfile,
   type TagTree,
 } from "@/lib/api/admin"
 import {
-  fetchTicketPriorityConfigsAll,
-  type TicketPriorityConfig,
-} from "@/lib/api/ticket-config"
-import {
   createTicket,
-  batchWatchTickets,
-  deleteTicketView,
-  fetchTicketViews,
   fetchTicketSummary,
   fetchTickets,
-  saveTicketView,
-  updateTicket,
-  unwatchTicket,
-  watchTicket,
-  type Paging,
-  type TicketSavedView,
+  type CreateTicketPayload,
   type TicketItem,
+  type TicketListQuery,
+  type TicketStatus,
   type TicketSummary,
 } from "@/lib/api/ticket"
-import { readSession } from "@/lib/auth"
-import { formatDateTime } from "@/lib/utils"
+import { cn, formatDateTime } from "@/lib/utils"
 import { EditDialog } from "./_components/edit"
 import { TicketAssignDialog } from "./_components/ticket-assign-dialog"
-import { TicketPriorityBadge } from "./_components/ticket-priority-badge"
-import { TicketReasonDialog } from "./_components/ticket-reason-dialog"
-import { TicketSLABadge } from "./_components/ticket-sla-badge"
-import { TicketStatusDialog } from "./_components/ticket-status-dialog"
+import { TicketDetailDialog } from "./_components/ticket-detail-dialog"
 import { TicketStatusBadge } from "./_components/ticket-status-badge"
-
-const emptyPaging: Paging = { page: 1, limit: 20, total: 0 }
-const emptySummary: TicketSummary = {
-  all: 0,
-  mine: 0,
-  watching: 0,
-  collaboration: 0,
-  participating: 0,
-  mentioned: 0,
-  unassigned: 0,
-  pendingCustomer: 0,
-  pendingInternal: 0,
-  overdue: 0,
-}
 
 type QuickViewKey =
   | "all"
-  | "mine"
-  | "collaboration"
-  | "participating"
-  | "mentioned"
-  | "watching"
+  | "pending"
+  | "in_progress"
+  | "done"
   | "unassigned"
-  | "pending_customer"
-  | "pending_internal"
-  | "overdue"
+  | "mine"
+  | "stale"
 
-type SavedTicketView = {
-  id: number
-  name: string
-  keywordInput: string
-  keyword: string
-  statusFilter: string
-  priorityFilter: string
-  severityFilter: string
-  tagFilter: string
-  teamFilter: string
-  assigneeFilter: string
-  sourceFilter: string
-  watchFilter: string
-  quickView: QuickViewKey
+const emptySummary: TicketSummary = {
+  all: 0,
+  pending: 0,
+  inProgress: 0,
+  done: 0,
+  unassigned: 0,
+  mine: 0,
+  stale: 0,
 }
 
-function buildTagOptions(nodes: TagTree[], parentPath = ""): Array<{ value: string; label: string }> {
-  const result: Array<{ value: string; label: string }> = []
+const assigneeAllOption: ComboboxOption = { value: "0", label: "全部负责人" }
+const tagAllOption: ComboboxOption = { value: "0", label: "全部标签" }
+const staleHourOptions: ComboboxOption[] = [
+  { value: "24", label: "24 小时" },
+  { value: "48", label: "48 小时" },
+  { value: "168", label: "168 小时" },
+]
+
+function buildTagOptions(nodes: TagTree[], parentPath = ""): ComboboxOption[] {
+  const result: ComboboxOption[] = []
   nodes.forEach((item) => {
-    const currentPath = parentPath ? `${parentPath} / ${item.name}` : item.name
-    result.push({ value: String(item.id), label: currentPath })
+    const currentPath = parentPath ? `${parentPath}/${item.name}` : item.name
+    result.push({
+      value: String(item.id),
+      label: currentPath,
+    })
     if (item.children.length > 0) {
       result.push(...buildTagOptions(item.children, currentPath))
     }
@@ -123,1120 +82,418 @@ function buildTagOptions(nodes: TagTree[], parentPath = ""): Array<{ value: stri
   return result
 }
 
-function isClosedStatus(status: string) {
-  return status === "resolved" || status === "closed" || status === "cancelled"
+function sourceLabel(source: string) {
+  switch (source) {
+    case "manual":
+      return "手动"
+    case "conversation":
+      return "会话"
+    default:
+      return source || "-"
+  }
 }
 
-function getResolveDeadlineTime(ticket: TicketItem) {
-  if (!ticket.resolveDeadlineAt) {
-    return null
+function assigneeLabel(ticket: TicketItem) {
+  if (ticket.currentAssigneeName) {
+    return ticket.currentAssigneeName
   }
-  const deadline = new Date(ticket.resolveDeadlineAt.replace(" ", "T"))
-  if (Number.isNaN(deadline.getTime())) {
-    return null
+  if (ticket.currentAssigneeId > 0) {
+    return `客服#${ticket.currentAssigneeId}`
   }
-  return deadline.getTime()
-}
-
-function isOverdueTicket(ticket: TicketItem) {
-  const deadline = getResolveDeadlineTime(ticket)
-  if (deadline === null || isClosedStatus(ticket.status)) {
-    return false
-  }
-  return deadline < Date.now()
-}
-
-function isRiskTicket(ticket: TicketItem) {
-  const deadline = getResolveDeadlineTime(ticket)
-  if (deadline === null || isClosedStatus(ticket.status)) {
-    return false
-  }
-  const remainingMinutes = Math.floor((deadline - Date.now()) / 60000)
-  return remainingMinutes >= 0 && remainingMinutes <= 240
-}
-
-function getTicketRowClassName(ticket: TicketItem) {
-  if (isOverdueTicket(ticket)) {
-    return "bg-red-50/80 hover:bg-red-50"
-  }
-  if (ticket.currentAssigneeId <= 0 && !isClosedStatus(ticket.status)) {
-    return "bg-amber-50/70 hover:bg-amber-50"
-  }
-  if (isRiskTicket(ticket)) {
-    return "bg-orange-50/60 hover:bg-orange-50"
-  }
-  return ""
-}
-
-function parseSavedTicketView(item: TicketSavedView): SavedTicketView | null {
-  const filters = item.filters
-  if (!filters || typeof filters !== "object") {
-    return null
-  }
-  return {
-    id: item.id,
-    name: item.name,
-    keywordInput: typeof filters.keywordInput === "string" ? filters.keywordInput : "",
-    keyword: typeof filters.keyword === "string" ? filters.keyword : "",
-    statusFilter: typeof filters.statusFilter === "string" ? filters.statusFilter : "all",
-    priorityFilter: typeof filters.priorityFilter === "string" ? filters.priorityFilter : "all",
-    severityFilter: typeof filters.severityFilter === "string" ? filters.severityFilter : "all",
-    tagFilter:
-      typeof filters.tagFilter === "string"
-        ? filters.tagFilter
-        : typeof filters.categoryFilter === "string"
-          ? filters.categoryFilter
-          : "all",
-    teamFilter: typeof filters.teamFilter === "string" ? filters.teamFilter : "all",
-    assigneeFilter: typeof filters.assigneeFilter === "string" ? filters.assigneeFilter : "all",
-    sourceFilter: typeof filters.sourceFilter === "string" ? filters.sourceFilter : "all",
-    watchFilter: typeof filters.watchFilter === "string" ? filters.watchFilter : "all",
-    quickView: typeof filters.quickView === "string" ? (filters.quickView as QuickViewKey) : "all",
-  }
+  return "未分配"
 }
 
 export default function TicketsPage() {
-  const [result, setResult] = useState<{ results: TicketItem[]; page: Paging }>({
-    results: [],
-    page: emptyPaging,
-  })
+  const searchParams = useSearchParams()
+  const [tickets, setTickets] = useState<TicketItem[]>([])
   const [summary, setSummary] = useState<TicketSummary>(emptySummary)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingItemId, setEditingItemId] = useState<number | null>(null)
-  const [keywordInput, setKeywordInput] = useState("")
-  const [keyword, setKeyword] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [priorityFilter, setPriorityFilter] = useState("all")
-  const [severityFilter, setSeverityFilter] = useState("all")
-  const [tagFilter, setTagFilter] = useState("all")
-  const [teamFilter, setTeamFilter] = useState("all")
-  const [assigneeFilter, setAssigneeFilter] = useState("all")
-  const [sourceFilter, setSourceFilter] = useState("all")
-  const [watchFilter, setWatchFilter] = useState("all")
   const [quickView, setQuickView] = useState<QuickViewKey>("all")
-  const [savedViews, setSavedViews] = useState<SavedTicketView[]>([])
-  const [activeSavedViewId, setActiveSavedViewId] = useState("all")
-  const [teams, setTeams] = useState<AdminAgentTeam[]>([])
-  const [agents, setAgents] = useState<AdminAgentProfile[]>([])
-  const [tags, setTags] = useState<TagTree[]>([])
-  const [priorities, setPriorities] = useState<TicketPriorityConfig[]>([])
-  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null)
-  const [selectedTicketIds, setSelectedTicketIds] = useState<number[]>([])
-  const [assignDialogOpen, setAssignDialogOpen] = useState(false)
-  const [statusDialogOpen, setStatusDialogOpen] = useState(false)
-  const [closeDialogOpen, setCloseDialogOpen] = useState(false)
-  const [reopenDialogOpen, setReopenDialogOpen] = useState(false)
-  const [actionTicket, setActionTicket] = useState<TicketItem | null>(null)
-  const currentUserId = readSession()?.user?.id ?? 0
+  const [keyword, setKeyword] = useState("")
+  const [assigneeId, setAssigneeId] = useState("0")
+  const [tagId, setTagId] = useState("0")
+  const [staleHours, setStaleHours] = useState("24")
+  const [assigneeOptions, setAssigneeOptions] = useState<ComboboxOption[]>([assigneeAllOption])
+  const [tagOptions, setTagOptions] = useState<ComboboxOption[]>([tagAllOption])
+  const [loading, setLoading] = useState(false)
+  const [selectedTicketIds, setSelectedTicketIds] = useState<Set<number>>(new Set())
+  const [batchAssignOpen, setBatchAssignOpen] = useState(false)
+  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null)
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [savingCreate, setSavingCreate] = useState(false)
+  const loadSeqRef = useRef(0)
 
-  const activeStatusFilter = useMemo(() => {
-    if (quickView === "pending_customer") {
-      return "pending_customer"
-    }
-    if (quickView === "pending_internal") {
-      return "pending_internal"
-    }
-    return statusFilter === "all" ? undefined : statusFilter
-  }, [quickView, statusFilter])
+  const quickViews = useMemo(
+    () =>
+      [
+        { key: "all", label: "全部工单", count: summary.all },
+        { key: "pending", label: "待处理", count: summary.pending },
+        { key: "in_progress", label: "处理中", count: summary.inProgress },
+        { key: "done", label: "已处理", count: summary.done },
+        { key: "unassigned", label: "待分配", count: summary.unassigned },
+        { key: "mine", label: "我的工单", count: summary.mine },
+        { key: "stale", label: "长时间未更新", count: summary.stale },
+      ] satisfies Array<{ key: QuickViewKey; label: string; count: number }>,
+    [summary],
+  )
 
-  const activeWatchFilter = quickView === "watching" ? 1 : watchFilter === "watching" ? 1 : undefined
-  const activeCollaborationFilter = quickView === "collaboration" ? 1 : undefined
-  const activeCollaboratingFilter = quickView === "participating" ? 1 : undefined
-  const activeMentionedFilter = quickView === "mentioned" ? 1 : undefined
-  const activeMineFilter = quickView === "mine" ? 1 : undefined
-  const activeUnassignedFilter = quickView === "unassigned" ? 1 : undefined
-  const activeOverdueFilter = quickView === "overdue" ? 1 : undefined
+  const selectedIds = useMemo(() => Array.from(selectedTicketIds), [selectedTicketIds])
+  const allPageSelected = tickets.length > 0 && tickets.every((ticket) => selectedTicketIds.has(ticket.id))
 
-  const loadSummary = useCallback(async () => {
-    try {
-      const data = await fetchTicketSummary()
-      setSummary(data)
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "加载工单汇总失败")
-    }
-  }, [])
-
-  const loadSavedViews = useCallback(async () => {
-    try {
-      const data = await fetchTicketViews()
-      const views = Array.isArray(data)
-        ? data
-            .map(parseSavedTicketView)
-            .filter((item): item is SavedTicketView => item !== null)
-        : []
-      setSavedViews(views)
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "加载保存视图失败")
-    }
-  }, [])
-
-  const loadTickets = useCallback(async () => {
+  const loadData = useCallback(async () => {
+    const seq = loadSeqRef.current + 1
+    loadSeqRef.current = seq
     setLoading(true)
     try {
-      const data = await fetchTickets({
-        page: result.page.page,
-        limit: result.page.limit,
+      const staleThreshold = Number(staleHours)
+      const query: TicketListQuery = {
+        page: 1,
+        limit: 50,
         keyword: keyword.trim() || undefined,
-        status: activeStatusFilter,
-        priority: priorityFilter === "all" ? undefined : Number(priorityFilter),
-        severity: severityFilter === "all" ? undefined : Number(severityFilter),
-        tagId: tagFilter === "all" ? undefined : Number(tagFilter),
-        currentTeamId: teamFilter === "all" ? undefined : Number(teamFilter),
-        currentAssigneeId: assigneeFilter === "all" ? undefined : Number(assigneeFilter),
-        source: sourceFilter === "all" ? undefined : sourceFilter,
-        watching: activeWatchFilter,
-        collaboration: activeCollaborationFilter,
-        collaborating: activeCollaboratingFilter,
-        mentioned: activeMentionedFilter,
-        mine: activeMineFilter,
-        unassigned: activeUnassignedFilter,
-        overdue: activeOverdueFilter,
-      })
-      setResult({
-        results: Array.isArray(data.results) ? data.results : [],
-        page: data.page ?? emptyPaging,
-      })
+        currentAssigneeId: assigneeId !== "0" ? Number(assigneeId) : undefined,
+        tagId: tagId !== "0" ? Number(tagId) : undefined,
+      }
+
+      if (quickView === "pending" || quickView === "in_progress" || quickView === "done") {
+        query.status = quickView as TicketStatus
+      }
+      if (quickView === "unassigned") {
+        query.unassigned = 1
+      }
+      if (quickView === "mine") {
+        query.mine = 1
+      }
+      if (quickView === "stale") {
+        query.staleHours = staleThreshold
+      }
+
+      const [ticketData, summaryData] = await Promise.all([
+        fetchTickets(query),
+        fetchTicketSummary({ staleHours: staleThreshold }),
+      ])
+      if (loadSeqRef.current !== seq) {
+        return
+      }
+      setTickets(Array.isArray(ticketData.results) ? ticketData.results : [])
+      setSummary(summaryData ?? emptySummary)
+      setSelectedTicketIds(new Set())
     } catch (error) {
+      if (loadSeqRef.current !== seq) {
+        return
+      }
       toast.error(error instanceof Error ? error.message : "加载工单失败")
     } finally {
-      setLoading(false)
+      if (loadSeqRef.current === seq) {
+        setLoading(false)
+      }
     }
-  }, [
-    activeMineFilter,
-    activeOverdueFilter,
-    activeStatusFilter,
-    activeUnassignedFilter,
-    activeWatchFilter,
-    activeCollaborationFilter,
-    activeCollaboratingFilter,
-    activeMentionedFilter,
-    assigneeFilter,
-    tagFilter,
-    keyword,
-    priorityFilter,
-    result.page.limit,
-    result.page.page,
-    severityFilter,
-    sourceFilter,
-    teamFilter,
-  ])
+  }, [assigneeId, keyword, quickView, staleHours, tagId])
 
   useEffect(() => {
-    void loadTickets()
-  }, [loadTickets])
+    void loadData()
+  }, [loadData])
 
   useEffect(() => {
-    setSelectedTicketIds((current) =>
-      current.filter((ticketId) => result.results.some((item) => item.id === ticketId)),
-    )
-  }, [result.results])
+    const ticketId = Number(searchParams.get("ticketId"))
+    if (ticketId > 0) {
+      setSelectedTicketId(ticketId)
+      setDetailOpen(true)
+    }
+  }, [searchParams])
 
   useEffect(() => {
-    void loadSummary()
-  }, [loadSummary])
-
-  useEffect(() => {
-    void loadSavedViews()
-  }, [loadSavedViews])
-
-  useEffect(() => {
-    void (async () => {
-      const [teamData, agentData, tagData, priorityData] = await Promise.all([
-        fetchAgentTeamsAll(),
-        fetchAgentProfilesAll(),
-        fetchTagsAll(),
-        fetchTicketPriorityConfigsAll(),
-      ])
-      setTeams(Array.isArray(teamData) ? teamData : [])
-      setAgents(Array.isArray(agentData) ? agentData : [])
-      setTags(Array.isArray(tagData) ? tagData : [])
-      setPriorities(Array.isArray(priorityData) ? priorityData : [])
-    })()
+    let active = true
+    Promise.all([fetchAgentProfilesAll(), fetchTagsAll()])
+      .then(([agents, tags]) => {
+        if (!active) {
+          return
+        }
+        setAssigneeOptions([
+          assigneeAllOption,
+          ...(Array.isArray(agents) ? agents : []).map((agent: AdminAgentProfile) => ({
+            value: String(agent.userId),
+            label:
+              agent.displayName ||
+              agent.nickname ||
+              agent.username ||
+              `客服#${agent.userId}`,
+          })),
+        ])
+        setTagOptions([tagAllOption, ...buildTagOptions(Array.isArray(tags) ? tags : [])])
+      })
+      .catch((error) => {
+        toast.error(error instanceof Error ? error.message : "加载筛选项失败")
+      })
+    return () => {
+      active = false
+    }
   }, [])
 
-  function resetToFirstPage() {
-    setResult((current) => ({
-      ...current,
-      page: { ...current.page, page: 1 },
-    }))
-  }
-
-  function applyFilters() {
-    setKeyword(keywordInput)
-    setActiveSavedViewId("all")
-    resetToFirstPage()
-  }
-
-  function buildCurrentView(name: string, existingId?: number): SavedTicketView {
-    return {
-      id: existingId ?? 0,
-      name,
-      keywordInput,
-      keyword,
-      statusFilter,
-      priorityFilter,
-      severityFilter,
-      tagFilter,
-      teamFilter,
-      assigneeFilter,
-      sourceFilter,
-      watchFilter,
-      quickView,
-    }
-  }
-
-  function applySavedView(view: SavedTicketView) {
-    setKeywordInput(view.keywordInput)
-    setKeyword(view.keyword)
-    setStatusFilter(view.statusFilter)
-    setPriorityFilter(view.priorityFilter)
-    setSeverityFilter(view.severityFilter)
-    setTagFilter(view.tagFilter)
-    setTeamFilter(view.teamFilter)
-    setAssigneeFilter(view.assigneeFilter)
-    setSourceFilter(view.sourceFilter)
-    setWatchFilter(view.watchFilter)
-    setQuickView(view.quickView)
-    setActiveSavedViewId(String(view.id))
-    setResult((current) => ({
-      ...current,
-      page: { ...current.page, page: 1 },
-    }))
-  }
-
-  function resetAllFilters() {
-    setKeywordInput("")
-    setKeyword("")
-    setStatusFilter("all")
-    setPriorityFilter("all")
-    setSeverityFilter("all")
-    setTagFilter("all")
-    setTeamFilter("all")
-    setAssigneeFilter("all")
-    setSourceFilter("all")
-    setWatchFilter("all")
-    setQuickView("all")
-    setActiveSavedViewId("all")
-    resetToFirstPage()
-  }
-
-  async function handleSaveCurrentView() {
-    const currentView = activeSavedViewId === "all"
-      ? null
-      : savedViews.find((item) => String(item.id) === activeSavedViewId) ?? null
-    const defaultName = currentView?.name ?? ""
-    const name = window.prompt("输入视图名称", defaultName)?.trim()
-    if (!name) {
-      return
-    }
-    const nextView = buildCurrentView(name, currentView?.id)
-    try {
-      const saved = await saveTicketView({
-        id: nextView.id > 0 ? nextView.id : undefined,
-        name: nextView.name,
-        filters: {
-          keywordInput: nextView.keywordInput,
-          keyword: nextView.keyword,
-          statusFilter: nextView.statusFilter,
-          priorityFilter: nextView.priorityFilter,
-          severityFilter: nextView.severityFilter,
-          tagFilter: nextView.tagFilter,
-          teamFilter: nextView.teamFilter,
-          assigneeFilter: nextView.assigneeFilter,
-          sourceFilter: nextView.sourceFilter,
-          watchFilter: nextView.watchFilter,
-          quickView: nextView.quickView,
-        },
-      })
-      const parsed = parseSavedTicketView(saved)
-      if (parsed) {
-        setSavedViews((current) => {
-          const exists = current.some((item) => item.id === parsed.id)
-          return exists ? current.map((item) => (item.id === parsed.id ? parsed : item)) : [parsed, ...current]
-        })
-        setActiveSavedViewId(String(parsed.id))
-      }
-      toast.success(currentView ? "视图已更新" : "视图已保存")
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "保存视图失败")
-    }
-  }
-
-  async function handleDeleteSavedView(viewId: number) {
-    const currentView = savedViews.find((item) => item.id === viewId)
-    if (!currentView) {
-      return
-    }
-    const confirmed = window.confirm(`确认删除视图「${currentView.name}」吗？`)
-    if (!confirmed) {
-      return
-    }
-    try {
-      await deleteTicketView(currentView.id)
-      setSavedViews((current) => current.filter((item) => item.id !== currentView.id))
-      if (activeSavedViewId === String(currentView.id)) {
-        setActiveSavedViewId("all")
-      }
-      toast.success("视图已删除")
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "删除视图失败")
-    }
-  }
-
-  function handleFilterKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
-    if (event.key !== "Enter") {
-      return
-    }
-    event.preventDefault()
-    applyFilters()
-  }
-
-  function openCreateDialog() {
-    setEditingItemId(null)
-    setDialogOpen(true)
-  }
-
-  function openEditDialog(item: TicketItem) {
-    setEditingItemId(item.id)
-    setDialogOpen(true)
-  }
-
-  function openAssignDialog(item: TicketItem) {
-    setActionTicket(item)
-    setAssignDialogOpen(true)
-  }
-
-  function openStatusDialog(item: TicketItem) {
-    setActionTicket(item)
-    setStatusDialogOpen(true)
-  }
-
-  function openCloseDialog(item: TicketItem) {
-    setActionTicket(item)
-    setCloseDialogOpen(true)
-  }
-
-  function openReopenDialog(item: TicketItem) {
-    setActionTicket(item)
-    setReopenDialogOpen(true)
-  }
-
-  function handleDialogOpenChange(open: boolean) {
-    if (saving) {
-      return
-    }
-    if (!open) {
-      setEditingItemId(null)
-    }
-    setDialogOpen(open)
-  }
-
-  async function refreshAll() {
-    await Promise.all([loadSummary(), loadTickets()])
-  }
-
-  async function handleSubmit(
-    payload: Parameters<typeof createTicket>[0] | Parameters<typeof updateTicket>[0],
-  ) {
-    if (saving) {
-      return
-    }
-    setSaving(true)
-    try {
-      if ("ticketId" in payload) {
-        await updateTicket(payload)
-        toast.success("工单已更新")
-      } else {
-        await createTicket(payload)
-        toast.success("工单已创建")
-      }
-      setDialogOpen(false)
-      setEditingItemId(null)
-      await refreshAll()
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "保存工单失败")
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function handleWatchToggle(item: TicketItem) {
-    setActionLoadingId(item.id)
-    try {
-      if (item.watchedByMe) {
-        await unwatchTicket(item.id)
-        toast.success("已取消关注")
-      } else {
-        await watchTicket(item.id)
-        toast.success("已关注工单")
-      }
-      await refreshAll()
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "更新关注状态失败")
-    } finally {
-      setActionLoadingId(null)
-    }
-  }
-
-  function toggleSelectTicket(ticketId: number, checked: boolean) {
+  function toggleTicket(ticketId: number, checked: boolean) {
     setSelectedTicketIds((current) => {
+      const next = new Set(current)
       if (checked) {
-        if (current.includes(ticketId)) {
-          return current
-        }
-        return current.concat(ticketId)
+        next.add(ticketId)
+      } else {
+        next.delete(ticketId)
       }
-      return current.filter((item) => item !== ticketId)
+      return next
     })
   }
 
-  function handleSelectAll(checked: boolean) {
-    setSelectedTicketIds(checked ? result.results.map((item) => item.id) : [])
+  function togglePage(checked: boolean) {
+    setSelectedTicketIds((current) => {
+      const next = new Set(current)
+      tickets.forEach((ticket) => {
+        if (checked) {
+          next.add(ticket.id)
+        } else {
+          next.delete(ticket.id)
+        }
+      })
+      return next
+    })
   }
 
-  async function handleBatchWatch(watched: boolean) {
-    if (selectedTicketIds.length === 0) {
-      toast.error("请先选择工单")
-      return
-    }
-    setSaving(true)
+  function resetFilters() {
+    setQuickView("all")
+    setKeyword("")
+    setAssigneeId("0")
+    setTagId("0")
+    setStaleHours("24")
+  }
+
+  async function handleCreateTicket(payload: CreateTicketPayload) {
+    setSavingCreate(true)
     try {
-      await batchWatchTickets({ ticketIds: selectedTicketIds, watched })
-      toast.success(watched ? `已批量关注 ${selectedTicketIds.length} 张工单` : `已批量取消关注 ${selectedTicketIds.length} 张工单`)
-      setSelectedTicketIds([])
-      await refreshAll()
+      await createTicket(payload)
+      toast.success("工单已创建")
+      setCreateOpen(false)
+      await loadData()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "批量更新关注失败")
+      toast.error(error instanceof Error ? error.message : "创建工单失败")
     } finally {
-      setSaving(false)
+      setSavingCreate(false)
     }
   }
-
-  const tagOptions = [{ value: "all", label: "全部标签" }].concat(
-    buildTagOptions(tags),
-  )
-  const priorityOptions = [{ value: "all", label: "全部优先级" }].concat(
-    priorities.map((priority) => ({
-      value: String(priority.id),
-      label: priority.name,
-    })),
-  )
-
-  const teamOptions = [{ value: "all", label: "全部团队" }].concat(
-    teams.map((team) => ({ value: String(team.id), label: team.name })),
-  )
-
-  const agentOptions = [{ value: "all", label: "全部处理人" }].concat(
-    agents.map((agent) => ({
-      value: String(agent.userId),
-      label: agent.displayName || agent.nickname || agent.username || `客服#${agent.userId}`,
-    })),
-  )
-
-  const quickViews: Array<{
-    key: QuickViewKey
-    label: string
-    description: string
-    count: number
-  }> = [
-    { key: "all", label: "全部工单", description: "工单总量", count: summary.all },
-    { key: "mine", label: "我的工单", description: "当前指派给我", count: summary.mine },
-    { key: "collaboration", label: "协作相关", description: "我参与或提及我的工单", count: summary.collaboration },
-    { key: "participating", label: "我参与的", description: "我是协作人的工单", count: summary.participating },
-    { key: "mentioned", label: "提及我的", description: "内部备注里提到了我", count: summary.mentioned },
-    { key: "unassigned", label: "待分配", description: "尚未指派处理人", count: summary.unassigned },
-    { key: "watching", label: "我的关注", description: "我在跟进的工单", count: summary.watching },
-    {
-      key: "pending_customer",
-      label: "待客户反馈",
-      description: "等待客户补充信息",
-      count: summary.pendingCustomer,
-    },
-    {
-      key: "pending_internal",
-      label: "待内部处理",
-      description: "等待内部协作处理",
-      count: summary.pendingInternal,
-    },
-    { key: "overdue", label: "已超时", description: "解决 SLA 已超时", count: summary.overdue },
-  ] 
-
-  const allSelected =
-    result.results.length > 0 && selectedTicketIds.length === result.results.length
-
-  const displayResults = useMemo(() => {
-    const list = [...result.results]
-    list.sort((left, right) => {
-      const leftOverdue = isOverdueTicket(left)
-      const rightOverdue = isOverdueTicket(right)
-      if (leftOverdue !== rightOverdue) {
-        return leftOverdue ? -1 : 1
-      }
-
-      if (quickView === "unassigned") {
-        const leftUnassigned = left.currentAssigneeId <= 0 ? 1 : 0
-        const rightUnassigned = right.currentAssigneeId <= 0 ? 1 : 0
-        if (leftUnassigned !== rightUnassigned) {
-          return rightUnassigned - leftUnassigned
-        }
-      }
-
-      const leftDeadline = getResolveDeadlineTime(left)
-      const rightDeadline = getResolveDeadlineTime(right)
-      if (leftDeadline !== null || rightDeadline !== null) {
-        if (leftDeadline === null) {
-          return 1
-        }
-        if (rightDeadline === null) {
-          return -1
-        }
-        if (leftDeadline !== rightDeadline) {
-          return leftDeadline - rightDeadline
-        }
-      }
-
-      if (left.priority !== right.priority) {
-        return right.priority - left.priority
-      }
-
-      return (right.id ?? 0) - (left.id ?? 0)
-    })
-    return list
-  }, [quickView, result.results])
-
-  const savedViewOptions = useMemo(
-    () =>
-      [{ value: "all", label: "筛选视图" }].concat(
-        savedViews.map((item) => ({
-          value: String(item.id),
-          label: item.name,
-        })),
-      ),
-    [savedViews],
-  )
 
   return (
-    <div className="min-h-0 flex-1 overflow-auto bg-muted/20 p-4 md:p-6">
-      <div className="flex w-full flex-col gap-4">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <h1 className="text-xl font-semibold">工单</h1>
-            {/* <p className="mt-1 text-sm text-muted-foreground">
-              作为队列工作台处理异步问题、分派、流转与关闭
-            </p> */}
-            <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
-              <span className="rounded bg-red-50 px-2 py-1 text-red-700">红色：已超时</span>
-              <span className="rounded bg-amber-50 px-2 py-1 text-amber-700">黄色：待分配</span>
-              <span className="rounded bg-orange-50 px-2 py-1 text-orange-700">橙色：即将超时</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-48">
-              <OptionCombobox
-                value={activeSavedViewId}
-                onChange={(value) => {
-                  if (value === "all") {
-                    setActiveSavedViewId("all")
-                    return
-                  }
-                  const nextView = savedViews.find((item) => String(item.id) === value)
-                  if (nextView) {
-                    applySavedView(nextView)
-                  }
-                }}
-                placeholder="保存视图"
-                options={savedViewOptions}
-                renderOptionAction={(option) => {
-                  if (option.value === "all") {
-                    return null
-                  }
-                  const viewId = Number(option.value)
-                  if (!Number.isFinite(viewId)) {
-                    return null
-                  }
-                  return (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-7 text-muted-foreground hover:text-destructive"
-                      onClick={() => void handleDeleteSavedView(viewId)}
-                    >
-                      <Trash2Icon className="size-4" />
-                    </Button>
-                  )
-                }}
-              />
-            </div>
-            <Button variant="outline" onClick={handleSaveCurrentView}>
-              <SaveIcon className="size-4" />
-              保存视图
-            </Button>
-            <Button onClick={openCreateDialog}>
-              <PlusIcon className="size-4" />
-              新建工单
-            </Button>
-          </div>
+    <div className="flex flex-col gap-4 p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-normal">工单</h1>
+          <p className="text-sm text-muted-foreground">按状态、负责人和标签快速处理轻量工单</p>
         </div>
-
-
-        <div className="rounded-lg border bg-background/80 p-2">
-          <div className="flex flex-wrap gap-2">
-            {quickViews.map((view) => {
-              const active = quickView === view.key
-              return (
-                <button
-                  key={view.key}
-                  type="button"
-                  className={`inline-flex min-w-0 items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition ${
-                    active
-                      ? "border-primary bg-primary/8 text-primary shadow-sm"
-                      : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-muted/60"
-                  }`}
-                  onClick={() => {
-                    setQuickView(view.key)
-                    resetToFirstPage()
-                  }}
-                >
-                  <span className="truncate font-medium">{view.label}</span>
-                  <span
-                    className={`rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums ${
-                      active ? "bg-primary/12 text-primary" : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {view.count}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" onClick={() => void loadData()} disabled={loading}>
+            <RefreshCcwIcon className={cn("size-4", loading ? "animate-spin" : "")} />
+            刷新
+          </Button>
+          <Button type="button" onClick={() => setCreateOpen(true)}>
+            <PlusIcon className="size-4" />
+            新建工单
+          </Button>
         </div>
+      </div>
 
-        <div className="grid gap-3 lg:grid-cols-4 xl:grid-cols-[minmax(0,1.5fr)_repeat(8,minmax(0,1fr))_auto]">
-          <div className="relative">
-            <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="pl-9"
-              value={keywordInput}
-              placeholder="搜索工单号、标题或描述"
-              onChange={(event) => setKeywordInput(event.target.value)}
-              onKeyDown={handleFilterKeyDown}
-            />
-          </div>
+      <div className="rounded-lg border bg-background/80 p-2">
+        <div className="flex flex-wrap gap-2">
+          {quickViews.map((view) => (
+            <button
+              key={view.key}
+              type="button"
+              className={cn(
+                "inline-flex min-w-0 items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition",
+                quickView === view.key
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-background hover:bg-muted",
+              )}
+              onClick={() => setQuickView(view.key)}
+            >
+              <span className="truncate font-medium">{view.label}</span>
+              <span
+                className={cn(
+                  "rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums",
+                  quickView === view.key ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground",
+                )}
+              >
+                {view.count}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-background/80 p-3">
+        <Input
+          className="w-full sm:w-72"
+          placeholder="搜索编号、标题或描述"
+          value={keyword}
+          onChange={(event) => setKeyword(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              void loadData()
+            }
+          }}
+        />
+        <div className="w-full sm:w-44">
           <OptionCombobox
-            value={statusFilter}
-            onChange={(value) => {
-              setStatusFilter(value)
-              setQuickView("all")
-              resetToFirstPage()
-            }}
-            placeholder="全部状态"
-            options={[
-              { value: "all", label: "全部状态" },
-              { value: "new", label: "新建" },
-              { value: "open", label: "处理中" },
-              { value: "pending_customer", label: "待客户反馈" },
-              { value: "pending_internal", label: "待内部处理" },
-              { value: "resolved", label: "已解决" },
-              { value: "closed", label: "已关闭" },
-              { value: "cancelled", label: "已取消" },
-            ]}
+            value={assigneeId}
+            onChange={setAssigneeId}
+            placeholder="全部负责人"
+            options={assigneeOptions}
           />
+        </div>
+        <div className="w-full sm:w-44">
           <OptionCombobox
-            value={tagFilter}
-            onChange={(value) => {
-              setTagFilter(value)
-              setQuickView("all")
-              resetToFirstPage()
-            }}
+            value={tagId}
+            onChange={setTagId}
             placeholder="全部标签"
             options={tagOptions}
           />
-          <OptionCombobox
-            value={priorityFilter}
-            onChange={(value) => {
-              setPriorityFilter(value)
-              setQuickView("all")
-              resetToFirstPage()
-            }}
-            placeholder="全部优先级"
-            options={priorityOptions}
-          />
-          <OptionCombobox
-            value={severityFilter}
-            onChange={(value) => {
-              setSeverityFilter(value)
-              setQuickView("all")
-              resetToFirstPage()
-            }}
-            placeholder="全部严重度"
-            options={[
-              { value: "all", label: "全部严重度" },
-              { value: "1", label: "轻微" },
-              { value: "2", label: "一般" },
-              { value: "3", label: "严重" },
-            ]}
-          />
-          <OptionCombobox
-            value={sourceFilter}
-            onChange={(value) => {
-              setSourceFilter(value)
-              setQuickView("all")
-              resetToFirstPage()
-            }}
-            placeholder="全部来源"
-            options={[
-              { value: "all", label: "全部来源" },
-              { value: "manual", label: "手动创建" },
-              { value: "conversation", label: "会话转工单" },
-              { value: "email", label: "邮件" },
-              { value: "api", label: "API" },
-              { value: "system", label: "系统" },
-            ]}
-          />
-          <OptionCombobox
-            value={teamFilter}
-            onChange={(value) => {
-              setTeamFilter(value)
-              setQuickView("all")
-              resetToFirstPage()
-            }}
-            placeholder="全部团队"
-            options={teamOptions}
-          />
-          <OptionCombobox
-            value={assigneeFilter}
-            onChange={(value) => {
-              setAssigneeFilter(value)
-              setQuickView("all")
-              resetToFirstPage()
-            }}
-            placeholder="全部处理人"
-            options={agentOptions}
-          />
-          <OptionCombobox
-            value={watchFilter}
-            onChange={(value) => {
-              setWatchFilter(value)
-              setQuickView("all")
-              resetToFirstPage()
-            }}
-            placeholder="全部关注"
-            options={[
-              { value: "all", label: "全部关注" },
-              { value: "watching", label: "我关注的" },
-            ]}
-          />
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={applyFilters}>
-              查询
-            </Button>
-            <Button variant="outline" onClick={() => void refreshAll()}>
-              <RefreshCcwIcon className="size-4" />
-            </Button>
-            <Button variant="ghost" onClick={resetAllFilters}>
-              重置
-            </Button>
-          </div>
         </div>
+        <div className="w-full sm:w-40">
+          <OptionCombobox
+            value={staleHours}
+            onChange={setStaleHours}
+            placeholder="未更新阈值"
+            options={staleHourOptions}
+          />
+        </div>
+        <Button type="button" variant="outline" onClick={resetFilters}>
+          <SearchXIcon className="size-4" />
+          重置
+        </Button>
+      </div>
 
-        <div className="overflow-hidden rounded-lg border bg-background">
-          {selectedTicketIds.length > 0 ? (
-            <div className="flex flex-col gap-3 border-b bg-muted/30 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="text-sm text-muted-foreground">
-                已选择 <span className="font-medium text-foreground">{selectedTicketIds.length}</span> 张工单
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setActionTicket(null)
-                    setAssignDialogOpen(true)
-                  }}
-                  disabled={saving}
-                >
-                  批量指派
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setActionTicket(null)
-                    setStatusDialogOpen(true)
-                  }}
-                  disabled={saving}
-                >
-                  批量改状态
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void handleBatchWatch(true)}
-                  disabled={saving}
-                >
-                  批量关注
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void handleBatchWatch(false)}
-                  disabled={saving}
-                >
-                  取消关注
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => setSelectedTicketIds([])} disabled={saving}>
-                  清空选择
-                </Button>
-              </div>
-            </div>
-          ) : null}
-          <Table>
-            <TableHeader className="bg-muted/35">
+      <div className="flex min-h-8 flex-wrap items-center justify-between gap-2">
+        <div className="text-sm text-muted-foreground">
+          已选择 <span className="font-medium text-foreground">{selectedTicketIds.size}</span> 张工单
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={selectedTicketIds.size === 0}
+          onClick={() => setBatchAssignOpen(true)}
+        >
+          批量指派
+        </Button>
+      </div>
+
+      <div className="overflow-hidden rounded-lg border border-border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-10">
+                <Checkbox
+                  checked={allPageSelected}
+                  onCheckedChange={(checked) => togglePage(!!checked)}
+                  aria-label="选择当前页工单"
+                />
+              </TableHead>
+              <TableHead>工单</TableHead>
+              <TableHead className="w-28">状态</TableHead>
+              <TableHead className="w-36">负责人</TableHead>
+              <TableHead className="w-40">最后更新</TableHead>
+              <TableHead className="w-24 text-right">操作</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {tickets.length === 0 ? (
               <TableRow>
-                <TableHead className="w-10">
-                  <Checkbox
-                    checked={allSelected}
-                    onCheckedChange={(checked) => handleSelectAll(Boolean(checked))}
-                    aria-label="全选工单"
-                  />
-                </TableHead>
-                <TableHead>工单</TableHead>
-                <TableHead>客户</TableHead>
-                <TableHead>标签</TableHead>
-                <TableHead>优先级</TableHead>
-                <TableHead>状态</TableHead>
-                <TableHead>SLA 风险</TableHead>
-                <TableHead>协作</TableHead>
-                <TableHead>处理人</TableHead>
-                <TableHead>团队</TableHead>
-                <TableHead>关注</TableHead>
-                <TableHead>更新时间</TableHead>
-                <TableHead className="text-right">操作</TableHead>
+                <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
+                  {loading ? "加载中..." : "暂无工单"}
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={13} className="h-32 text-center text-muted-foreground">
-                    加载中...
+            ) : (
+              tickets.map((ticket) => (
+                <TableRow key={ticket.id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedTicketIds.has(ticket.id)}
+                      onCheckedChange={(checked) => toggleTicket(ticket.id, !!checked)}
+                      aria-label={`选择工单 ${ticket.ticketNo}`}
+                    />
                   </TableCell>
-                </TableRow>
-              ) : result.results.length > 0 ? (
-                displayResults.map((item) => (
-                  <TableRow key={item.id} className={getTicketRowClassName(item)}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedTicketIds.includes(item.id)}
-                        onCheckedChange={(checked) => toggleSelectTicket(item.id, Boolean(checked))}
-                        aria-label={`选择工单 ${item.ticketNo}`}
-                      />
-                    </TableCell>
-                    <TableCell className="min-w-64">
-                      <div className="space-y-1">
-                        <div className="font-medium">{item.title}</div>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                          <span>{item.ticketNo}</span>
-                          <span>{item.source || "manual"}</span>
-                          {item.currentAssigneeId <= 0 && !isClosedStatus(item.status) ? (
-                            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-700">
-                              待分配
-                            </span>
-                          ) : null}
-                          {item.pendingReason && !isClosedStatus(item.status) ? (
-                            <span className="rounded bg-muted px-1.5 py-0.5">{item.pendingReason}</span>
-                          ) : null}
-                        </div>
+                  <TableCell>
+                    <div className="min-w-0 space-y-1">
+                      <div className="truncate text-sm font-medium">{ticket.title}</div>
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <span className="font-mono">{ticket.ticketNo}</span>
+                        <span>{ticket.customer?.name || (ticket.customerId ? `客户#${ticket.customerId}` : "无客户")}</span>
+                        <span>{sourceLabel(ticket.source)}</span>
+                        {ticket.channel ? <span>{ticket.channel}</span> : null}
                       </div>
-                    </TableCell>
-                    <TableCell>{item.customer?.name || "未绑定客户"}</TableCell>
-                    <TableCell>
-                      {item.tags && item.tags.length > 0 ? (
+                      {ticket.tags && ticket.tags.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
-                          {item.tags.map((tag) => (
-                            <Badge key={tag.id} variant="outline">
+                          {ticket.tags.slice(0, 3).map((tag) => (
+                            <Badge key={tag.id} variant="outline" className="px-1.5 py-0 text-[11px]">
                               {tag.name}
                             </Badge>
                           ))}
+                          {ticket.tags.length > 3 ? (
+                            <Badge variant="outline" className="px-1.5 py-0 text-[11px]">
+                              +{ticket.tags.length - 3}
+                            </Badge>
+                          ) : null}
                         </div>
-                      ) : (
-                        <span className="text-muted-foreground">未打标签</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <TicketPriorityBadge priority={item.priority} priorityName={item.priorityName} />
-                    </TableCell>
-                    <TableCell>
-                      <TicketStatusBadge status={item.status} />
-                    </TableCell>
-                    <TableCell>
-                      <TicketSLABadge ticket={item} />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {quickView === "participating" || quickView === "collaboration" ? (
-                          <Badge variant="outline">协作中</Badge>
-                        ) : null}
-                        {quickView === "mentioned" || quickView === "collaboration" ? (
-                          <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">
-                            提及我
-                          </Badge>
-                        ) : null}
-                        {item.currentAssigneeId === currentUserId ? (
-                          <Badge variant="outline" className="border-blue-300 bg-blue-50 text-blue-800">
-                            负责人
-                          </Badge>
-                        ) : null}
-                      </div>
-                    </TableCell>
-                    <TableCell>{item.currentAssigneeName || "未指派"}</TableCell>
-                    <TableCell>{item.currentTeamName || "未分组"}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={actionLoadingId === item.id}
-                        onClick={() => void handleWatchToggle(item)}
-                      >
-                        <StarIcon
-                          className={`size-4 ${item.watchedByMe ? "fill-current text-amber-500" : ""}`}
-                        />
-                        {item.watchedByMe ? "已关注" : "关注"}
-                      </Button>
-                    </TableCell>
-                    <TableCell>{item.updatedAt ? formatDateTime(item.updatedAt) : "—"}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Link href={`/dashboard/tickets/detail?id=${item.id}`} target="_blank" rel="noreferrer">
-                          <Button variant="outline" size="sm">
-                            <ClipboardListIcon className="size-4" />
-                            详情
-                          </Button>
-                        </Link>
-                        <Button variant="ghost" size="sm" onClick={() => openAssignDialog(item)}>
-                          <ArrowRightLeftIcon className="size-4" />
-                          指派
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => openStatusDialog(item)}>
-                          <SquarePenIcon className="size-4" />
-                          状态
-                        </Button>
-                        {item.status === "closed" ? (
-                          <Button variant="ghost" size="sm" onClick={() => openReopenDialog(item)}>
-                            重开
-                          </Button>
-                        ) : (
-                          <Button variant="ghost" size="sm" onClick={() => openCloseDialog(item)}>
-                            <CircleOffIcon className="size-4" />
-                            关闭
-                          </Button>
-                        )}
-                        <Button variant="ghost" size="sm" onClick={() => openEditDialog(item)}>
-                          编辑
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={13} className="h-32 text-center text-muted-foreground">
-                    暂无符合当前筛选条件的工单
+                      ) : null}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <TicketStatusBadge status={ticket.status} />
+                  </TableCell>
+                  <TableCell className="max-w-36 truncate text-sm text-muted-foreground">
+                    {assigneeLabel(ticket)}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {ticket.updatedAt ? formatDateTime(ticket.updatedAt) : "-"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedTicketId(ticket.id)
+                        setDetailOpen(true)
+                      }}
+                    >
+                      详情
+                    </Button>
                   </TableCell>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-
-        <ListPagination
-          page={result.page.page}
-          total={result.page.total}
-          limit={result.page.limit}
-          loading={loading}
-          onPageChange={(page) =>
-            setResult((current) => ({
-              ...current,
-              page: { ...current.page, page },
-            }))
-          }
-          onLimitChange={(limit) =>
-            setResult((current) => ({
-              ...current,
-              page: { ...current.page, page: 1, limit },
-            }))
-          }
-        />
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
 
-      <EditDialog
-        open={dialogOpen}
-        saving={saving}
-        itemId={editingItemId}
-        onOpenChange={handleDialogOpenChange}
-        onSubmit={handleSubmit}
-      />
       <TicketAssignDialog
-        open={assignDialogOpen}
-        ticketId={actionTicket?.id ?? null}
-        ticketIds={actionTicket ? undefined : selectedTicketIds}
-        currentTeamId={actionTicket?.currentTeamId}
-        currentAssigneeId={actionTicket?.currentAssigneeId}
-        onOpenChange={(open) => {
-          setAssignDialogOpen(open)
-          if (!open) {
-            setActionTicket(null)
-            setSelectedTicketIds((current) => current)
-          }
-        }}
-        onSuccess={async () => {
-          setSelectedTicketIds([])
-          await refreshAll()
-        }}
+        open={batchAssignOpen}
+        ticketId={null}
+        ticketIds={selectedIds}
+        onOpenChange={setBatchAssignOpen}
+        onSuccess={loadData}
       />
-      <TicketStatusDialog
-        open={statusDialogOpen}
-        ticketId={actionTicket?.id ?? null}
-        ticketIds={actionTicket ? undefined : selectedTicketIds}
-        currentStatus={actionTicket?.status}
-        onOpenChange={(open) => {
-          setStatusDialogOpen(open)
-          if (!open) {
-            setActionTicket(null)
-          }
-        }}
-        onSuccess={async () => {
-          setSelectedTicketIds([])
-          await refreshAll()
-        }}
+      <EditDialog
+        open={createOpen}
+        saving={savingCreate}
+        itemId={null}
+        onOpenChange={setCreateOpen}
+        onSubmit={handleCreateTicket}
       />
-      <TicketReasonDialog
-        open={closeDialogOpen}
-        mode="close"
-        ticketId={actionTicket?.id ?? null}
-        defaultReason={actionTicket?.closeReason || "处理完成"}
+      <TicketDetailDialog
+        open={detailOpen}
+        ticketId={selectedTicketId}
         onOpenChange={(open) => {
-          setCloseDialogOpen(open)
+          setDetailOpen(open)
           if (!open) {
-            setActionTicket(null)
+            setSelectedTicketId(null)
           }
         }}
-        onSuccess={refreshAll}
-      />
-      <TicketReasonDialog
-        open={reopenDialogOpen}
-        mode="reopen"
-        ticketId={actionTicket?.id ?? null}
-        defaultReason="客户有新反馈"
-        onOpenChange={(open) => {
-          setReopenDialogOpen(open)
-          if (!open) {
-            setActionTicket(null)
-          }
-        }}
-        onSuccess={refreshAll}
+        onChanged={loadData}
       />
     </div>
   )

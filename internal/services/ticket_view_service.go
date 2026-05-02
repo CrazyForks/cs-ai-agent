@@ -57,7 +57,7 @@ func (s *ticketViewService) Save(req request.SaveTicketViewRequest, operator *dt
 		if item == nil || item.UserID != operator.UserID {
 			return nil, errorsx.InvalidParam("视图不存在")
 		}
-		if err := repositories.TicketViewRepository.Updates(sqls.DB(), req.ID, map[string]interface{}{
+		if err := repositories.TicketViewRepository.Updates(sqls.DB(), req.ID, map[string]any{
 			"name":             name,
 			"filters_json":     string(filtersJSON),
 			"update_user_id":   operator.UserID,
@@ -88,6 +88,5 @@ func (s *ticketViewService) Delete(id int64, operator *dto.AuthPrincipal) error 
 	if item == nil || item.UserID != operator.UserID {
 		return errorsx.InvalidParam("视图不存在")
 	}
-	repositories.TicketViewRepository.Delete(sqls.DB(), id)
-	return nil
+	return repositories.TicketViewRepository.Delete(sqls.DB(), id)
 }

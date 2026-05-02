@@ -1,6 +1,4 @@
 "use client";
-
-import Link from "next/link";
 import {
   Building2Icon,
   Link2Icon,
@@ -55,7 +53,6 @@ import {
   ConversationTagBadges,
   ConversationTagPicker,
 } from "./conversation-tag-picker";
-import { TicketPriorityBadge } from "../../tickets/_components/ticket-priority-badge";
 import { TicketStatusBadge } from "../../tickets/_components/ticket-status-badge";
 
 function contactTypeLabel(contactType: ContactType | string) {
@@ -627,12 +624,9 @@ function RelatedTicketsSection({ conversation }: { conversation: AgentConversati
       ) : tickets.length > 0 ? (
         <div className="space-y-2">
           {tickets.map((ticket) => (
-            <Link
+            <div
               key={ticket.id}
-              href={`/dashboard/tickets/detail?id=${ticket.id}`}
-              target="_blank"
-              rel="noreferrer"
-              className="block rounded-lg border border-border bg-background px-3 py-2 transition-colors hover:bg-muted/40"
+              className="rounded-lg border border-border bg-background px-3 py-2"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
@@ -643,15 +637,14 @@ function RelatedTicketsSection({ conversation }: { conversation: AgentConversati
                     {ticket.ticketNo}
                   </div>
                 </div>
-                <TicketPriorityBadge priority={ticket.priority} priorityName={ticket.priorityName} />
+                <TicketStatusBadge status={ticket.status} />
               </div>
               <div className="mt-2 flex items-center justify-between gap-3">
-                <TicketStatusBadge status={ticket.status} />
                 <span className="text-xs text-muted-foreground">
                   {ticket.updatedAt ? formatDateTime(ticket.updatedAt) : "—"}
                 </span>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       ) : (

@@ -18,16 +18,12 @@ type PrepareTicketDraftInput struct {
 	Impact          string `json:"impact"`
 	ExpectedOutcome string `json:"expectedOutcome"`
 	CurrentAttempt  string `json:"currentAttempt"`
-	Priority        int64  `json:"priority"`
-	Severity        int    `json:"severity"`
 }
 
 type PrepareTicketDraftResult struct {
 	Ready             bool     `json:"ready"`
 	Title             string   `json:"title"`
 	Description       string   `json:"description"`
-	Priority          int64    `json:"priority,omitempty"`
-	Severity          int      `json:"severity,omitempty"`
 	MissingFields     []string `json:"missingFields,omitempty"`
 	FollowUpQuestions []string `json:"followUpQuestions,omitempty"`
 	ConversationFacts []string `json:"conversationFacts,omitempty"`
@@ -74,8 +70,6 @@ func (g *PrepareTicketDraftGraph) parseInput(argumentsInJSON string) (PrepareTic
 
 func buildPrepareTicketDraftResult(conversation models.Conversation, messages []models.Message, input PrepareTicketDraftInput) PrepareTicketDraftResult {
 	result := PrepareTicketDraftResult{
-		Priority:          input.Priority,
-		Severity:          input.Severity,
 		MissingFields:     make([]string, 0, 2),
 		FollowUpQuestions: make([]string, 0, 2),
 		ConversationFacts: buildConversationFacts(conversation, messages),

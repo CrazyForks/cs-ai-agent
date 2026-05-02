@@ -23,7 +23,7 @@ func TestTicketAssignedInAppNotification(t *testing.T) {
 		TicketNo:          "TK202604280001",
 		Title:             "退款处理",
 		Source:            enums.TicketSourceManual,
-		Status:            enums.TicketStatusOpen,
+		Status:            enums.TicketStatusPending,
 		CurrentAssigneeID: 11,
 		AuditFields: models.AuditFields{
 			CreatedAt: time.Now(),
@@ -52,7 +52,7 @@ func TestTicketAssignedInAppNotification(t *testing.T) {
 	if got.NotificationType != "ticket_assigned" || got.BizType != "ticket" || got.BizID != ticket.ID {
 		t.Fatalf("unexpected notification: %+v", got)
 	}
-	if got.ActionURL != "/dashboard/tickets/1" {
+	if got.ActionURL != "/dashboard/tickets?ticketId=1" {
 		t.Fatalf("unexpected action url: %q", got.ActionURL)
 	}
 }
