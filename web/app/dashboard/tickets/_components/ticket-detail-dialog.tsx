@@ -76,15 +76,16 @@ export function TicketDetailDialog({
   const [editOpen, setEditOpen] = useState(false)
   const [editSaving, setEditSaving] = useState(false)
   const loadSeqRef = useRef(0)
+  const dialogSeqRef = useRef(0)
   const currentTicketIdRef = useRef<number | null>(null)
   currentTicketIdRef.current = open ? ticketId : null
 
-  function isCurrentTicket(targetTicketId: number) {
-    return currentTicketIdRef.current === targetTicketId
+  function isCurrentOperation(targetTicketId: number, dialogSeq: number) {
+    return currentTicketIdRef.current === targetTicketId && dialogSeqRef.current === dialogSeq
   }
 
-  const loadDetail = useCallback(async (targetTicketId = ticketId) => {
-    if (currentTicketIdRef.current !== targetTicketId) {
+  const loadDetail = useCallback(async (targetTicketId = ticketId, dialogSeq = dialogSeqRef.current) => {
+    if (!targetTicketId || !isCurrentOperation(targetTicketId, dialogSeq)) {
       return
     }
     const seq = loadSeqRef.current + 1
@@ -97,12 +98,12 @@ export function TicketDetailDialog({
     setLoading(true)
     try {
       const data = await fetchTicketDetail(targetTicketId)
-      if (loadSeqRef.current !== seq || currentTicketIdRef.current !== targetTicketId) {
+      if (loadSeqRef.current !== seq || !isCurrentOperation(targetTicketId, dialogSeq)) {
         return
       }
       setDetail(data)
     } catch (error) {
-      if (loadSeqRef.current !== seq || currentTicketIdRef.current !== targetTicketId) {
+      if (loadSeqRef.current !== seq || !isCurrentOperation(targetTicketId, dialogSeq)) {
         return
       }
       toast.error(error instanceof Error ? error.message : "加载工单详情失败")
@@ -114,10 +115,9 @@ export function TicketDetailDialog({
   }, [open, ticketId])
 
   useEffect(() => {
-    void loadDetail()
-  }, [loadDetail])
-
-  useEffect(() => {
+    dialogSeqRef.current += 1
+    setDetail(null)
+    setLoading(false)
     setStatusSaving(null)
     setProgressSaving(false)
     setEditSaving(false)
@@ -126,30 +126,35 @@ export function TicketDetailDialog({
     setProgressContent("")
   }, [open, ticketId])
 
+  useEffect(() => {
+    void loadDetail(ticketId, dialogSeqRef.current)
+  }, [loadDetail, ticketId])
+
   async function handleStatusChange(status: TicketStatus) {
     if (!detail || detail.ticket.status === status) {
       return
     }
     const activeTicketId = detail.ticket.id
+    const activeDialogSeq = dialogSeqRef.current
     setStatusSaving(status)
     try {
       await changeTicketStatus({ ticketId: activeTicketId, status })
-      if (!isCurrentTicket(activeTicketId)) {
+      if (!isCurrentOperation(activeTicketId, activeDialogSeq)) {
         return
       }
       toast.success("工单状态已更新")
-      await loadDetail(activeTicketId)
-      if (!isCurrentTicket(activeTicketId)) {
+      await loadDetail(activeTicketId, activeDialogSeq)
+      if (!isCurrentOperation(activeTicketId, activeDialogSeq)) {
         return
       }
       onChanged()
     } catch (error) {
-      if (!isCurrentTicket(activeTicketId)) {
+      if (!isCurrentOperation(activeTicketId, activeDialogSeq)) {
         return
       }
       toast.error(error instanceof Error ? error.message : "更新工单状态失败")
     } finally {
-      if (isCurrentTicket(activeTicketId)) {
+      if (isCurrentOperation(activeTicketId, activeDialogSeq)) {
         setStatusSaving(null)
       }
     }
@@ -160,6 +165,7 @@ export function TicketDetailDialog({
       return
     }
     const activeTicketId = detail.ticket.id
+    const activeDialogSeq = dialogSeqRef.current
     const content = progressContent.trim()
     if (!content) {
       toast.error("请填写处理进展")
@@ -171,23 +177,23 @@ export function TicketDetailDialog({
         ticketId: activeTicketId,
         content,
       })
-      if (!isCurrentTicket(activeTicketId)) {
+      if (!isCurrentOperation(activeTicketId, activeDialogSeq)) {
         return
       }
       toast.success("处理进展已记录")
       setProgressContent("")
-      await loadDetail(activeTicketId)
-      if (!isCurrentTicket(activeTicketId)) {
+      await loadDetail(activeTicketId, activeDialogSeq)
+      if (!isCurrentOperation(activeTicketId, activeDialogSeq)) {
         return
       }
       onChanged()
     } catch (error) {
-      if (!isCurrentTicket(activeTicketId)) {
+      if (!isCurrentOperation(activeTicketId, activeDialogSeq)) {
         return
       }
       toast.error(error instanceof Error ? error.message : "记录处理进展失败")
     } finally {
-      if (isCurrentTicket(activeTicketId)) {
+      if (isCurrentOperation(activeTicketId, activeDialogSeq)) {
         setProgressSaving(false)
       }
     }
@@ -195,11 +201,12 @@ export function TicketDetailDialog({
 
   async function handleAssigned() {
     const activeTicketId = ticket?.id
-    if (!activeTicketId || !isCurrentTicket(activeTicketId)) {
+    const activeDialogSeq = dialogSeqRef.current
+    if (!activeTicketId || !isCurrentOperation(activeTicketId, activeDialogSeq)) {
       return
     }
-    await loadDetail(activeTicketId)
-    if (!isCurrentTicket(activeTicketId)) {
+    await loadDetail(activeTicketId, activeDialogSeq)
+    if (!isCurrentOperation(activeTicketId, activeDialogSeq)) {
       return
     }
     onChanged()
@@ -210,26 +217,27 @@ export function TicketDetailDialog({
       toast.error("请选择工单")
       return
     }
+    const activeDialogSeq = dialogSeqRef.current
     setEditSaving(true)
     try {
       await updateTicket(payload)
-      if (!isCurrentTicket(payload.ticketId)) {
+      if (!isCurrentOperation(payload.ticketId, activeDialogSeq)) {
         return
       }
       toast.success("工单已更新")
       setEditOpen(false)
-      await loadDetail(payload.ticketId)
-      if (!isCurrentTicket(payload.ticketId)) {
+      await loadDetail(payload.ticketId, activeDialogSeq)
+      if (!isCurrentOperation(payload.ticketId, activeDialogSeq)) {
         return
       }
       onChanged()
     } catch (error) {
-      if (!isCurrentTicket(payload.ticketId)) {
+      if (!isCurrentOperation(payload.ticketId, activeDialogSeq)) {
         return
       }
       toast.error(error instanceof Error ? error.message : "更新工单失败")
     } finally {
-      if (isCurrentTicket(payload.ticketId)) {
+      if (isCurrentOperation(payload.ticketId, activeDialogSeq)) {
         setEditSaving(false)
       }
     }
