@@ -259,7 +259,7 @@ func TestTicketServiceSummaryCountsStaleTickets(t *testing.T) {
 	if _, err := services.TicketService.CreateTicket(createTestTicketRequest("unassigned ticket"), operator); err != nil {
 		t.Fatalf("CreateTicket() unassigned error = %v", err)
 	}
-	staleUpdatedAt := time.Now().Add(-48 * time.Hour)
+	staleUpdatedAt := time.Now().Add(-36 * time.Hour)
 	if err := repositories.TicketRepository.Updates(sqls.DB(), mine.ID, map[string]any{
 		"updated_at": staleUpdatedAt,
 	}); err != nil {
@@ -281,6 +281,15 @@ func TestTicketServiceSummaryCountsStaleTickets(t *testing.T) {
 	}
 	if summary.Stale != 1 {
 		t.Fatalf("expected stale count 1, got %d", summary.Stale)
+	}
+
+	summary48 := services.TicketService.GetSummary(operator, 48)
+	if summary48.Stale != 0 {
+		t.Fatalf("expected stale count 0 for 48 hour threshold, got %d", summary48.Stale)
+	}
+	summaryInvalid := services.TicketService.GetSummary(operator, 1<<30)
+	if summaryInvalid.Stale != 1 {
+		t.Fatalf("expected invalid stale threshold to use 24 hours, got %d", summaryInvalid.Stale)
 	}
 }
 
@@ -316,10 +325,7 @@ func TestTicketServiceFindPageAggregateFiltersStaleTickets(t *testing.T) {
 	}
 
 	aggregate, err := services.TicketService.FindPageAggregateByCnd(
-		sqls.NewCnd().
-			NotEq("status", enums.TicketStatusDone).
-			Where("updated_at < ?", time.Now().Add(-24*time.Hour)).
-			Page(1, 10),
+		services.TicketService.ApplyStaleFilter(sqls.NewCnd(), 24).Page(1, 10),
 		operator.UserID,
 	)
 	if err != nil {

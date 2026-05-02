@@ -1,7 +1,7 @@
 "use client"
 
 import { PlusIcon, RefreshCcwIcon, SearchXIcon } from "lucide-react"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { OptionCombobox, type ComboboxOption } from "@/components/option-combobox"
@@ -119,6 +119,7 @@ export default function TicketsPage() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [savingCreate, setSavingCreate] = useState(false)
+  const loadSeqRef = useRef(0)
 
   const quickViews = useMemo(
     () =>
@@ -138,6 +139,8 @@ export default function TicketsPage() {
   const allPageSelected = tickets.length > 0 && tickets.every((ticket) => selectedTicketIds.has(ticket.id))
 
   const loadData = useCallback(async () => {
+    const seq = loadSeqRef.current + 1
+    loadSeqRef.current = seq
     setLoading(true)
     try {
       const staleThreshold = Number(staleHours)
@@ -166,13 +169,21 @@ export default function TicketsPage() {
         fetchTickets(query),
         fetchTicketSummary({ staleHours: staleThreshold }),
       ])
+      if (loadSeqRef.current !== seq) {
+        return
+      }
       setTickets(Array.isArray(ticketData.results) ? ticketData.results : [])
       setSummary(summaryData ?? emptySummary)
       setSelectedTicketIds(new Set())
     } catch (error) {
+      if (loadSeqRef.current !== seq) {
+        return
+      }
       toast.error(error instanceof Error ? error.message : "加载工单失败")
     } finally {
-      setLoading(false)
+      if (loadSeqRef.current === seq) {
+        setLoading(false)
+      }
     }
   }, [assigneeId, keyword, quickView, staleHours, tagId])
 

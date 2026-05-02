@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { MessageSquareTextIcon, RefreshCcwIcon, SendIcon, UserRoundIcon } from "lucide-react"
 import { toast } from "sonner"
 
@@ -75,20 +75,32 @@ export function TicketDetailDialog({
   const [assignOpen, setAssignOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [editSaving, setEditSaving] = useState(false)
+  const loadSeqRef = useRef(0)
 
   const loadDetail = useCallback(async () => {
+    const seq = loadSeqRef.current + 1
+    loadSeqRef.current = seq
     if (!open || !ticketId) {
       setDetail(null)
+      setLoading(false)
       return
     }
     setLoading(true)
     try {
       const data = await fetchTicketDetail(ticketId)
+      if (loadSeqRef.current !== seq) {
+        return
+      }
       setDetail(data)
     } catch (error) {
+      if (loadSeqRef.current !== seq) {
+        return
+      }
       toast.error(error instanceof Error ? error.message : "加载工单详情失败")
     } finally {
-      setLoading(false)
+      if (loadSeqRef.current === seq) {
+        setLoading(false)
+      }
     }
   }, [open, ticketId])
 

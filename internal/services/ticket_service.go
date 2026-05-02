@@ -55,6 +55,15 @@ type TicketListAggregate struct {
 type ticketService struct {
 }
 
+func normalizeTicketStaleHours(staleHours int) int {
+	switch staleHours {
+	case 24, 48, 168:
+		return staleHours
+	default:
+		return 24
+	}
+}
+
 func (s *ticketService) Get(id int64) *models.Ticket {
 	return repositories.TicketRepository.Get(sqls.DB(), id)
 }
@@ -82,6 +91,16 @@ func (s *ticketService) FindPageByCnd(cnd *sqls.Cnd) (list []models.Ticket, pagi
 func (s *ticketService) FindPageAggregateByCnd(cnd *sqls.Cnd, _ int64) (*TicketListAggregate, error) {
 	list, paging := repositories.TicketRepository.FindPageByCnd(sqls.DB(), cnd)
 	return s.buildTicketListAggregate(sqls.DB(), list, paging), nil
+}
+
+func (s *ticketService) ApplyStaleFilter(cnd *sqls.Cnd, staleHours int) *sqls.Cnd {
+	if cnd == nil {
+		cnd = sqls.NewCnd()
+	}
+	staleHour := normalizeTicketStaleHours(staleHours)
+	return cnd.
+		NotEq("status", enums.TicketStatusDone).
+		Where("updated_at < ?", time.Now().Add(-time.Duration(staleHour)*time.Hour))
 }
 
 func (s *ticketService) Count(cnd *sqls.Cnd) int64 {
@@ -445,8 +464,8 @@ func (s *ticketService) GetDetail(id int64) (*TicketDetailAggregate, error) {
 }
 
 func (s *ticketService) GetSummary(operator *dto.AuthPrincipal, staleHours ...int) *TicketSummaryAggregate {
-	staleHour := 24
-	if len(staleHours) > 0 && staleHours[0] > 0 {
+	staleHour := 0
+	if len(staleHours) > 0 {
 		staleHour = staleHours[0]
 	}
 	summary := &TicketSummaryAggregate{
@@ -455,11 +474,7 @@ func (s *ticketService) GetSummary(operator *dto.AuthPrincipal, staleHours ...in
 		InProgress: s.Count(sqls.NewCnd().Eq("status", enums.TicketStatusInProgress)),
 		Done:       s.Count(sqls.NewCnd().Eq("status", enums.TicketStatusDone)),
 		Unassigned: s.Count(sqls.NewCnd().Eq("current_assignee_id", 0)),
-		Stale: s.Count(
-			sqls.NewCnd().
-				NotEq("status", enums.TicketStatusDone).
-				Where("updated_at < ?", time.Now().Add(-time.Duration(staleHour)*time.Hour)),
-		),
+		Stale:      s.Count(s.ApplyStaleFilter(sqls.NewCnd(), staleHour)),
 	}
 	if operator != nil {
 		summary.Mine = s.Count(sqls.NewCnd().Eq("current_assignee_id", operator.UserID))
