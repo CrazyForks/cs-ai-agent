@@ -9,6 +9,7 @@ import (
 	"cs-agent/internal/services"
 
 	"github.com/kataras/iris/v12"
+	"github.com/mlogclub/simple/sqls"
 	"github.com/mlogclub/simple/web"
 	"github.com/mlogclub/simple/web/params"
 )
@@ -213,6 +214,29 @@ func (c *TicketController) PostChange_status() *web.JsonResult {
 }
 
 func (c *TicketController) PostAdd_progress() *web.JsonResult {
+	return c.createProgress()
+}
+
+func (c *TicketController) AnyProgress_list() *web.JsonResult {
+	if _, err := services.AuthService.RequirePermission(c.Ctx, constants.PermissionTicketView); err != nil {
+		return web.JsonError(err)
+	}
+	ticketID, _ := params.GetInt64(c.Ctx, "ticketId")
+	if ticketID <= 0 {
+		return web.JsonErrorMsg("工单不存在")
+	}
+	if services.TicketService.Get(ticketID) == nil {
+		return web.JsonErrorMsg("工单不存在")
+	}
+	progresses := services.TicketProgressService.Find(sqls.NewCnd().Eq("ticket_id", ticketID).Asc("id"))
+	return web.JsonData(builders.BuildTicketProgressList(progresses))
+}
+
+func (c *TicketController) PostProgress_create() *web.JsonResult {
+	return c.createProgress()
+}
+
+func (c *TicketController) createProgress() *web.JsonResult {
 	operator, err := services.AuthService.RequirePermission(c.Ctx, constants.PermissionTicketProgress)
 	if err != nil {
 		return web.JsonError(err)

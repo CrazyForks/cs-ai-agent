@@ -45,7 +45,7 @@ func handleTicketAssignedInAppNotification(ctx context.Context, event events.Tic
 		NotificationType: "ticket_assigned",
 		BizType:          "ticket",
 		BizID:            ticket.ID,
-		ActionURL:        fmt.Sprintf("/dashboard/tickets/%d", ticket.ID),
+		ActionURL:        fmt.Sprintf("/dashboard/tickets?ticketId=%d", ticket.ID),
 	})
 	if err != nil {
 		slog.Error("create ticket assigned in-app notification failed", "error", err, "ticketId", event.TicketID, "toUserId", event.ToUserID)

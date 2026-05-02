@@ -101,6 +101,10 @@ func BuildTicketProgressWithContext(item *models.TicketProgress, ctx *TicketDeta
 	return ret
 }
 
+func BuildTicketProgressList(list []models.TicketProgress) []response.TicketProgressResponse {
+	return BuildTicketProgressListWithContext(list, nil)
+}
+
 func BuildTicketProgressListWithContext(list []models.TicketProgress, ctx *TicketDetailBuildContext) []response.TicketProgressResponse {
 	if len(list) == 0 {
 		return nil

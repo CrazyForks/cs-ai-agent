@@ -52,7 +52,7 @@ func TestTicketAssignedInAppNotification(t *testing.T) {
 	if got.NotificationType != "ticket_assigned" || got.BizType != "ticket" || got.BizID != ticket.ID {
 		t.Fatalf("unexpected notification: %+v", got)
 	}
-	if got.ActionURL != "/dashboard/tickets/1" {
+	if got.ActionURL != "/dashboard/tickets?ticketId=1" {
 		t.Fatalf("unexpected action url: %q", got.ActionURL)
 	}
 }

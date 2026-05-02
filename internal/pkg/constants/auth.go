@@ -345,7 +345,7 @@ var RolePermissions = map[string][]Permission{
 		PermissionRoleView,
 		PermissionPermissionView,
 		PermissionConversationView,
-		PermissionTicketView, PermissionTicketCreate, PermissionTicketProgress,
+		PermissionTicketView, PermissionTicketCreate, PermissionTicketAssign, PermissionTicketChangeStatus, PermissionTicketProgress,
 		PermissionNotificationView, PermissionNotificationUpdate,
 		PermissionQuickReplyView,
 		PermissionTagView,

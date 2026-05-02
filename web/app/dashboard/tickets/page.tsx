@@ -1,6 +1,7 @@
 "use client"
 
 import { PlusIcon, RefreshCcwIcon, SearchXIcon } from "lucide-react"
+import { useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -103,6 +104,7 @@ function assigneeLabel(ticket: TicketItem) {
 }
 
 export default function TicketsPage() {
+  const searchParams = useSearchParams()
   const [tickets, setTickets] = useState<TicketItem[]>([])
   const [summary, setSummary] = useState<TicketSummary>(emptySummary)
   const [quickView, setQuickView] = useState<QuickViewKey>("all")
@@ -190,6 +192,14 @@ export default function TicketsPage() {
   useEffect(() => {
     void loadData()
   }, [loadData])
+
+  useEffect(() => {
+    const ticketId = Number(searchParams.get("ticketId"))
+    if (ticketId > 0) {
+      setSelectedTicketId(ticketId)
+      setDetailOpen(true)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     let active = true

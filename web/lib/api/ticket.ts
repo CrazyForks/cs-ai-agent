@@ -211,7 +211,7 @@ export function createTicketProgress(payload: {
   ticketId: number
   content: string
 }) {
-  return request<TicketProgress>("/api/dashboard/ticket/add_progress", {
+  return request<TicketProgress>("/api/dashboard/ticket/progress/create", {
     method: "POST",
     body: JSON.stringify(payload),
   })
