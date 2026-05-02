@@ -248,12 +248,16 @@ func (s *conversationService) AutoAssignConversation(conversationID int64, opera
 		return errorsx.InvalidParam("当前会话已分配客服")
 	}
 
-	dispatched, err := ConversationDispatchService.DispatchConversation(conversationID)
+	aiAgent := AIAgentService.Get(conversation.AIAgentID)
+	if aiAgent == nil || aiAgent.Status != enums.StatusOk {
+		return errorsx.InvalidParam("AI Agent 不存在或已停用")
+	}
+	result, err := ConversationHumanDispatchService.DispatchPendingConversation(conversationID, *aiAgent)
 	if err != nil {
 		return err
 	}
-	if dispatched == nil {
-		return errorsx.InvalidParam("当前暂无可自动分配的值班客服")
+	if result == nil || result.Decision == HandoffDecisionOffHours {
+		return errorsx.InvalidParam("当前暂不在人工客服服务时间内")
 	}
 	return nil
 }

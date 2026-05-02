@@ -83,6 +83,42 @@ func (s *conversationHumanDispatchService) ApplyHumanOnlyCreate(conversationID i
 	return s.dispatchAfterHandoff(conversationID, aiAgent.ID, activeTeamIDs, "仅人工模式新会话", false)
 }
 
+func (s *conversationHumanDispatchService) DispatchPendingConversation(conversationID int64, aiAgent models.AIAgent) (*HandoffDecisionResult, error) {
+	conversation := ConversationService.Get(conversationID)
+	if conversation == nil {
+		return nil, errorsx.InvalidParam("会话不存在")
+	}
+	if conversation.Status != enums.IMConversationStatusPending || conversation.CurrentAssigneeID > 0 {
+		return nil, errorsx.InvalidParam("只有待接入未分配会话允许自动分配")
+	}
+	activeTeamIDs := ConversationDispatchService.findActiveScheduleTeamIDs(orderedPositiveIDs(aiAgent.TeamIDs), time.Now())
+	if len(activeTeamIDs) == 0 {
+		return &HandoffDecisionResult{Decision: HandoffDecisionOffHours}, nil
+	}
+	candidates, _, err := ConversationDispatchService.pickDispatchCandidates(activeTeamIDs, time.Now())
+	if err != nil {
+		return nil, err
+	}
+	if len(candidates) > 0 {
+		dispatched, err := ConversationDispatchService.tryAssignConversation(conversationID, candidates[0].profile, "自动分配")
+		if err != nil {
+			return nil, err
+		}
+		if dispatched != nil {
+			return &HandoffDecisionResult{
+				Decision:   HandoffDecisionAssigned,
+				TeamID:     dispatched.CurrentTeamID,
+				AssigneeID: dispatched.CurrentAssigneeID,
+			}, nil
+		}
+	}
+	teamID := activeTeamIDs[0]
+	if err := s.moveToTeamPool(conversationID, teamID, "手动触发自动分配"); err != nil {
+		return nil, err
+	}
+	return &HandoffDecisionResult{Decision: HandoffDecisionTeamPool, TeamID: teamID}, nil
+}
+
 func (s *conversationHumanDispatchService) dispatchAfterHandoff(conversationID, aiAgentID int64, activeTeamIDs []int64, reason string, publishAssignEvent bool) (*HandoffDecisionResult, error) {
 	if err := s.sendAIText(conversationID, aiAgentID, HandoffWaitingMessage); err != nil {
 		return nil, err

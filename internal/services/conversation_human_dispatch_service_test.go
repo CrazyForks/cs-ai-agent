@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"cs-agent/internal/models"
+	"cs-agent/internal/pkg/dto"
 	"cs-agent/internal/pkg/enums"
 	"cs-agent/internal/pkg/openidentity"
 	"cs-agent/internal/services"
@@ -149,6 +150,37 @@ func TestConversationHumanDispatchHumanOnlyCreateAssignsAvailableAgent(t *testin
 	}
 }
 
+func TestConversationAutoAssignManualDispatchOffHoursReturnsBusinessMessage(t *testing.T) {
+	db := setupConversationHumanDispatchTestDB(t)
+	aiAgent := createHumanDispatchAIAgent(t, db, enums.IMConversationServiceModeAIFirst, "1")
+	conversation := createHumanDispatchConversation(t, db, aiAgent.ID, enums.IMConversationStatusPending)
+
+	err := services.ConversationService.AutoAssignConversation(conversation.ID, testHumanDispatchOperator())
+	if err == nil {
+		t.Fatalf("expected off-hours manual dispatch to fail")
+	}
+	if !strings.Contains(err.Error(), "当前暂不在人工客服服务时间内") {
+		t.Fatalf("expected off-hours error, got %v", err)
+	}
+}
+
+func TestConversationAutoAssignManualDispatchFallsBackToTeamPool(t *testing.T) {
+	db := setupConversationHumanDispatchTestDB(t)
+	aiAgent := createHumanDispatchAIAgent(t, db, enums.IMConversationServiceModeAIFirst, "1")
+	createHumanDispatchTeam(t, db, 1, "售后支持组")
+	createHumanDispatchActiveSchedule(t, db, 1)
+	conversation := createHumanDispatchConversation(t, db, aiAgent.ID, enums.IMConversationStatusPending)
+
+	err := services.ConversationService.AutoAssignConversation(conversation.ID, testHumanDispatchOperator())
+	if err != nil {
+		t.Fatalf("AutoAssignConversation() error = %v", err)
+	}
+	current := services.ConversationService.Get(conversation.ID)
+	if current.Status != enums.IMConversationStatusPending || current.CurrentTeamID != 1 || current.CurrentAssigneeID != 0 {
+		t.Fatalf("expected team-pool pending conversation, got %+v", current)
+	}
+}
+
 func setupConversationHumanDispatchTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	dbName := strings.NewReplacer("/", "_", " ", "_").Replace(t.Name())
@@ -264,4 +296,8 @@ func createHumanDispatchConversation(t *testing.T, db *gorm.DB, aiAgentID int64,
 		t.Fatalf("create conversation error = %v", err)
 	}
 	return item
+}
+
+func testHumanDispatchOperator() *dto.AuthPrincipal {
+	return &dto.AuthPrincipal{UserID: 9, Username: "dispatcher", Nickname: "调度员"}
 }
