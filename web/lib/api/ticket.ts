@@ -96,6 +96,7 @@ export type TicketListQuery = {
   channel?: string
   mine?: number | boolean
   unassigned?: number | boolean
+  staleHours?: number
 }
 
 export type CreateTicketPayload = {

@@ -62,7 +62,7 @@ export function TicketAssignDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       {open ? (
         <TicketAssignDialogBody
-          key={ticketId ?? "ticket-assign"}
+          key={ticketId ?? ticketIds?.join(",") ?? "ticket-assign"}
           ticketId={ticketId}
           ticketIds={ticketIds}
           currentAssigneeId={currentAssigneeId}
