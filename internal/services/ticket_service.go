@@ -59,7 +59,7 @@ func (s *ticketService) Get(id int64) *models.Ticket {
 	return repositories.TicketRepository.Get(sqls.DB(), id)
 }
 
-func (s *ticketService) Take(where ...interface{}) *models.Ticket {
+func (s *ticketService) Take(where ...any) *models.Ticket {
 	return repositories.TicketRepository.Take(sqls.DB(), where...)
 }
 
@@ -96,11 +96,11 @@ func (s *ticketService) Update(t *models.Ticket) error {
 	return repositories.TicketRepository.Update(sqls.DB(), t)
 }
 
-func (s *ticketService) Updates(id int64, columns map[string]interface{}) error {
+func (s *ticketService) Updates(id int64, columns map[string]any) error {
 	return repositories.TicketRepository.Updates(sqls.DB(), id, columns)
 }
 
-func (s *ticketService) UpdateColumn(id int64, name string, value interface{}) error {
+func (s *ticketService) UpdateColumn(id int64, name string, value any) error {
 	return repositories.TicketRepository.UpdateColumn(sqls.DB(), id, name, value)
 }
 
@@ -576,8 +576,14 @@ func (s *ticketService) validateTicketRefs(customerID, conversationID, assigneeI
 	if customerID > 0 && CustomerService.Get(customerID) == nil {
 		return errorsx.InvalidParam("客户不存在")
 	}
-	if conversationID > 0 && ConversationService.Get(conversationID) == nil {
-		return errorsx.InvalidParam("会话不存在")
+	if conversationID > 0 {
+		conversation := ConversationService.Get(conversationID)
+		if conversation == nil {
+			return errorsx.InvalidParam("会话不存在")
+		}
+		if customerID > 0 && conversation.CustomerID != customerID {
+			return errorsx.InvalidParam("会话与客户不匹配")
+		}
 	}
 	return s.validateAssignee(assigneeID)
 }
@@ -594,7 +600,7 @@ func (s *ticketService) validateRequiredAssignee(userID int64) error {
 		return errorsx.InvalidParam("负责人不存在")
 	}
 	user := UserService.Get(userID)
-	if user == nil || user.Status == enums.StatusDeleted {
+	if user == nil || user.Status != enums.StatusOk {
 		return errorsx.InvalidParam("负责人不存在")
 	}
 	return nil

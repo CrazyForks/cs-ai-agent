@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	"time"
 
 	"cs-agent/internal/models"
@@ -70,29 +69,5 @@ func (s *ticketNoSequenceService) Delete(id int64) {
 }
 
 func (s *ticketNoSequenceService) Next(db *gorm.DB, now time.Time) (string, error) {
-	dateKey := now.Format("20060102")
-	for i := 0; i < 5; i++ {
-		current := repositories.TicketNoSequenceRepository.GetByDateKey(db, dateKey)
-		if current == nil {
-			item := &models.TicketNoSequence{
-				DateKey:   dateKey,
-				NextSeq:   2,
-				CreatedAt: now,
-				UpdatedAt: now,
-			}
-			if err := repositories.TicketNoSequenceRepository.Create(db, item); err != nil {
-				continue
-			}
-			return fmt.Sprintf("TK%s%04d", dateKey, int64(1)), nil
-		}
-		seq := current.NextSeq
-		ok, err := repositories.TicketNoSequenceRepository.UpdateNextSeq(db, current.ID, seq, seq+1, now)
-		if err != nil {
-			return "", err
-		}
-		if ok {
-			return fmt.Sprintf("TK%s%04d", dateKey, seq), nil
-		}
-	}
-	return "", fmt.Errorf("generate ticket number failed")
+	return TicketNoService.Next(db, now)
 }

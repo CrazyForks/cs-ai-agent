@@ -25,7 +25,7 @@ func (r *ticketViewRepository) Get(db *gorm.DB, id int64) *models.TicketView {
 	return ret
 }
 
-func (r *ticketViewRepository) Take(db *gorm.DB, where ...interface{}) *models.TicketView {
+func (r *ticketViewRepository) Take(db *gorm.DB, where ...any) *models.TicketView {
 	ret := &models.TicketView{}
 	if err := db.Take(ret, where...).Error; err != nil {
 		return nil
@@ -74,10 +74,10 @@ func (r *ticketViewRepository) Update(db *gorm.DB, t *models.TicketView) error {
 	return db.Save(t).Error
 }
 
-func (r *ticketViewRepository) Updates(db *gorm.DB, id int64, columns map[string]interface{}) error {
+func (r *ticketViewRepository) Updates(db *gorm.DB, id int64, columns map[string]any) error {
 	return db.Model(&models.TicketView{}).Where("id = ?", id).Updates(columns).Error
 }
 
-func (r *ticketViewRepository) Delete(db *gorm.DB, id int64) {
-	db.Delete(&models.TicketView{}, "id = ?", id)
+func (r *ticketViewRepository) Delete(db *gorm.DB, id int64) error {
+	return db.Delete(&models.TicketView{}, "id = ?", id).Error
 }

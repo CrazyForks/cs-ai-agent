@@ -11,3 +11,13 @@ func TestNotificationPermissionMigrationRegistered(t *testing.T) {
 		t.Fatalf("unexpected migration remark: %q", migration.Remark)
 	}
 }
+
+func TestLightweightTicketPermissionMigrationRegistered(t *testing.T) {
+	migration, ok := migrationFuncs[8]
+	if !ok {
+		t.Fatalf("expected migration version 8 to be registered")
+	}
+	if migration.Remark != "sync lightweight ticket permissions" {
+		t.Fatalf("unexpected migration remark: %q", migration.Remark)
+	}
+}

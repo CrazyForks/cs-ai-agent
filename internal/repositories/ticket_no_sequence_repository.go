@@ -2,11 +2,13 @@ package repositories
 
 import (
 	"cs-agent/internal/models"
+	"errors"
 	"time"
 
 	"github.com/mlogclub/simple/sqls"
 	"github.com/mlogclub/simple/web/params"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 var TicketNoSequenceRepository = newTicketNoSequenceRepository()
@@ -72,6 +74,18 @@ func (r *ticketNoSequenceRepository) GetByDateKey(db *gorm.DB, dateKey string) *
 		return nil
 	}
 	return ret
+}
+
+func (r *ticketNoSequenceRepository) GetByDateKeyForUpdate(db *gorm.DB, dateKey string) (*models.TicketNoSequence, error) {
+	ret := &models.TicketNoSequence{}
+	err := db.Clauses(clause.Locking{Strength: "UPDATE"}).Take(ret, "date_key = ?", dateKey).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
 }
 
 func (r *ticketNoSequenceRepository) Create(db *gorm.DB, t *models.TicketNoSequence) error {

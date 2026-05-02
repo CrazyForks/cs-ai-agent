@@ -208,6 +208,43 @@ func TestTicketServiceAssignTicketRequiresTargetUser(t *testing.T) {
 	}
 }
 
+func TestTicketServiceAssignTicketRejectsDisabledUser(t *testing.T) {
+	setupTicketTestDB(t)
+	operator := createTestOperator(t, "assign-disabled-operator")
+	disabledUserID := createTestUserWithStatus(t, "assign-disabled-user", enums.StatusDisabled)
+	ticket, err := services.TicketService.CreateTicket(createTestTicketRequest("assign-disabled-ticket"), operator)
+	if err != nil {
+		t.Fatalf("CreateTicket() error = %v", err)
+	}
+
+	err = services.TicketService.AssignTicket(request.AssignTicketRequest{
+		TicketID: ticket.ID,
+		ToUserID: disabledUserID,
+		Reason:   "disabled assignment",
+	}, operator)
+	if err == nil {
+		t.Fatalf("expected AssignTicket() to reject disabled target user")
+	}
+}
+
+func TestTicketServiceCreateTicketRejectsMismatchedCustomerConversation(t *testing.T) {
+	setupTicketTestDB(t)
+	operator := createTestOperator(t, "mismatch-operator")
+	customerID := createTestCustomer(t, "mismatch-customer")
+	otherCustomerID := createTestCustomer(t, "mismatch-other-customer")
+	conversationID := createTestConversation(t, otherCustomerID, "mismatch-conversation")
+
+	_, err := services.TicketService.CreateTicket(request.CreateTicketRequest{
+		Title:          "mismatch ticket",
+		Description:    "mismatch ticket description",
+		CustomerID:     customerID,
+		ConversationID: conversationID,
+	}, operator)
+	if err == nil {
+		t.Fatalf("expected CreateTicket() to reject mismatched customer and conversation")
+	}
+}
+
 func TestTicketServiceSummaryCountsStaleTickets(t *testing.T) {
 	setupTicketTestDB(t)
 	operator := createTestOperator(t, "summary-operator")
@@ -284,9 +321,9 @@ func TestTicketServiceFindPageAggregateEnrichesLookups(t *testing.T) {
 }
 
 func TestTicketServiceTicketNoNextConcurrent(t *testing.T) {
-	setupTicketTestDB(t)
+	setupTicketTestDBWithMaxOpenConns(t, 8)
 
-	const count = 20
+	const count = 50
 	results := make(chan string, count)
 	errs := make(chan error, count)
 	var wg sync.WaitGroup
@@ -332,6 +369,10 @@ func TestTicketServiceTicketNoNextConcurrent(t *testing.T) {
 }
 
 func setupTicketTestDB(t *testing.T) {
+	setupTicketTestDBWithMaxOpenConns(t, 0)
+}
+
+func setupTicketTestDBWithMaxOpenConns(t *testing.T, maxOpenConns int) {
 	t.Helper()
 
 	dbPath := filepath.Join(t.TempDir(), "ticket-test.db")
@@ -339,7 +380,7 @@ func setupTicketTestDB(t *testing.T) {
 		Type:         "sqlite",
 		DSN:          "file:" + dbPath + "?_busy_timeout=5000",
 		MaxIdleConns: 1,
-		MaxOpenConns: 1,
+		MaxOpenConns: maxOpenConns,
 	})
 	if err != nil {
 		t.Fatalf("InitDB() error = %v", err)
@@ -369,13 +410,17 @@ func createTestOperator(t *testing.T, prefix string) *dto.AuthPrincipal {
 }
 
 func createTestUser(t *testing.T, prefix string) int64 {
+	return createTestUserWithStatus(t, prefix, enums.StatusOk)
+}
+
+func createTestUserWithStatus(t *testing.T, prefix string, status enums.Status) int64 {
 	t.Helper()
 	now := time.Now()
 	username := fmt.Sprintf("%s_%d", prefix, now.UnixNano())
 	user := &models.User{
 		Username: username,
 		Nickname: prefix,
-		Status:   enums.StatusOk,
+		Status:   status,
 		AuditFields: models.AuditFields{
 			CreatedAt:      now,
 			CreateUserID:   1,
@@ -389,6 +434,25 @@ func createTestUser(t *testing.T, prefix string) int64 {
 		t.Fatalf("create user error = %v", err)
 	}
 	return user.ID
+}
+
+func createTestConversation(t *testing.T, customerID int64, prefix string) int64 {
+	t.Helper()
+
+	now := time.Now()
+	item := &models.Conversation{
+		CustomerID:    customerID,
+		CustomerName:  prefix,
+		Status:        enums.IMConversationStatusActive,
+		ServiceMode:   enums.IMConversationServiceModeAIOnly,
+		LastMessageAt: now,
+		LastActiveAt:  now,
+		AuditFields:   models.AuditFields{CreatedAt: now, UpdatedAt: now},
+	}
+	if err := repositories.ConversationRepository.Create(sqls.DB(), item); err != nil {
+		t.Fatalf("create conversation error = %v", err)
+	}
+	return item.ID
 }
 
 func createTestCustomer(t *testing.T, prefix string) int64 {

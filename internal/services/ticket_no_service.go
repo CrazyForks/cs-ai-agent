@@ -5,12 +5,15 @@ import (
 	"cs-agent/internal/repositories"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"gorm.io/gorm"
 )
 
 var TicketNoService = newTicketNoService()
+
+var ticketNoSQLiteMu sync.Mutex
 
 func newTicketNoService() *ticketNoService {
 	return &ticketNoService{}
@@ -22,9 +25,25 @@ func (s *ticketNoService) Next(tx *gorm.DB, now time.Time) (string, error) {
 	if tx == nil {
 		return "", fmt.Errorf("ticket number transaction is required")
 	}
+	if tx.Dialector.Name() == "sqlite" {
+		ticketNoSQLiteMu.Lock()
+		defer ticketNoSQLiteMu.Unlock()
+		return s.nextWithRetry(tx, now)
+	}
+	return s.nextWithRetry(tx, now)
+}
+
+func (s *ticketNoService) nextWithRetry(tx *gorm.DB, now time.Time) (string, error) {
 	dateKey := now.Format("20060102")
-	for attempt := 0; attempt < 20; attempt++ {
-		current := repositories.TicketNoSequenceRepository.GetByDateKey(tx, dateKey)
+	for attempt := 0; attempt < 100; attempt++ {
+		current, err := repositories.TicketNoSequenceRepository.GetByDateKeyForUpdate(tx, dateKey)
+		if err != nil {
+			if isRetriableTicketNoError(err) {
+				sleepTicketNoRetry(attempt)
+				continue
+			}
+			return "", err
+		}
 		if current == nil {
 			item := &models.TicketNoSequence{
 				DateKey:   dateKey,
@@ -39,14 +58,25 @@ func (s *ticketNoService) Next(tx *gorm.DB, now time.Time) (string, error) {
 			if !isRetriableTicketNoError(err) {
 				return "", err
 			}
-			time.Sleep(time.Duration(attempt+1) * 10 * time.Millisecond)
-			continue
+
+			current, err = repositories.TicketNoSequenceRepository.GetByDateKeyForUpdate(tx, dateKey)
+			if err != nil {
+				if isRetriableTicketNoError(err) {
+					sleepTicketNoRetry(attempt)
+					continue
+				}
+				return "", err
+			}
+			if current == nil {
+				sleepTicketNoRetry(attempt)
+				continue
+			}
 		}
 		allocated := current.NextSeq
-		ok, err := repositories.TicketNoSequenceRepository.UpdateNextSeq(tx, current.ID, current.NextSeq, current.NextSeq+1, now)
+		ok, err := repositories.TicketNoSequenceRepository.UpdateNextSeq(tx, current.ID, allocated, allocated+1, now)
 		if err != nil {
 			if isRetriableTicketNoError(err) {
-				time.Sleep(time.Duration(attempt+1) * 10 * time.Millisecond)
+				sleepTicketNoRetry(attempt)
 				continue
 			}
 			return "", err
@@ -54,9 +84,17 @@ func (s *ticketNoService) Next(tx *gorm.DB, now time.Time) (string, error) {
 		if ok {
 			return formatTicketNo(dateKey, allocated), nil
 		}
-		time.Sleep(time.Duration(attempt+1) * 10 * time.Millisecond)
+		sleepTicketNoRetry(attempt)
 	}
 	return "", fmt.Errorf("failed to allocate ticket number")
+}
+
+func sleepTicketNoRetry(attempt int) {
+	delay := time.Duration(attempt+1) * 10 * time.Millisecond
+	if delay > 200*time.Millisecond {
+		delay = 200 * time.Millisecond
+	}
+	time.Sleep(delay)
 }
 
 func formatTicketNo(dateKey string, seq int64) string {
@@ -80,5 +118,11 @@ func isDatabaseLockedError(err error) bool {
 		return false
 	}
 	message := strings.ToLower(err.Error())
-	return strings.Contains(message, "database is locked") || strings.Contains(message, "database table is locked")
+	return strings.Contains(message, "database is locked") ||
+		strings.Contains(message, "database table is locked") ||
+		strings.Contains(message, "database is busy") ||
+		strings.Contains(message, "lock wait timeout") ||
+		strings.Contains(message, "deadlock") ||
+		strings.Contains(message, "try restarting transaction") ||
+		strings.Contains(message, "could not serialize")
 }
