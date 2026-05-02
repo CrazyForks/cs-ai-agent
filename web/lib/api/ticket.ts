@@ -206,21 +206,11 @@ export function changeTicketStatus(payload: {
   })
 }
 
-export function fetchTicketProgresses(query: {
-  ticketId: number
-  page?: number
-  limit?: number
-}) {
-  return request<PageResult<TicketProgress>>(
-    `/api/dashboard/ticket/progress/list${toQueryString(query)}`,
-  )
-}
-
 export function createTicketProgress(payload: {
   ticketId: number
   content: string
 }) {
-  return request<TicketProgress>("/api/dashboard/ticket/progress/create", {
+  return request<TicketProgress>("/api/dashboard/ticket/add_progress", {
     method: "POST",
     body: JSON.stringify(payload),
   })

@@ -62,7 +62,8 @@ func (c *TicketController) AnySummary() *web.JsonResult {
 	if err != nil {
 		return web.JsonError(err)
 	}
-	return web.JsonData(builders.BuildTicketSummary(services.TicketService.GetSummary(operator)))
+	staleHours, _ := params.GetInt(c.Ctx, "staleHours")
+	return web.JsonData(builders.BuildTicketSummary(services.TicketService.GetSummary(operator, staleHours)))
 }
 
 func (c *TicketController) AnyView_list() *web.JsonResult {

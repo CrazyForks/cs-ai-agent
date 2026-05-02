@@ -1,6 +1,4 @@
 "use client";
-
-import Link from "next/link";
 import {
   Building2Icon,
   Link2Icon,
@@ -626,10 +624,9 @@ function RelatedTicketsSection({ conversation }: { conversation: AgentConversati
       ) : tickets.length > 0 ? (
         <div className="space-y-2">
           {tickets.map((ticket) => (
-            <Link
+            <div
               key={ticket.id}
-              href={`/dashboard/tickets?ticketId=${ticket.id}`}
-              className="block rounded-lg border border-border bg-background px-3 py-2 transition-colors hover:bg-muted/40"
+              className="rounded-lg border border-border bg-background px-3 py-2"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
@@ -647,7 +644,7 @@ function RelatedTicketsSection({ conversation }: { conversation: AgentConversati
                   {ticket.updatedAt ? formatDateTime(ticket.updatedAt) : "—"}
                 </span>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       ) : (
