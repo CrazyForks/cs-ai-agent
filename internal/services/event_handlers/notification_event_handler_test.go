@@ -23,7 +23,7 @@ func TestTicketAssignedInAppNotification(t *testing.T) {
 		TicketNo:          "TK202604280001",
 		Title:             "退款处理",
 		Source:            enums.TicketSourceManual,
-		Status:            enums.TicketStatusOpen,
+		Status:            enums.TicketStatusPending,
 		CurrentAssigneeID: 11,
 		AuditFields: models.AuditFields{
 			CreatedAt: time.Now(),

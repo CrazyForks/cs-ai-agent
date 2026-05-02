@@ -8,8 +8,6 @@ import (
 // Models 注册所有需要迁移和代码生成的模型。
 var Models = []any{
 	&Migration{},
-	&TicketNoSequence{},
-	&TicketView{},
 	&User{},
 	&UserIdentity{},
 	&Company{},
@@ -39,15 +37,9 @@ var Models = []any{
 	&ConversationEventLog{},
 	&Ticket{},
 	&TicketTag{},
-	&TicketResolutionCode{},
-	&TicketPriorityConfig{},
-	&TicketComment{},
-	&TicketWatcher{},
-	&TicketCollaborator{},
-	&TicketMention{},
-	&TicketEventLog{},
-	&TicketSLARecord{},
-	&TicketRelation{},
+	&TicketProgress{},
+	&TicketView{},
+	&TicketNoSequence{},
 	&Notification{},
 	&AIAgent{},
 	&Channel{},
@@ -568,35 +560,19 @@ type ConversationEventLog struct {
 	CreatedAt      time.Time          `gorm:"type:datetime;not null;index"`
 }
 
-// Ticket 客服工单主档。
+// Ticket 客服问题记录。
 type Ticket struct {
-	ID                  int64                `gorm:"primaryKey;autoIncrement"`
-	TicketNo            string               `gorm:"type:varchar(64);not null;default:'';uniqueIndex"`
-	Title               string               `gorm:"type:varchar(255);not null;default:'';index"`
-	Description         string               `gorm:"type:text"`
-	Source              enums.TicketSource   `gorm:"type:varchar(50);not null;default:'';index"`
-	Channel             string               `gorm:"type:varchar(50);not null;default:'';index"`
-	CustomerID          int64                `gorm:"type:bigint;not null;default:0;index"`
-	ConversationID      int64                `gorm:"type:bigint;not null;default:0;index"`
-	Type                string               `gorm:"type:varchar(50);not null;default:'';index"`
-	Priority            int64                `gorm:"type:bigint;not null;default:0;index"`
-	Severity            enums.TicketSeverity `gorm:"type:int;not null;default:1;index"`
-	Status              enums.TicketStatus   `gorm:"type:varchar(50);not null;default:'new';index"`
-	CurrentTeamID       int64                `gorm:"type:bigint;not null;default:0;index"`
-	CurrentAssigneeID   int64                `gorm:"type:bigint;not null;default:0;index"`
-	PendingReason       string               `gorm:"type:varchar(255);not null;default:''"`
-	CloseReason         string               `gorm:"type:varchar(255);not null;default:''"`
-	ResolutionCode      string               `gorm:"type:varchar(100);not null;default:''"`
-	ResolutionSummary   string               `gorm:"type:text"`
-	FirstResponseAt     *time.Time           `gorm:"type:datetime;index"`
-	ResolvedAt          *time.Time           `gorm:"type:datetime;index"`
-	ClosedAt            *time.Time           `gorm:"type:datetime;index"`
-	DueAt               *time.Time           `gorm:"type:datetime;index"`
-	NextReplyDeadlineAt *time.Time           `gorm:"type:datetime;index"`
-	ResolveDeadlineAt   *time.Time           `gorm:"type:datetime;index"`
-	ReopenedCount       int                  `gorm:"type:int;not null;default:0"`
-	CustomFieldsJSON    string               `gorm:"type:text"`
-	ExtraJSON           string               `gorm:"type:text"`
+	ID                int64              `gorm:"primaryKey;autoIncrement"`
+	TicketNo          string             `gorm:"type:varchar(64);not null;default:'';uniqueIndex"`
+	Title             string             `gorm:"type:varchar(255);not null;default:'';index"`
+	Description       string             `gorm:"type:text"`
+	Source            enums.TicketSource `gorm:"type:varchar(50);not null;default:'';index"`
+	Channel           string             `gorm:"type:varchar(50);not null;default:'';index"`
+	CustomerID        int64              `gorm:"type:bigint;not null;default:0;index"`
+	ConversationID    int64              `gorm:"type:bigint;not null;default:0;index"`
+	Status            enums.TicketStatus `gorm:"type:varchar(50);not null;default:'pending';index"`
+	CurrentAssigneeID int64              `gorm:"type:bigint;not null;default:0;index"`
+	HandledAt         *time.Time         `gorm:"type:datetime;index"`
 	AuditFields
 }
 
@@ -608,104 +584,13 @@ type TicketTag struct {
 	AuditFields
 }
 
-// TicketResolutionCode 工单解决码。
-type TicketResolutionCode struct {
-	ID     int64        `gorm:"primaryKey;autoIncrement"`
-	Name   string       `gorm:"type:varchar(100);not null;default:'';index"`
-	Code   string       `gorm:"type:varchar(100);not null;default:'';uniqueIndex"`
-	SortNo int          `gorm:"type:int;not null;default:0;index"`
-	Status enums.Status `gorm:"type:int;not null;default:0;index"`
-	Remark string       `gorm:"type:text"`
-	AuditFields
-}
-
-// TicketPriorityConfig 工单优先级配置。
-type TicketPriorityConfig struct {
-	ID                   int64        `gorm:"primaryKey;autoIncrement"`
-	Name                 string       `gorm:"type:varchar(100);not null;default:'';uniqueIndex"`
-	SortNo               int          `gorm:"type:int;not null;default:0;index"`
-	FirstResponseMinutes int          `gorm:"type:int;not null;default:0"`
-	ResolutionMinutes    int          `gorm:"type:int;not null;default:0"`
-	Status               enums.Status `gorm:"type:int;not null;default:0;index"`
-	Remark               string       `gorm:"type:text"`
-	AuditFields
-}
-
-// TicketComment 工单评论。
-type TicketComment struct {
-	ID          int64                   `gorm:"primaryKey;autoIncrement"`
-	TicketID    int64                   `gorm:"type:bigint;not null;index"`
-	CommentType enums.TicketCommentType `gorm:"type:varchar(50);not null;default:'';index"`
-	AuthorType  enums.IMSenderType      `gorm:"type:varchar(30);not null;default:'';index"`
-	AuthorID    int64                   `gorm:"type:bigint;not null;default:0;index"`
-	ContentType string                  `gorm:"type:varchar(30);not null;default:''"`
-	Content     string                  `gorm:"type:text"`
-	Payload     string                  `gorm:"type:text"`
-	CreatedAt   time.Time               `gorm:"type:datetime;not null;index"`
-}
-
-// TicketWatcher 工单关注人。
-type TicketWatcher struct {
+// TicketProgress 工单处理进展。
+type TicketProgress struct {
 	ID        int64     `gorm:"primaryKey;autoIncrement"`
-	TicketID  int64     `gorm:"type:bigint;not null;index;uniqueIndex:uk_ticket_watcher"`
-	UserID    int64     `gorm:"type:bigint;not null;index;uniqueIndex:uk_ticket_watcher"`
+	TicketID  int64     `gorm:"type:bigint;not null;index"`
+	Content   string    `gorm:"type:text"`
+	AuthorID  int64     `gorm:"type:bigint;not null;default:0;index"`
 	CreatedAt time.Time `gorm:"type:datetime;not null;index"`
-}
-
-// TicketCollaborator 工单协作人。
-type TicketCollaborator struct {
-	ID        int64     `gorm:"primaryKey;autoIncrement"`
-	TicketID  int64     `gorm:"type:bigint;not null;index;uniqueIndex:uk_ticket_collaborator"`
-	UserID    int64     `gorm:"type:bigint;not null;index;uniqueIndex:uk_ticket_collaborator"`
-	CreatedAt time.Time `gorm:"type:datetime;not null;index"`
-}
-
-// TicketMention 工单提及记录。
-type TicketMention struct {
-	ID              int64     `gorm:"primaryKey;autoIncrement"`
-	TicketID        int64     `gorm:"type:bigint;not null;index;uniqueIndex:uk_ticket_mention"`
-	CommentID       int64     `gorm:"type:bigint;not null;index;uniqueIndex:uk_ticket_mention"`
-	MentionedUserID int64     `gorm:"type:bigint;not null;index;uniqueIndex:uk_ticket_mention"`
-	CreatedAt       time.Time `gorm:"type:datetime;not null;index"`
-}
-
-// TicketEventLog 工单事件日志。
-type TicketEventLog struct {
-	ID           int64                 `gorm:"primaryKey;autoIncrement"`
-	TicketID     int64                 `gorm:"type:bigint;not null;index"`
-	EventType    enums.TicketEventType `gorm:"type:varchar(50);not null;default:'';index"`
-	OperatorType enums.IMSenderType    `gorm:"type:varchar(30);not null;default:'';index"`
-	OperatorID   int64                 `gorm:"type:bigint;not null;default:0;index"`
-	OldValue     string                `gorm:"type:text"`
-	NewValue     string                `gorm:"type:text"`
-	Content      string                `gorm:"type:text"`
-	Payload      string                `gorm:"type:text"`
-	CreatedAt    time.Time             `gorm:"type:datetime;not null;index"`
-}
-
-// TicketSLARecord 工单 SLA 记录。
-type TicketSLARecord struct {
-	ID            int64                 `gorm:"primaryKey;autoIncrement"`
-	TicketID      int64                 `gorm:"type:bigint;not null;index"`
-	SLAType       enums.TicketSLAType   `gorm:"type:varchar(50);not null;default:'';index"`
-	TargetMinutes int                   `gorm:"type:int;not null;default:0"`
-	Status        enums.TicketSLAStatus `gorm:"type:varchar(30);not null;default:'';index"`
-	StartedAt     *time.Time            `gorm:"type:datetime;index"`
-	PausedAt      *time.Time            `gorm:"type:datetime;index"`
-	StoppedAt     *time.Time            `gorm:"type:datetime;index"`
-	BreachedAt    *time.Time            `gorm:"type:datetime;index"`
-	ElapsedMin    int                   `gorm:"type:int;not null;default:0"`
-	CreatedAt     time.Time             `gorm:"type:datetime;not null;index"`
-	UpdatedAt     time.Time             `gorm:"type:datetime;not null;index"`
-}
-
-// TicketRelation 工单关联关系。
-type TicketRelation struct {
-	ID              int64                    `gorm:"primaryKey;autoIncrement"`
-	TicketID        int64                    `gorm:"type:bigint;not null;index"`
-	RelatedTicketID int64                    `gorm:"type:bigint;not null;index"`
-	RelationType    enums.TicketRelationType `gorm:"type:varchar(30);not null;default:'';index"`
-	CreatedAt       time.Time                `gorm:"type:datetime;not null;index"`
 }
 
 // AgentProfile 客服档案。

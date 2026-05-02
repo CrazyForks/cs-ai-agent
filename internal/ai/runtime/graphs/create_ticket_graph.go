@@ -27,8 +27,6 @@ type CreateTicketGraphInterruptInfo struct {
 type createTicketGraphArgs struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
-	Priority    int64  `json:"priority"`
-	Severity    int    `json:"severity"`
 }
 
 func init() {
@@ -100,8 +98,7 @@ func (g *CreateTicketGraph) Run(ctx context.Context, argumentsInJSON string) (st
 
 func (g *CreateTicketGraph) buildCreateRequest(argumentsInJSON string) (request.CreateTicketFromConversationRequest, error) {
 	req := request.CreateTicketFromConversationRequest{
-		ConversationID:     g.conversation.ID,
-		SyncToConversation: true,
+		ConversationID: g.conversation.ID,
 	}
 	var args createTicketGraphArgs
 	if strings.TrimSpace(argumentsInJSON) != "" {
@@ -111,8 +108,6 @@ func (g *CreateTicketGraph) buildCreateRequest(argumentsInJSON string) (request.
 	}
 	req.Title = strings.TrimSpace(args.Title)
 	req.Description = strings.TrimSpace(args.Description)
-	req.Priority = args.Priority
-	req.Severity = args.Severity
 	if req.Title == "" {
 		req.Title = strings.TrimSpace(g.conversation.LastMessageSummary)
 	}

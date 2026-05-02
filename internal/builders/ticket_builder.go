@@ -1,35 +1,23 @@
 package builders
 
 import (
-	"cs-agent/internal/models"
-	"cs-agent/internal/pkg/dto/response"
-	"cs-agent/internal/pkg/enums"
-	"cs-agent/internal/pkg/utils"
-	"cs-agent/internal/services"
 	"encoding/json"
 	"strings"
 
-	"github.com/mlogclub/simple/sqls"
+	"cs-agent/internal/models"
+	"cs-agent/internal/pkg/dto/response"
+	"cs-agent/internal/pkg/utils"
+	"cs-agent/internal/services"
 )
 
 type TicketBuildContext struct {
-	TagsByTicketID   map[int64][]models.Tag
-	Priorities       map[int64]*models.TicketPriorityConfig
-	ResolutionCodes  map[string]*models.TicketResolutionCode
-	Users            map[int64]*models.User
-	Teams            map[int64]*models.AgentTeam
-	Customers        map[int64]*models.Customer
-	SLAByTicketID    map[int64][]models.TicketSLARecord
-	WatchedTicketIDs map[int64]struct{}
+	TagsByTicketID map[int64][]models.Tag
+	Users          map[int64]*models.User
+	Customers      map[int64]*models.Customer
 }
 
 type TicketDetailBuildContext struct {
-	Users          map[int64]*models.User
-	Teams          map[int64]*models.AgentTeam
-	AgentProfiles  map[int64]*models.AgentProfile
-	RelatedTickets map[int64]*models.Ticket
-	Customers      map[int64]*models.Customer
-	AIAgents       map[int64]*models.AIAgent
+	Users map[int64]*models.User
 }
 
 func BuildTicket(item *models.Ticket) *response.TicketResponse {
@@ -41,99 +29,42 @@ func BuildTicketWithContext(item *models.Ticket, ctx *TicketBuildContext) *respo
 		return nil
 	}
 	ret := &response.TicketResponse{
-		ID:                  item.ID,
-		TicketNo:            item.TicketNo,
-		Title:               item.Title,
-		Description:         item.Description,
-		Source:              item.Source,
-		Channel:             item.Channel,
-		CustomerID:          item.CustomerID,
-		ConversationID:      item.ConversationID,
-		Type:                item.Type,
-		Priority:            item.Priority,
-		Severity:            item.Severity,
-		Status:              item.Status,
-		CurrentTeamID:       item.CurrentTeamID,
-		CurrentAssigneeID:   item.CurrentAssigneeID,
-		PendingReason:       item.PendingReason,
-		CloseReason:         item.CloseReason,
-		ResolutionCode:      item.ResolutionCode,
-		ResolutionSummary:   item.ResolutionSummary,
-		FirstResponseAt:     utils.FormatTimePtr(item.FirstResponseAt),
-		ResolvedAt:          utils.FormatTimePtr(item.ResolvedAt),
-		ClosedAt:            utils.FormatTimePtr(item.ClosedAt),
-		DueAt:               utils.FormatTimePtr(item.DueAt),
-		NextReplyDeadlineAt: utils.FormatTimePtr(item.NextReplyDeadlineAt),
-		ResolveDeadlineAt:   utils.FormatTimePtr(item.ResolveDeadlineAt),
-		ReopenedCount:       item.ReopenedCount,
-		CreatedAt:           utils.FormatTime(item.CreatedAt),
-		UpdatedAt:           utils.FormatTime(item.UpdatedAt),
-	}
-	if ctx != nil {
-		if _, ok := ctx.WatchedTicketIDs[item.ID]; ok {
-			ret.WatchedByMe = true
-		}
+		ID:                item.ID,
+		TicketNo:          item.TicketNo,
+		Title:             item.Title,
+		Description:       item.Description,
+		Source:            item.Source,
+		Channel:           item.Channel,
+		CustomerID:        item.CustomerID,
+		ConversationID:    item.ConversationID,
+		Status:            item.Status,
+		CurrentAssigneeID: item.CurrentAssigneeID,
+		CreatedBy:         item.CreateUserID,
+		CreatedByName:     item.CreateUserName,
+		HandledAt:         utils.FormatTimePtr(item.HandledAt),
+		CreatedAt:         utils.FormatTime(item.CreatedAt),
+		UpdatedAt:         utils.FormatTime(item.UpdatedAt),
 	}
 	if ctx != nil && ctx.TagsByTicketID != nil {
 		ret.Tags = BuildTagResponses(ctx.TagsByTicketID[item.ID])
 	} else {
 		ret.Tags = BuildTagResponses(services.TicketService.GetTags(item.ID))
 	}
-	if item.Priority > 0 && ctx != nil && ctx.Priorities != nil {
-		if priority := ctx.Priorities[item.Priority]; priority != nil {
-			ret.PriorityName = priority.Name
+	if item.CurrentAssigneeID > 0 {
+		if ctx != nil && ctx.Users != nil {
+			ret.CurrentAssigneeName = buildTicketUserDisplayName(ctx.Users[item.CurrentAssigneeID])
 		}
-	} else if item.Priority > 0 {
-		if priority := services.TicketPriorityConfigService.Get(item.Priority); priority != nil {
-			ret.PriorityName = priority.Name
-		}
-	}
-	if item.ResolutionCode != "" && ctx != nil && ctx.ResolutionCodes != nil {
-		if code := ctx.ResolutionCodes[item.ResolutionCode]; code != nil {
-			ret.ResolutionCodeName = code.Name
-		}
-	} else if item.ResolutionCode != "" {
-		if code := services.TicketResolutionCodeService.Take("code = ? AND status <> ?", item.ResolutionCode, enums.StatusDeleted); code != nil {
-			ret.ResolutionCodeName = code.Name
+		if ret.CurrentAssigneeName == "" {
+			ret.CurrentAssigneeName = buildTicketUserDisplayName(services.UserService.Get(item.CurrentAssigneeID))
 		}
 	}
-	if item.CurrentAssigneeID > 0 && ctx != nil && ctx.Users != nil {
-		if user := ctx.Users[item.CurrentAssigneeID]; user != nil {
-			ret.CurrentAssigneeName = user.Nickname
-			if ret.CurrentAssigneeName == "" {
-				ret.CurrentAssigneeName = user.Username
-			}
+	if item.CustomerID > 0 {
+		if ctx != nil && ctx.Customers != nil {
+			ret.Customer = BuildCustomer(ctx.Customers[item.CustomerID])
 		}
-	} else if item.CurrentAssigneeID > 0 {
-		if user := services.UserService.Get(item.CurrentAssigneeID); user != nil {
-			ret.CurrentAssigneeName = user.Nickname
-			if ret.CurrentAssigneeName == "" {
-				ret.CurrentAssigneeName = user.Username
-			}
+		if ret.Customer == nil {
+			ret.Customer = BuildCustomer(services.CustomerService.Get(item.CustomerID))
 		}
-	}
-	if item.CurrentTeamID > 0 && ctx != nil && ctx.Teams != nil {
-		if team := ctx.Teams[item.CurrentTeamID]; team != nil {
-			ret.CurrentTeamName = team.Name
-		}
-	} else if item.CurrentTeamID > 0 {
-		if team := services.AgentTeamService.Get(item.CurrentTeamID); team != nil {
-			ret.CurrentTeamName = team.Name
-		}
-	}
-	if item.CustomerID > 0 && ctx != nil && ctx.Customers != nil {
-		ret.Customer = BuildCustomer(ctx.Customers[item.CustomerID])
-	} else if item.CustomerID > 0 {
-		ret.Customer = BuildCustomer(services.CustomerService.Get(item.CustomerID))
-	}
-	if ctx != nil && ctx.SLAByTicketID != nil {
-		ret.SLA = BuildTicketSLAList(ctx.SLAByTicketID[item.ID])
-	} else {
-		ret.SLA = BuildTicketSLAList(
-			services.TicketSLARecordService.Find(
-				sqls.NewCnd().Eq("ticket_id", item.ID).Asc("id"),
-			),
-		)
 	}
 	return ret
 }
@@ -155,236 +86,62 @@ func BuildTicketListWithContext(list []models.Ticket, ctx *TicketBuildContext) [
 	return results
 }
 
-func BuildTicketComment(item *models.TicketComment) *response.TicketCommentResponse {
-	return BuildTicketCommentWithContext(item, nil)
+func BuildTicketProgress(item *models.TicketProgress) *response.TicketProgressResponse {
+	return BuildTicketProgressWithContext(item, nil)
 }
 
-func BuildTicketCommentWithContext(item *models.TicketComment, ctx *TicketDetailBuildContext) *response.TicketCommentResponse {
+func BuildTicketProgressWithContext(item *models.TicketProgress, ctx *TicketDetailBuildContext) *response.TicketProgressResponse {
 	if item == nil {
 		return nil
 	}
-	ret := &response.TicketCommentResponse{
-		ID:          item.ID,
-		TicketID:    item.TicketID,
-		CommentType: item.CommentType,
-		AuthorType:  item.AuthorType,
-		AuthorID:    item.AuthorID,
-		ContentType: item.ContentType,
-		Content:     item.Content,
-		Payload:     item.Payload,
-		CreatedAt:   utils.FormatTime(item.CreatedAt),
+	ret := &response.TicketProgressResponse{
+		ID:        item.ID,
+		TicketID:  item.TicketID,
+		Content:   item.Content,
+		AuthorID:  item.AuthorID,
+		CreatedAt: utils.FormatTime(item.CreatedAt),
 	}
-	ret.AuthorName = buildTicketOperatorName(item.AuthorType, item.AuthorID, ctx)
+	if item.AuthorID > 0 {
+		if ctx != nil && ctx.Users != nil {
+			ret.AuthorName = buildTicketUserDisplayName(ctx.Users[item.AuthorID])
+		}
+		if ret.AuthorName == "" {
+			ret.AuthorName = buildTicketUserDisplayName(services.UserService.Get(item.AuthorID))
+		}
+	}
 	return ret
 }
 
-func BuildTicketCommentList(list []models.TicketComment) []response.TicketCommentResponse {
-	return BuildTicketCommentListWithContext(list, nil)
-}
-
-func BuildTicketCommentListWithContext(list []models.TicketComment, ctx *TicketDetailBuildContext) []response.TicketCommentResponse {
+func BuildTicketProgressListWithContext(list []models.TicketProgress, ctx *TicketDetailBuildContext) []response.TicketProgressResponse {
 	if len(list) == 0 {
 		return nil
 	}
-	results := make([]response.TicketCommentResponse, 0, len(list))
+	results := make([]response.TicketProgressResponse, 0, len(list))
 	for i := range list {
-		if item := BuildTicketCommentWithContext(&list[i], ctx); item != nil {
+		if item := BuildTicketProgressWithContext(&list[i], ctx); item != nil {
 			results = append(results, *item)
 		}
-	}
-	return results
-}
-
-func BuildTicketEventLog(item *models.TicketEventLog) *response.TicketEventLogResponse {
-	return BuildTicketEventLogWithContext(item, nil)
-}
-
-func BuildTicketEventLogWithContext(item *models.TicketEventLog, ctx *TicketDetailBuildContext) *response.TicketEventLogResponse {
-	if item == nil {
-		return nil
-	}
-	return &response.TicketEventLogResponse{
-		ID:           item.ID,
-		TicketID:     item.TicketID,
-		EventType:    item.EventType,
-		OperatorType: item.OperatorType,
-		OperatorID:   item.OperatorID,
-		OperatorName: buildTicketOperatorName(item.OperatorType, item.OperatorID, ctx),
-		OldValue:     item.OldValue,
-		NewValue:     item.NewValue,
-		Content:      item.Content,
-		Payload:      item.Payload,
-		CreatedAt:    utils.FormatTime(item.CreatedAt),
-	}
-}
-
-func BuildTicketEventLogList(list []models.TicketEventLog) []response.TicketEventLogResponse {
-	return BuildTicketEventLogListWithContext(list, nil)
-}
-
-func BuildTicketEventLogListWithContext(list []models.TicketEventLog, ctx *TicketDetailBuildContext) []response.TicketEventLogResponse {
-	if len(list) == 0 {
-		return nil
-	}
-	results := make([]response.TicketEventLogResponse, 0, len(list))
-	for i := range list {
-		if item := BuildTicketEventLogWithContext(&list[i], ctx); item != nil {
-			results = append(results, *item)
-		}
-	}
-	return results
-}
-
-func BuildTicketSLAList(list []models.TicketSLARecord) []response.TicketSLAResponse {
-	if len(list) == 0 {
-		return nil
-	}
-	results := make([]response.TicketSLAResponse, 0, len(list))
-	for i := range list {
-		item := &list[i]
-		results = append(results, response.TicketSLAResponse{
-			SLAType:       item.SLAType,
-			TargetMinutes: item.TargetMinutes,
-			Status:        item.Status,
-			StartedAt:     utils.FormatTimePtr(item.StartedAt),
-			PausedAt:      utils.FormatTimePtr(item.PausedAt),
-			StoppedAt:     utils.FormatTimePtr(item.StoppedAt),
-			BreachedAt:    utils.FormatTimePtr(item.BreachedAt),
-			ElapsedMin:    item.ElapsedMin,
-		})
 	}
 	return results
 }
 
 func BuildTicketDetail(aggregate *services.TicketDetailAggregate) *response.TicketDetailResponse {
-	return BuildTicketDetailWithContext(aggregate, nil)
-}
-
-func BuildTicketDetailWithContext(aggregate *services.TicketDetailAggregate, ctx *TicketDetailBuildContext) *response.TicketDetailResponse {
 	if aggregate == nil || aggregate.Ticket == nil {
 		return nil
 	}
-	if ctx == nil {
-		users := make(map[int64]*models.User, len(aggregate.Users)+len(aggregate.OperatorUsers))
-		for id, item := range aggregate.Users {
-			users[id] = item
-		}
-		for id, item := range aggregate.OperatorUsers {
-			users[id] = item
-		}
-		ctx = &TicketDetailBuildContext{
-			Users:          users,
-			Teams:          aggregate.Teams,
-			AgentProfiles:  aggregate.AgentProfiles,
-			RelatedTickets: aggregate.RelatedMap,
-			Customers:      aggregate.OperatorCustomers,
-			AIAgents:       aggregate.OperatorAIAgents,
-		}
-	}
-	ret := &response.TicketDetailResponse{
-		Ticket:         *BuildTicket(aggregate.Ticket),
-		Watchers:       BuildTicketWatcherListWithContext(aggregate.Watchers, ctx),
-		Collaborators:  BuildTicketCollaboratorListWithContext(aggregate.Collaborators, ctx),
-		RelatedTickets: BuildTicketRelationListWithContext(aggregate.RelatedTickets, ctx),
-	}
-	if len(aggregate.Comments) > 0 {
-		ret.Comments = make([]response.TicketCommentResponse, 0, len(aggregate.Comments))
-		for i := range aggregate.Comments {
-			if item := BuildTicketCommentWithContext(&aggregate.Comments[i], ctx); item != nil {
-				ret.Comments = append(ret.Comments, *item)
-			}
-		}
-	}
-	if len(aggregate.Events) > 0 {
-		ret.Events = make([]response.TicketEventLogResponse, 0, len(aggregate.Events))
-		for i := range aggregate.Events {
-			if item := BuildTicketEventLogWithContext(&aggregate.Events[i], ctx); item != nil {
-				ret.Events = append(ret.Events, *item)
-			}
-		}
+	ctx := &TicketBuildContext{
+		TagsByTicketID: map[int64][]models.Tag{aggregate.Ticket.ID: aggregate.Tags},
+		Users:          aggregate.Users,
+		Customers:      map[int64]*models.Customer{},
 	}
 	if aggregate.Customer != nil {
-		ret.Ticket.Customer = BuildCustomer(aggregate.Customer)
+		ctx.Customers[aggregate.Customer.ID] = aggregate.Customer
 	}
-	ret.Ticket.Tags = BuildTagResponses(aggregate.Tags)
-	ret.Ticket.SLA = BuildTicketSLAList(aggregate.SLAs)
-	for i := range ret.Comments {
-		if ret.Comments[i].AuthorName == "" {
-			ret.Comments[i].AuthorName = buildTicketOperatorName(ret.Comments[i].AuthorType, ret.Comments[i].AuthorID, ctx)
-		}
+	ret := &response.TicketDetailResponse{
+		Ticket: *BuildTicketWithContext(aggregate.Ticket, ctx),
 	}
-	for i := range ret.Events {
-		if ret.Events[i].OperatorName == "" {
-			ret.Events[i].OperatorName = buildTicketOperatorName(ret.Events[i].OperatorType, ret.Events[i].OperatorID, ctx)
-		}
-	}
+	ret.Progresses = BuildTicketProgressListWithContext(aggregate.Progresses, &TicketDetailBuildContext{Users: aggregate.Users})
 	return ret
-}
-
-func BuildTicketRelation(item *models.TicketRelation) *response.TicketRelationResponse {
-	return BuildTicketRelationWithContext(item, nil)
-}
-
-func BuildTicketRelationWithContext(item *models.TicketRelation, ctx *TicketDetailBuildContext) *response.TicketRelationResponse {
-	if item == nil {
-		return nil
-	}
-	ret := &response.TicketRelationResponse{
-		ID:              item.ID,
-		TicketID:        item.TicketID,
-		RelatedTicketID: item.RelatedTicketID,
-		RelationType:    item.RelationType,
-	}
-	related := (*models.Ticket)(nil)
-	if ctx != nil && ctx.RelatedTickets != nil {
-		related = ctx.RelatedTickets[item.RelatedTicketID]
-	}
-	if related == nil {
-		related = services.TicketService.Get(item.RelatedTicketID)
-	}
-	if related != nil {
-		ret.RelatedTicketNo = related.TicketNo
-		ret.RelatedTicketTitle = related.Title
-		ret.RelatedTicketStatus = related.Status
-		ret.UpdatedAt = utils.FormatTime(related.UpdatedAt)
-		if related.CurrentTeamID > 0 && ctx != nil && ctx.Teams != nil {
-			if team := ctx.Teams[related.CurrentTeamID]; team != nil {
-				ret.CurrentTeamName = team.Name
-			}
-		} else if related.CurrentTeamID > 0 {
-			if team := services.AgentTeamService.Get(related.CurrentTeamID); team != nil {
-				ret.CurrentTeamName = team.Name
-			}
-		}
-		if related.CurrentAssigneeID > 0 && ctx != nil && ctx.Users != nil {
-			ret.CurrentAssigneeName = buildTicketUserDisplayName(ctx.Users[related.CurrentAssigneeID])
-		} else if related.CurrentAssigneeID > 0 {
-			if user := services.UserService.Get(related.CurrentAssigneeID); user != nil {
-				ret.CurrentAssigneeName = user.Nickname
-				if ret.CurrentAssigneeName == "" {
-					ret.CurrentAssigneeName = user.Username
-				}
-			}
-		}
-	}
-	return ret
-}
-
-func BuildTicketRelationList(list []models.TicketRelation) []response.TicketRelationResponse {
-	return BuildTicketRelationListWithContext(list, nil)
-}
-
-func BuildTicketRelationListWithContext(list []models.TicketRelation, ctx *TicketDetailBuildContext) []response.TicketRelationResponse {
-	if len(list) == 0 {
-		return nil
-	}
-	results := make([]response.TicketRelationResponse, 0, len(list))
-	for i := range list {
-		if item := BuildTicketRelationWithContext(&list[i], ctx); item != nil {
-			results = append(results, *item)
-		}
-	}
-	return results
 }
 
 func BuildTicketSummary(summary *services.TicketSummaryAggregate) *response.TicketSummaryResponse {
@@ -392,104 +149,14 @@ func BuildTicketSummary(summary *services.TicketSummaryAggregate) *response.Tick
 		return nil
 	}
 	return &response.TicketSummaryResponse{
-		All:             summary.All,
-		Mine:            summary.Mine,
-		Watching:        summary.Watching,
-		Collaboration:   summary.Collaboration,
-		Participating:   summary.Participating,
-		Mentioned:       summary.Mentioned,
-		Unassigned:      summary.Unassigned,
-		PendingCustomer: summary.PendingCustomer,
-		PendingInternal: summary.PendingInternal,
-		Overdue:         summary.Overdue,
+		All:        summary.All,
+		Pending:    summary.Pending,
+		InProgress: summary.InProgress,
+		Done:       summary.Done,
+		Unassigned: summary.Unassigned,
+		Mine:       summary.Mine,
+		Stale:      summary.Stale,
 	}
-}
-
-func BuildTicketRiskOverview(overview *services.TicketRiskOverviewAggregate) *response.TicketRiskOverviewResponse {
-	if overview == nil {
-		return nil
-	}
-	ret := &response.TicketRiskOverviewResponse{
-		Overdue:         overview.Overdue,
-		HighRisk:        overview.HighRisk,
-		Unassigned:      overview.Unassigned,
-		PendingInternal: overview.PendingInternal,
-		PendingCustomer: overview.PendingCustomer,
-		RiskWindowMins:  overview.RiskWindowMins,
-	}
-	if len(overview.Reasons) > 0 {
-		ret.Reasons = make([]response.TicketRiskReasonResponse, 0, len(overview.Reasons))
-		for _, item := range overview.Reasons {
-			ret.Reasons = append(ret.Reasons, response.TicketRiskReasonResponse{
-				Code:        item.Code,
-				Title:       item.Title,
-				Description: item.Description,
-				Count:       item.Count,
-			})
-		}
-	}
-	return ret
-}
-
-func BuildTicketWatcherList(list []models.TicketWatcher) []response.TicketWatcherResponse {
-	return BuildTicketWatcherListWithContext(list, nil)
-}
-
-func BuildTicketWatcherListWithContext(list []models.TicketWatcher, ctx *TicketDetailBuildContext) []response.TicketWatcherResponse {
-	if len(list) == 0 {
-		return nil
-	}
-	results := make([]response.TicketWatcherResponse, 0, len(list))
-	for i := range list {
-		item := &list[i]
-		out := response.TicketWatcherResponse{
-			ID:     item.ID,
-			UserID: item.UserID,
-		}
-		if ctx != nil && ctx.Users != nil {
-			out.UserName = buildTicketUserDisplayName(ctx.Users[item.UserID])
-		} else if user := services.UserService.Get(item.UserID); user != nil {
-			out.UserName = buildTicketUserDisplayName(user)
-		}
-		results = append(results, out)
-	}
-	return results
-}
-
-func BuildTicketCollaboratorList(list []models.TicketCollaborator) []response.TicketCollaboratorResponse {
-	return BuildTicketCollaboratorListWithContext(list, nil)
-}
-
-func BuildTicketCollaboratorListWithContext(list []models.TicketCollaborator, ctx *TicketDetailBuildContext) []response.TicketCollaboratorResponse {
-	if len(list) == 0 {
-		return nil
-	}
-	results := make([]response.TicketCollaboratorResponse, 0, len(list))
-	for i := range list {
-		item := &list[i]
-		out := response.TicketCollaboratorResponse{
-			ID:     item.ID,
-			UserID: item.UserID,
-		}
-		if ctx != nil && ctx.Users != nil {
-			out.UserName = buildTicketUserDisplayName(ctx.Users[item.UserID])
-		} else if user := services.UserService.Get(item.UserID); user != nil {
-			out.UserName = buildTicketUserDisplayName(user)
-		}
-		if ctx != nil && ctx.AgentProfiles != nil {
-			if profile := ctx.AgentProfiles[item.UserID]; profile != nil && profile.TeamID > 0 {
-				if team := ctx.Teams[profile.TeamID]; team != nil {
-					out.TeamName = team.Name
-				}
-			}
-		} else if profile := services.AgentProfileService.GetByUserID(item.UserID); profile != nil && profile.TeamID > 0 {
-			if team := services.AgentTeamService.Get(profile.TeamID); team != nil {
-				out.TeamName = team.Name
-			}
-		}
-		results = append(results, out)
-	}
-	return results
 }
 
 func BuildTicketView(item *models.TicketView) *response.TicketViewResponse {
@@ -528,40 +195,4 @@ func buildTicketUserDisplayName(user *models.User) string {
 		return user.Nickname
 	}
 	return user.Username
-}
-
-func buildTicketOperatorName(senderType enums.IMSenderType, senderID int64, ctx *TicketDetailBuildContext) string {
-	if senderID <= 0 {
-		return ""
-	}
-	switch senderType {
-	case enums.IMSenderTypeAgent:
-		if ctx != nil && ctx.Users != nil {
-			if user := ctx.Users[senderID]; user != nil {
-				return buildTicketUserDisplayName(user)
-			}
-		}
-		if user := services.UserService.Get(senderID); user != nil {
-			return buildTicketUserDisplayName(user)
-		}
-	case enums.IMSenderTypeCustomer:
-		if ctx != nil && ctx.Customers != nil {
-			if customer := ctx.Customers[senderID]; customer != nil {
-				return customer.Name
-			}
-		}
-		if customer := services.CustomerService.Get(senderID); customer != nil {
-			return customer.Name
-		}
-	case enums.IMSenderTypeAI:
-		if ctx != nil && ctx.AIAgents != nil {
-			if ai := ctx.AIAgents[senderID]; ai != nil {
-				return ai.Name
-			}
-		}
-		if ai := services.AIAgentService.Get(senderID); ai != nil {
-			return ai.Name
-		}
-	}
-	return ""
 }
