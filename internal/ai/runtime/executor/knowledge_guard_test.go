@@ -44,7 +44,8 @@ func TestBuildKnowledgeGuardDecisionInjectsStrictInstructionOnHit(t *testing.T) 
 		Hits: []rag.RetrieveResult{
 			{KnowledgeBaseID: 1, Score: 0.88},
 		},
-		AnswerMode: enums.KnowledgeAnswerModeStrict,
+		ContextText: "知识库上下文",
+		AnswerMode:  enums.KnowledgeAnswerModeStrict,
 	})
 
 	if decision.FallbackReply != "" {
@@ -59,6 +60,43 @@ func TestBuildKnowledgeGuardDecisionInjectsStrictInstructionOnHit(t *testing.T) 
 	}
 	if !strings.Contains(content, "当前知识库暂无明确信息。") {
 		t.Fatalf("expected fallback text in instruction, got %q", content)
+	}
+}
+
+func TestBuildKnowledgeGuardDecisionFallsBackWhenHitHasNoContext(t *testing.T) {
+	agent := newKnowledgeGuardAgentFixture()
+	agent.FallbackMessage = "我暂时没有找到足够准确的信息。"
+	decision := buildKnowledgeGuardDecision(agent, &retrievers.KnowledgeRetrieveResult{
+		KnowledgeBaseIDs: []int64{1},
+		Hits: []rag.RetrieveResult{
+			{KnowledgeBaseID: 1, Score: 0.88},
+		},
+		AnswerMode: enums.KnowledgeAnswerModeStrict,
+	})
+
+	if decision.FallbackReply != "我暂时没有找到足够准确的信息。" {
+		t.Fatalf("expected fallback on empty context, got %q", decision.FallbackReply)
+	}
+	if len(decision.Instructions) != 0 {
+		t.Fatalf("expected no instructions on empty context, got %d", len(decision.Instructions))
+	}
+}
+
+func TestBuildKnowledgeUnavailableDecisionFallsBackWhenAgentHasKnowledge(t *testing.T) {
+	agent := newKnowledgeGuardAgentFixture()
+	agent.FallbackMessage = "知识库暂时不可用。"
+	decision := buildKnowledgeUnavailableDecision(agent, []int64{1})
+
+	if decision.FallbackReply != "知识库暂时不可用。" {
+		t.Fatalf("expected fallback when knowledge unavailable, got %q", decision.FallbackReply)
+	}
+}
+
+func TestBuildKnowledgeUnavailableDecisionSkipsWhenAgentHasNoKnowledge(t *testing.T) {
+	decision := buildKnowledgeUnavailableDecision(newKnowledgeGuardAgentFixture(), nil)
+
+	if decision.FallbackReply != "" {
+		t.Fatalf("expected no fallback without knowledge bases, got %q", decision.FallbackReply)
 	}
 }
 

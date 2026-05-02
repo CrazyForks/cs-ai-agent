@@ -44,7 +44,7 @@ func appendRetrievedContext(ctx context.Context, req RunInput, summary *RunResul
 	retrieveOptions.QueryPreview = preview(req.UserMessage.Content, 120)
 	retrieveResult, retrieveErr := retriever.RetrieveContextByOptions(ctx, retrieveOptions, strings.TrimSpace(req.UserMessage.Content))
 	if retrieveErr != nil || retrieveResult == nil {
-		return knowledgeGuardDecision{}
+		return buildKnowledgeUnavailableDecision(req.AIAgent, retriever.KnowledgeBaseIDs())
 	}
 	if summary != nil {
 		summary.RetrieverCount = len(retrieveResult.Hits)
