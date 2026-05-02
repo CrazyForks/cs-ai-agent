@@ -178,23 +178,25 @@ func (s *ticketService) CreateTicket(req request.CreateTicketRequest, operator *
 	}
 	ticket.UpdatedAt = now
 
-	if err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
-		ticketNo, err := TicketNoService.Next(ctx.Tx, now)
-		if err != nil {
-			return err
-		}
-		ticket.TicketNo = ticketNo
-		if err := repositories.TicketRepository.Create(ctx.Tx, ticket); err != nil {
-			return err
-		}
-		if err := TicketTagService.ReplaceTicketTags(ctx.Tx, ticket.ID, tagIDs, operator); err != nil {
-			return err
-		}
-		return repositories.TicketProgressRepository.Create(ctx.Tx, &models.TicketProgress{
-			TicketID:  ticket.ID,
-			Content:   "创建工单",
-			AuthorID:  operator.UserID,
-			CreatedAt: now,
+	if err := withSQLiteTicketCreateLock(sqls.DB(), func() error {
+		return sqls.WithTransaction(func(ctx *sqls.TxContext) error {
+			ticketNo, err := TicketNoService.nextWithRetry(ctx.Tx, now)
+			if err != nil {
+				return err
+			}
+			ticket.TicketNo = ticketNo
+			if err := repositories.TicketRepository.Create(ctx.Tx, ticket); err != nil {
+				return err
+			}
+			if err := TicketTagService.ReplaceTicketTags(ctx.Tx, ticket.ID, tagIDs, operator); err != nil {
+				return err
+			}
+			return repositories.TicketProgressRepository.Create(ctx.Tx, &models.TicketProgress{
+				TicketID:  ticket.ID,
+				Content:   "创建工单",
+				AuthorID:  operator.UserID,
+				CreatedAt: now,
+			})
 		})
 	}); err != nil {
 		return nil, err
@@ -205,6 +207,14 @@ func (s *ticketService) CreateTicket(req request.CreateTicketRequest, operator *
 		OperatorID: operator.UserID,
 	})
 	return s.Get(ticket.ID), nil
+}
+
+func withSQLiteTicketCreateLock(db *gorm.DB, fn func() error) error {
+	if db != nil && db.Dialector.Name() == "sqlite" {
+		ticketNoSQLiteMu.Lock()
+		defer ticketNoSQLiteMu.Unlock()
+	}
+	return fn()
 }
 
 func (s *ticketService) CreateFromConversation(req request.CreateTicketFromConversationRequest, operator *dto.AuthPrincipal) (*models.Ticket, error) {

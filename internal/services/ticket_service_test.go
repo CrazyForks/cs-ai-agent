@@ -368,6 +368,56 @@ func TestTicketServiceTicketNoNextConcurrent(t *testing.T) {
 	}
 }
 
+func TestTicketServiceCreateTicketConcurrentAllocatesUniqueTicketNos(t *testing.T) {
+	setupTicketTestDBWithMaxOpenConns(t, 8)
+	operator := createTestOperator(t, "concurrent-create-operator")
+
+	const count = 50
+	results := make(chan string, count)
+	errs := make(chan error, count)
+	var wg sync.WaitGroup
+
+	for i := 0; i < count; i++ {
+		wg.Add(1)
+		go func(index int) {
+			defer wg.Done()
+			ticket, err := services.TicketService.CreateTicket(request.CreateTicketRequest{
+				Title:       fmt.Sprintf("concurrent ticket %d", index),
+				Description: fmt.Sprintf("concurrent ticket %d description", index),
+			}, operator)
+			if err != nil {
+				errs <- err
+				return
+			}
+			results <- ticket.TicketNo
+		}(i)
+	}
+
+	wg.Wait()
+	close(results)
+	close(errs)
+
+	for err := range errs {
+		if err != nil {
+			t.Fatalf("CreateTicket() concurrent error = %v", err)
+		}
+	}
+
+	seen := make(map[string]struct{}, count)
+	for ticketNo := range results {
+		if ticketNo == "" {
+			t.Fatalf("expected non-empty ticket number")
+		}
+		if _, ok := seen[ticketNo]; ok {
+			t.Fatalf("duplicate ticket number generated: %s", ticketNo)
+		}
+		seen[ticketNo] = struct{}{}
+	}
+	if len(seen) != count {
+		t.Fatalf("expected %d unique ticket numbers, got %d", count, len(seen))
+	}
+}
+
 func setupTicketTestDB(t *testing.T) {
 	setupTicketTestDBWithMaxOpenConns(t, 0)
 }

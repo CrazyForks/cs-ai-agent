@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	register(8, "sync lightweight ticket permissions", func() error {
+	register(8, "sync lightweight ticket permissions and reset ticket data", func() error {
 		return sqls.WithTransaction(func(ctx *sqls.TxContext) error {
 			if err := resetLightweightTicketData(ctx.Tx); err != nil {
 				return err

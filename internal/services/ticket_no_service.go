@@ -38,7 +38,7 @@ func (s *ticketNoService) nextWithRetry(tx *gorm.DB, now time.Time) (string, err
 	for attempt := 0; attempt < 100; attempt++ {
 		current, err := repositories.TicketNoSequenceRepository.GetByDateKeyForUpdate(tx, dateKey)
 		if err != nil {
-			if isRetriableTicketNoError(err) {
+			if isRetriableTicketNoError(tx, err) {
 				sleepTicketNoRetry(attempt)
 				continue
 			}
@@ -55,13 +55,13 @@ func (s *ticketNoService) nextWithRetry(tx *gorm.DB, now time.Time) (string, err
 			if err == nil {
 				return formatTicketNo(dateKey, 1), nil
 			}
-			if !isRetriableTicketNoError(err) {
+			if !isRetriableTicketNoError(tx, err) {
 				return "", err
 			}
 
 			current, err = repositories.TicketNoSequenceRepository.GetByDateKeyForUpdate(tx, dateKey)
 			if err != nil {
-				if isRetriableTicketNoError(err) {
+				if isRetriableTicketNoError(tx, err) {
 					sleepTicketNoRetry(attempt)
 					continue
 				}
@@ -75,7 +75,7 @@ func (s *ticketNoService) nextWithRetry(tx *gorm.DB, now time.Time) (string, err
 		allocated := current.NextSeq
 		ok, err := repositories.TicketNoSequenceRepository.UpdateNextSeq(tx, current.ID, allocated, allocated+1, now)
 		if err != nil {
-			if isRetriableTicketNoError(err) {
+			if isRetriableTicketNoError(tx, err) {
 				sleepTicketNoRetry(attempt)
 				continue
 			}
@@ -109,20 +109,19 @@ func isDuplicateKeyError(err error) bool {
 	return strings.Contains(message, "duplicate") || strings.Contains(message, "unique") || strings.Contains(message, "constraint failed")
 }
 
-func isRetriableTicketNoError(err error) bool {
-	return isDuplicateKeyError(err) || isDatabaseLockedError(err)
+func isRetriableTicketNoError(tx *gorm.DB, err error) bool {
+	if isDuplicateKeyError(err) {
+		return true
+	}
+	return tx != nil && tx.Dialector.Name() == "sqlite" && isSQLiteDatabaseLockedError(err)
 }
 
-func isDatabaseLockedError(err error) bool {
+func isSQLiteDatabaseLockedError(err error) bool {
 	if err == nil {
 		return false
 	}
 	message := strings.ToLower(err.Error())
 	return strings.Contains(message, "database is locked") ||
 		strings.Contains(message, "database table is locked") ||
-		strings.Contains(message, "database is busy") ||
-		strings.Contains(message, "lock wait timeout") ||
-		strings.Contains(message, "deadlock") ||
-		strings.Contains(message, "try restarting transaction") ||
-		strings.Contains(message, "could not serialize")
+		strings.Contains(message, "database is busy")
 }
