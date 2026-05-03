@@ -424,21 +424,15 @@ func TestTicketServiceTicketNoNextConcurrent(t *testing.T) {
 	errs := make(chan error, count)
 	var wg sync.WaitGroup
 
-	for i := 0; i < count; i++ {
+	for range count {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
-				ticketNo, err := services.TicketNoSequenceService.Next(ctx.Tx, time.Now())
-				if err != nil {
-					return err
-				}
-				results <- ticketNo
-				return nil
-			})
+			ticketNo, err := services.TicketNoSequenceService.Next(time.Now())
 			if err != nil {
 				errs <- err
 			}
+			results <- ticketNo
 		}()
 	}
 

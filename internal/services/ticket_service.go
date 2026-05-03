@@ -183,7 +183,6 @@ func (s *ticketService) CreateTicket(req request.CreateTicketRequest, operator *
 		return nil, err
 	}
 
-	now := time.Now()
 	ticket := &models.Ticket{
 		Title:             title,
 		Description:       description,
@@ -195,27 +194,25 @@ func (s *ticketService) CreateTicket(req request.CreateTicketRequest, operator *
 		CurrentAssigneeID: req.CurrentAssigneeID,
 		AuditFields:       utils.BuildAuditFields(operator),
 	}
-	ticket.UpdatedAt = now
 
-	if err := withSQLiteTicketCreateLock(sqls.DB(), func() error {
-		return sqls.WithTransaction(func(ctx *sqls.TxContext) error {
-			ticketNo, err := TicketNoSequenceService.nextWithRetry(ctx.Tx, now)
-			if err != nil {
-				return err
-			}
-			ticket.TicketNo = ticketNo
-			if err := repositories.TicketRepository.Create(ctx.Tx, ticket); err != nil {
-				return err
-			}
-			if err := TicketTagService.ReplaceTicketTags(ctx.Tx, ticket.ID, tagIDs, operator); err != nil {
-				return err
-			}
-			return repositories.TicketProgressRepository.Create(ctx.Tx, &models.TicketProgress{
-				TicketID:  ticket.ID,
-				Content:   "创建工单",
-				AuthorID:  operator.UserID,
-				CreatedAt: now,
-			})
+	ticketNo, err := TicketNoSequenceService.Next(ticket.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
+		ticket.TicketNo = ticketNo
+		if err := repositories.TicketRepository.Create(ctx.Tx, ticket); err != nil {
+			return err
+		}
+		if err := TicketTagService.ReplaceTicketTags(ctx.Tx, ticket.ID, tagIDs, operator); err != nil {
+			return err
+		}
+		return repositories.TicketProgressRepository.Create(ctx.Tx, &models.TicketProgress{
+			TicketID:  ticket.ID,
+			Content:   "创建工单",
+			AuthorID:  operator.UserID,
+			CreatedAt: time.Now(),
 		})
 	}); err != nil {
 		return nil, err
@@ -226,14 +223,6 @@ func (s *ticketService) CreateTicket(req request.CreateTicketRequest, operator *
 		OperatorID: operator.UserID,
 	})
 	return s.Get(ticket.ID), nil
-}
-
-func withSQLiteTicketCreateLock(db *gorm.DB, fn func() error) error {
-	if db != nil && db.Dialector.Name() == "sqlite" {
-		TicketNoSequenceService.ticketNoSQLiteMu.Lock()
-		defer TicketNoSequenceService.ticketNoSQLiteMu.Unlock()
-	}
-	return fn()
 }
 
 func (s *ticketService) CreateFromConversation(req request.CreateTicketFromConversationRequest, operator *dto.AuthPrincipal) (*models.Ticket, error) {

@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mlogclub/simple/sqls"
 	"gorm.io/gorm"
 )
 
@@ -21,16 +22,11 @@ type ticketNoSequenceService struct {
 	ticketNoSQLiteMu sync.Mutex
 }
 
-func (s *ticketNoSequenceService) Next(tx *gorm.DB, now time.Time) (string, error) {
-	if tx == nil {
-		return "", fmt.Errorf("ticket number transaction is required")
-	}
-	if tx.Dialector.Name() == "sqlite" {
-		s.ticketNoSQLiteMu.Lock()
-		defer s.ticketNoSQLiteMu.Unlock()
-		return s.nextWithRetry(tx, now)
-	}
-	return s.nextWithRetry(tx, now)
+func (s *ticketNoSequenceService) Next(now time.Time) (string, error) {
+	s.ticketNoSQLiteMu.Lock()
+	defer s.ticketNoSQLiteMu.Unlock()
+
+	return s.nextWithRetry(sqls.DB(), now)
 }
 
 func (s *ticketNoSequenceService) nextWithRetry(tx *gorm.DB, now time.Time) (string, error) {
