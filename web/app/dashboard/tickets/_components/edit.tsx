@@ -9,6 +9,8 @@ import { z } from "zod/v4"
 
 import { OptionCombobox } from "@/components/option-combobox"
 import { ProjectDialog } from "@/components/project-dialog"
+import { RichTextEditor } from "@/components/rich-text-editor"
+import { isRichTextEmpty } from "@/components/safe-rich-html"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -28,7 +30,6 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Textarea } from "@/components/ui/textarea"
 import {
   fetchAgentProfilesAll,
   fetchTagsAll,
@@ -57,7 +58,7 @@ type EditDialogProps = {
 
 const schema = z.object({
   title: z.string().trim().min(1, "请输入工单标题"),
-  description: z.string().trim().min(1, "请输入问题描述"),
+  description: z.string().refine((value) => !isRichTextEmpty(value), "请输入问题描述"),
   currentAssigneeId: z.coerce.number().int().min(0).optional(),
   tagIds: z.array(z.number().int().positive()).default([]),
 })
@@ -92,7 +93,7 @@ function buildForm(item: TicketItem | null): EditForm {
 function buildInitialForm(initialValues?: Partial<CreateTicketPayload>): EditForm {
   return {
     title: initialValues?.title?.trim() ?? "",
-    description: initialValues?.description?.trim() ?? "",
+    description: initialValues?.description ?? "",
     currentAssigneeId: initialValues?.currentAssigneeId ?? 0,
     tagIds: initialValues?.tagIds ?? [],
   }
@@ -368,14 +369,19 @@ function TicketEditDialogBody({
             </Field>
 
             <Field data-invalid={!!errors.description}>
-              <FieldLabel htmlFor="ticket-description">描述</FieldLabel>
+              <FieldLabel>描述</FieldLabel>
               <FieldContent>
-                <Textarea
-                  id="ticket-description"
-                  rows={5}
-                  placeholder="请输入问题描述"
-                  aria-invalid={!!errors.description}
-                  {...register("description")}
+                <Controller
+                  control={control}
+                  name="description"
+                  render={({ field }) => (
+                    <RichTextEditor
+                      content={field.value ?? ""}
+                      onChange={field.onChange}
+                      placeholder="请输入问题描述"
+                      disabled={saving || loading}
+                    />
+                  )}
                 />
                 <FieldError errors={[errors.description]} />
               </FieldContent>
