@@ -133,7 +133,7 @@ type TicketTagSelectorProps = {
 }
 
 function TicketTagSelector({ value, onChange, availableTags }: TicketTagSelectorProps) {
-  const selectedValues = value ?? []
+  const selectedValues = useMemo(() => value ?? [], [value])
   const flatTags = useMemo(() => flattenTagTree(availableTags), [availableTags])
   const selectedTagIDs = useMemo(() => new Set(selectedValues), [selectedValues])
   const selectedTags = useMemo(
