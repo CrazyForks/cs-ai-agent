@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  CheckCircle2Icon,
   Maximize2Icon,
   Minimize2Icon,
   MinusIcon,
@@ -68,13 +69,27 @@ function useKefuSystemTheme() {
   }, [])
 }
 
+function isEmbeddedInHost() {
+  if (typeof window === "undefined") {
+    return false
+  }
+
+  try {
+    return window.parent !== window
+  } catch {
+    return false
+  }
+}
+
 export function KefuChatShell() {
   useKefuSystemTheme()
 
   const messageListRef = useRef<KefuMessageListHandle | null>(null)
+  const [isEmbedded, setIsEmbedded] = useState(false)
   const [isMaximized, setIsMaximized] = useState(false)
   const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false)
   const [isClosingConversation, setIsClosingConversation] = useState(false)
+  const [isConversationClosed, setIsConversationClosed] = useState(false)
 
   const {
     title,
@@ -126,6 +141,10 @@ export function KefuChatShell() {
     }))
   )
   const safeMessages = Array.isArray(messages) ? messages : []
+
+  useEffect(() => {
+    setIsEmbedded(isEmbeddedInHost())
+  }, [])
 
   const maybeMarkConversationRead = useCallback(() => {
     if (!isVisible || !conversation || typeof document === "undefined") {
@@ -200,6 +219,10 @@ export function KefuChatShell() {
     requestKefuHostToggleMaximize()
   }
 
+  function handleRestartConversation() {
+    window.location.reload()
+  }
+
   async function confirmCloseConversation() {
     if (isClosingConversation) {
       return
@@ -210,7 +233,11 @@ export function KefuChatShell() {
         await closeConversation()
       }
       setIsCloseDialogOpen(false)
-      requestKefuHostClose()
+      if (isEmbedded) {
+        requestKefuHostClose()
+      } else {
+        setIsConversationClosed(true)
+      }
     } catch (closeError) {
       window.alert(closeError instanceof Error ? closeError.message : "关闭会话失败")
     } finally {
@@ -230,6 +257,47 @@ export function KefuChatShell() {
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [isCloseDialogOpen, isClosingConversation])
+
+  if (isConversationClosed) {
+    return (
+      <main
+        className="relative flex h-screen overflow-hidden bg-muted text-foreground"
+        style={{ "--primary": themeColor } as CSSProperties}
+      >
+        <section className="flex h-full w-full flex-col overflow-hidden border border-border bg-card text-card-foreground">
+          <header className="shrink-0 border-b border-border bg-card/95 px-4 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.04)] dark:shadow-none">
+            <div className="min-w-0">
+              <div className="truncate text-base font-semibold text-foreground">
+                {title}
+              </div>
+              {subtitle ? (
+                <div className="mt-1 truncate text-xs text-muted-foreground">
+                  {subtitle}
+                </div>
+              ) : null}
+            </div>
+          </header>
+
+          <div className="flex min-h-0 flex-1 items-center justify-center bg-muted/70 px-6">
+            <div className="grid max-w-sm justify-items-center gap-4 text-center">
+              <div className="flex size-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-900">
+                <CheckCircle2Icon className="size-7" />
+              </div>
+              <div className="grid gap-2">
+                <div className="text-lg font-semibold text-foreground">会话已结束</div>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  当前客服会话已关闭，如需继续咨询可以重新发起对话。
+                </p>
+              </div>
+              <Button type="button" onClick={handleRestartConversation}>
+                重新发起对话
+              </Button>
+            </div>
+          </div>
+        </section>
+      </main>
+    )
+  }
 
   return (
     <main
@@ -261,32 +329,36 @@ export function KefuChatShell() {
                 >
                   <RotateCwIcon className="size-4" />
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon-sm"
-                  onClick={handleMinimize}
-                  aria-label="收起聊天窗口"
-                  title="收起聊天窗口"
-                  className="bg-background text-muted-foreground hover:text-foreground"
-                >
-                  <MinusIcon className="size-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon-sm"
-                  onClick={handleToggleMaximize}
-                  aria-label={isMaximized ? "取消最大化" : "最大化聊天窗口"}
-                  title={isMaximized ? "取消最大化" : "最大化聊天窗口"}
-                  className="bg-background text-muted-foreground hover:text-emerald-700 dark:hover:text-emerald-400"
-                >
-                  {isMaximized ? (
-                    <Minimize2Icon className="size-4" />
-                  ) : (
-                    <Maximize2Icon className="size-4" />
-                  )}
-                </Button>
+                {isEmbedded ? (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon-sm"
+                      onClick={handleMinimize}
+                      aria-label="收起聊天窗口"
+                      title="收起聊天窗口"
+                      className="bg-background text-muted-foreground hover:text-foreground"
+                    >
+                      <MinusIcon className="size-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon-sm"
+                      onClick={handleToggleMaximize}
+                      aria-label={isMaximized ? "取消最大化" : "最大化聊天窗口"}
+                      title={isMaximized ? "取消最大化" : "最大化聊天窗口"}
+                      className="bg-background text-muted-foreground hover:text-emerald-700 dark:hover:text-emerald-400"
+                    >
+                      {isMaximized ? (
+                        <Minimize2Icon className="size-4" />
+                      ) : (
+                        <Maximize2Icon className="size-4" />
+                      )}
+                    </Button>
+                  </>
+                ) : null}
                 <Button
                   type="button"
                   variant="outline"
