@@ -85,7 +85,7 @@ export function KefuChatShell() {
   useKefuSystemTheme()
 
   const messageListRef = useRef<KefuMessageListHandle | null>(null)
-  const [isEmbedded] = useState(() => isEmbeddedInHost())
+  const [isEmbedded, setIsEmbedded] = useState(false)
   const [isMaximized, setIsMaximized] = useState(false)
   const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false)
   const [isClosingConversation, setIsClosingConversation] = useState(false)
@@ -141,6 +141,10 @@ export function KefuChatShell() {
     }))
   )
   const safeMessages = Array.isArray(messages) ? messages : []
+
+  useEffect(() => {
+    setIsEmbedded(isEmbeddedInHost())
+  }, [])
 
   const maybeMarkConversationRead = useCallback(() => {
     if (!isVisible || !conversation || typeof document === "undefined") {
