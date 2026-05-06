@@ -1,7 +1,5 @@
-import {
-  setKefuWidgetConfig,
-  type KefuWidgetRuntimeConfig,
-} from "@/lib/kefu-widget-config"
+import { setKefuChatRuntimeConfig } from "@/lib/sdk/runtime-config"
+import type { KefuChatRuntimeConfig } from "@/lib/sdk/config-types"
 
 type HostBridgeOptions = {
   onInit?: () => void
@@ -32,7 +30,7 @@ export function bindKefuHostBridge(options: HostBridgeOptions = {}) {
     const data = event.data as
       | {
           type?: string
-          payload?: KefuWidgetRuntimeConfig | { isMaximized?: boolean }
+          payload?: KefuChatRuntimeConfig | { isMaximized?: boolean }
         }
       | undefined
     if (!data?.type) {
@@ -40,7 +38,7 @@ export function bindKefuHostBridge(options: HostBridgeOptions = {}) {
     }
 
     if (data.type === INIT_MESSAGE_TYPE && data.payload) {
-      setKefuWidgetConfig(data.payload as KefuWidgetRuntimeConfig)
+      setKefuChatRuntimeConfig(data.payload as KefuChatRuntimeConfig)
       options.onInit?.()
       return
     }

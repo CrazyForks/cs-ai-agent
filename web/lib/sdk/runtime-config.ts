@@ -1,34 +1,6 @@
-export type KefuWidgetHostConfig = {
-  channelId: string
-  baseUrl: string
-  apiBaseUrl?: string
-  /** 外部访客稳定标识；未传时使用浏览器本地访客 ID */
-  externalId?: string
-  /** 访客展示名，仅用于首次换取客服会话 token */
-  externalName?: string
-  /** 打开客服前按需获取业务系统签发的前台用户 JWT */
-  getUserToken?: () => string | Promise<string>
-  title?: string
-  subtitle?: string
-  position?: "left" | "right"
-  themeColor?: string
-  width?: string
-}
+import type { KefuChatRuntimeConfig } from "@/lib/sdk/config-types"
 
-export type KefuWidgetRuntimeConfig = Omit<KefuWidgetHostConfig, "getUserToken"> & {
-  /** 仅用于 /kefu/chat 运行时换取客服会话 token，不属于 CSAgentConfig 接入参数 */
-  userToken?: string
-}
-
-declare global {
-  interface Window {
-    CSAgentConfig?: KefuWidgetHostConfig
-    __CS_AGENT_WIDGET_CONFIG__?: KefuWidgetRuntimeConfig
-    __CS_AGENT_WIDGET_STATE__?: unknown
-  }
-}
-
-export function readKefuWidgetConfig(): KefuWidgetRuntimeConfig {
+export function readKefuChatRuntimeConfig(): KefuChatRuntimeConfig {
   if (typeof window === "undefined") {
     return {
       channelId: "",
@@ -38,7 +10,7 @@ export function readKefuWidgetConfig(): KefuWidgetRuntimeConfig {
   }
 
   const query = new URLSearchParams(window.location.search)
-  const fallback: KefuWidgetRuntimeConfig = {
+  const fallback: KefuChatRuntimeConfig = {
     channelId:
       query.get("channelId") ??
       process.env.NEXT_PUBLIC_OPEN_IM_CHANNEL_ID?.trim() ??
@@ -74,7 +46,7 @@ export function readKefuWidgetConfig(): KefuWidgetRuntimeConfig {
   return fallback
 }
 
-export function setKefuWidgetConfig(config: KefuWidgetRuntimeConfig) {
+export function setKefuChatRuntimeConfig(config: KefuChatRuntimeConfig) {
   if (typeof window === "undefined") {
     return
   }

@@ -4,11 +4,11 @@ import { SignJWT } from "jose"
 import { CheckIcon, CopyIcon } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
-import type { KefuWidgetHostConfig } from "@/lib/kefu-widget-config"
+import type { CSAgentConfig } from "@/lib/sdk/config-types"
 
 const STORAGE_KEY = "cs-agent-web-widget-test-config"
 const DEFAULT_JWT_TTL_MINUTES = "30"
-const INITIAL_CONFIG: KefuWidgetHostConfig = {
+const INITIAL_CONFIG: CSAgentConfig = {
   channelId: "",
   baseUrl: "",
   apiBaseUrl: "",
@@ -16,24 +16,12 @@ const INITIAL_CONFIG: KefuWidgetHostConfig = {
 
 type AuthMode = "guest" | "jwt"
 
-type WidgetDemoConfig = KefuWidgetHostConfig & {
+type WidgetDemoConfig = CSAgentConfig & {
   authMode?: AuthMode
   jwtSecret?: string
   jwtUserId?: string
   jwtName?: string
   jwtTtlMinutes?: string
-}
-
-declare global {
-  interface Window {
-    CSAgentWidget?: {
-      mount: (config: KefuWidgetHostConfig) => void
-      destroy: () => void
-      open: () => Promise<void>
-      close: () => void
-      getChatUrl: () => Promise<string>
-    }
-  }
 }
 
 function getDefaultConfig(): WidgetDemoConfig {
@@ -77,7 +65,7 @@ function removeMountedWidget() {
   delete window.CSAgentWidget
 }
 
-function injectWidget(config: KefuWidgetHostConfig) {
+function injectWidget(config: CSAgentConfig) {
   removeMountedWidget()
   window.CSAgentConfig = config
 
@@ -88,8 +76,8 @@ function injectWidget(config: KefuWidgetHostConfig) {
   document.body.appendChild(script)
 }
 
-function buildWidgetConfig(config: WidgetDemoConfig): KefuWidgetHostConfig {
-  const nextConfig: KefuWidgetHostConfig = {
+function buildWidgetConfig(config: WidgetDemoConfig): CSAgentConfig {
+  const nextConfig: CSAgentConfig = {
     channelId: config.channelId.trim(),
     baseUrl: "",
     apiBaseUrl: "",

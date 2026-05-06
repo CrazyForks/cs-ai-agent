@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { readFile } from "node:fs/promises"
 import test from "node:test"
+import ts from "typescript"
 import vm from "node:vm"
 
 function createElement(tagName) {
@@ -36,7 +37,15 @@ function createElement(tagName) {
 }
 
 async function loadSdk(config) {
-  const source = await readFile(new URL("./cs-ai-agent-sdk.js", import.meta.url), "utf8")
+  const source = await readFile(new URL("./cs-ai-agent-sdk.ts", import.meta.url), "utf8")
+  const compiled = ts.transpileModule(source, {
+    compilerOptions: {
+      target: ts.ScriptTarget.ES2017,
+      module: ts.ModuleKind.ESNext,
+      importsNotUsedAsValues: ts.ImportsNotUsedAsValues.Remove,
+    },
+    fileName: "cs-ai-agent-sdk.ts",
+  })
   const body = createElement("body")
   const sandbox = {
     URL,
@@ -79,7 +88,8 @@ async function loadSdk(config) {
   sandbox.window.setTimeout = sandbox.window.setTimeout
   sandbox.window.clearTimeout = sandbox.window.clearTimeout
 
-  vm.runInNewContext(source, sandbox)
+  const compiledCode = compiled.outputText.replace(/\nexport\s*\{\};?\s*$/, "")
+  vm.runInNewContext(compiledCode, sandbox)
   await Promise.resolve()
   await Promise.resolve()
   return sandbox

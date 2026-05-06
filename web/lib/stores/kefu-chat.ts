@@ -37,7 +37,10 @@ import {
 import { summarizeIMMessage } from "@/lib/im-message"
 import { createRealtimeConnectionManager } from "@/lib/realtime-connection"
 import { generateUUID } from "@/lib/utils"
-import { readKefuWidgetConfig, setKefuWidgetConfig } from "@/lib/kefu-widget-config"
+import {
+  readKefuChatRuntimeConfig,
+  setKefuChatRuntimeConfig,
+} from "@/lib/sdk/runtime-config"
 
 type ChatStatus = "connecting" | "connected" | "disconnected"
 
@@ -277,9 +280,10 @@ export const useKefuChatStore = create<KefuChatStore>((set, get) => {
           }
 
           if (widgetConfig.channelId) {
-            setKefuWidgetConfig({
-              ...readKefuWidgetConfig(),
-              channelId: widgetConfig.channelId || readKefuWidgetConfig().channelId,
+            setKefuChatRuntimeConfig({
+              ...readKefuChatRuntimeConfig(),
+              channelId:
+                widgetConfig.channelId || readKefuChatRuntimeConfig().channelId,
             })
           }
 

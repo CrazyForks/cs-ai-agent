@@ -1,6 +1,6 @@
 import { createWebSocketBaseUrl } from "@/lib/api/websocket"
 import { getCustomerSessionToken, type ImMessage } from "@/lib/api/im"
-import { readKefuWidgetConfig } from "@/lib/kefu-widget-config"
+import { readKefuChatRuntimeConfig } from "@/lib/sdk/runtime-config"
 import type {
   RealtimeConversationPatch,
   RealtimeMessageCreatedPayload,
@@ -22,7 +22,7 @@ export type ImRealtimeEnvelope = {
 }
 
 export function createImRealtimeConnection() {
-  const config = readKefuWidgetConfig()
+  const config = readKefuChatRuntimeConfig()
   const apiBaseUrl = (config.apiBaseUrl || "").trim()
   const baseUrl = apiBaseUrl
     ? apiBaseUrl.replace(/^http/, "ws").replace(/\/$/, "")
