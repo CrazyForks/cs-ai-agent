@@ -18,6 +18,7 @@ func consumeAgentEvents(events *adk.AsyncIterator[*adk.AgentEvent], summary *Run
 	if collector == nil {
 		collector = callbacks.NewRuntimeTraceCollector()
 	}
+	suppressAssistantReply := false
 	for {
 		event, ok := events.Next()
 		if !ok {
@@ -44,6 +45,9 @@ func consumeAgentEvents(events *adk.AsyncIterator[*adk.AgentEvent], summary *Run
 		messageOutput := event.Output.MessageOutput
 		switch messageOutput.Role {
 		case schema.Assistant:
+			if suppressAssistantReply {
+				continue
+			}
 			replyText := strings.TrimSpace(messageOutput.Message.Content)
 			if replyText != "" {
 				summary.ReplyText = replyText
@@ -62,6 +66,8 @@ func consumeAgentEvents(events *adk.AsyncIterator[*adk.AgentEvent], summary *Run
 				toolReplyText := strings.TrimSpace(messageOutput.Message.Content)
 				if toolReplyText != "" {
 					summary.ReplyText = toolReplyText
+				} else if toolCode == toolx.GraphHandoffConversation.Code {
+					suppressAssistantReply = true
 				}
 			}
 		}

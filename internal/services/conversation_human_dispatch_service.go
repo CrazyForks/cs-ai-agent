@@ -45,6 +45,25 @@ func newConversationHumanDispatchService() *conversationHumanDispatchService {
 	return &conversationHumanDispatchService{}
 }
 
+func (s *conversationHumanDispatchService) TryOffHoursHandoffByAI(conversationID int64, aiAgent models.AIAgent, reason string) (bool, error) {
+	conversation := ConversationService.Get(conversationID)
+	if conversation == nil {
+		return false, errorsx.InvalidParam("会话不存在")
+	}
+	teamIDs := orderedPositiveIDs(aiAgent.TeamIDs)
+	activeTeamIDs := ConversationDispatchService.findActiveScheduleTeamIDs(teamIDs, time.Now())
+	if len(activeTeamIDs) > 0 {
+		return false, nil
+	}
+	if err := s.createEvent(conversationID, enums.IMEventTypeTransfer, enums.IMSenderTypeAI, aiAgent.ID, "转人工失败：非服务时间", strings.TrimSpace(reason)); err != nil {
+		return true, err
+	}
+	if err := s.sendAIText(conversationID, aiAgent.ID, HandoffOffHoursMessage); err != nil {
+		return true, err
+	}
+	return true, nil
+}
+
 func (s *conversationHumanDispatchService) HandoffByAI(conversationID int64, aiAgent models.AIAgent, reason string) (*HandoffDecisionResult, error) {
 	conversation := ConversationService.Get(conversationID)
 	if conversation == nil {
@@ -53,10 +72,7 @@ func (s *conversationHumanDispatchService) HandoffByAI(conversationID int64, aiA
 	teamIDs := orderedPositiveIDs(aiAgent.TeamIDs)
 	activeTeamIDs := ConversationDispatchService.findActiveScheduleTeamIDs(teamIDs, time.Now())
 	if len(activeTeamIDs) == 0 {
-		if err := s.createEvent(conversationID, enums.IMEventTypeTransfer, enums.IMSenderTypeAI, aiAgent.ID, "转人工失败：非服务时间", strings.TrimSpace(reason)); err != nil {
-			return nil, err
-		}
-		if err := s.sendAIText(conversationID, aiAgent.ID, HandoffOffHoursMessage); err != nil {
+		if _, err := s.TryOffHoursHandoffByAI(conversationID, aiAgent, reason); err != nil {
 			return nil, err
 		}
 		return &HandoffDecisionResult{Decision: HandoffDecisionOffHours, Message: HandoffOffHoursMessage}, nil

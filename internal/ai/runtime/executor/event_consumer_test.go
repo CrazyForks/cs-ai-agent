@@ -70,3 +70,44 @@ func TestConsumeAgentEventsCompletesGraphToolWithNoVisibleReply(t *testing.T) {
 		t.Fatalf("unexpected summary status: %q", summary.Status)
 	}
 }
+
+func TestConsumeAgentEventsSuppressesAssistantReplyAfterSilentHandoffTool(t *testing.T) {
+	summary := &RunResult{
+		Status:           "started",
+		InvokedToolCodes: make([]string, 0),
+	}
+	events, gen := adk.NewAsyncIteratorPair[*adk.AgentEvent]()
+	gen.Send(&adk.AgentEvent{
+		Output: &adk.AgentOutput{
+			MessageOutput: &adk.MessageVariant{
+				Role:     schema.Tool,
+				ToolName: toolx.GraphHandoffConversation.Name,
+				Message: &schema.Message{
+					Content: "",
+				},
+			},
+		},
+	})
+	gen.Send(&adk.AgentEvent{
+		Output: &adk.AgentOutput{
+			MessageOutput: &adk.MessageVariant{
+				Role: schema.Assistant,
+				Message: &schema.Message{
+					Content: "好的，已为您发起转接人工客服的请求。系统正在为您确认，请稍候。",
+				},
+			},
+		},
+	})
+	gen.Close()
+
+	consumeAgentEvents(events, summary, nil, map[string]string{
+		toolx.GraphHandoffConversation.Name: toolx.GraphHandoffConversation.Code,
+	})
+
+	if summary.ReplyText != "" {
+		t.Fatalf("expected assistant reply after silent handoff to be suppressed, got %q", summary.ReplyText)
+	}
+	if summary.Status != "completed" {
+		t.Fatalf("unexpected summary status: %q", summary.Status)
+	}
+}

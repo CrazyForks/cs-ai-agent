@@ -50,6 +50,10 @@ func (g *HandoffGraph) Run(ctx context.Context, argumentsInJSON string) (string,
 		if err != nil {
 			return "", err
 		}
+		handled, err := services.ConversationService.TryOffHoursHandoffByAI(g.conversation.ID, g.aiAgent, reason)
+		if err != nil || handled {
+			return "", err
+		}
 		info := HandoffGraphInterruptInfo{
 			Type:    InterruptTypeHandoffConfirmation,
 			Message: g.buildConfirmationPrompt(reason),

@@ -360,6 +360,20 @@ func (s *conversationService) HandoffByAI(conversationID int64, aiAgent models.A
 	return err
 }
 
+func (s *conversationService) TryOffHoursHandoffByAI(conversationID int64, aiAgent models.AIAgent, reason string) (bool, error) {
+	if conversationID <= 0 {
+		return false, errorsx.InvalidParam("会话不存在")
+	}
+	handled, err := ConversationHumanDispatchService.TryOffHoursHandoffByAI(conversationID, aiAgent, reason)
+	if err != nil {
+		slog.Warn("off-hours ai handoff failed",
+			"conversation_id", conversationID,
+			"ai_agent_id", aiAgent.ID,
+			"error", err)
+	}
+	return handled, err
+}
+
 func (s *conversationService) CloseConversation(conversationID int64, closeReason string, operator *dto.AuthPrincipal) error {
 	if operator == nil {
 		return errorsx.Unauthorized("未登录或登录已过期")
