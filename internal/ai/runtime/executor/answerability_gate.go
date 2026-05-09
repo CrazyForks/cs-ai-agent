@@ -180,7 +180,7 @@ func (g *KnowledgeAnswerabilityGate) retrieveKnowledge(ctx context.Context, stat
 	retrieveOptions.QueryPreview = preview(req.UserMessage.Content, 120)
 	result, err := retriever.RetrieveContextByOptions(ctx, retrieveOptions, query)
 	if err != nil {
-		state.FallbackReply = resolveKnowledgeHumanSupportFallback(req.AIAgent)
+		state.Decision = buildKnowledgeRetrievalErrorDecision(req.AIAgent, knowledgeIDs)
 		state.ErrorMessage = err.Error()
 		state.recordAnswerability(answerabilityStatusUnanswerable, "knowledge retrieval failed", err)
 		return state, nil

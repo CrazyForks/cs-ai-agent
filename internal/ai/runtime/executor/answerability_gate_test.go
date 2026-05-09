@@ -248,7 +248,7 @@ func TestKnowledgePolicyEvaluateSkipsRuntimeActionIntent(t *testing.T) {
 	}
 }
 
-func TestKnowledgePolicyEvaluateFallsBackOnRetrieverError(t *testing.T) {
+func TestKnowledgePolicyEvaluateInjectsRetrievalErrorInstructionWithoutFallback(t *testing.T) {
 	collector := callbacks.NewRuntimeTraceCollector()
 	gate := newTestKnowledgePolicyGate(&fakeKnowledgeContextRetriever{
 		knowledgeBaseIDs: []int64{1},
@@ -263,13 +263,39 @@ func TestKnowledgePolicyEvaluateFallsBackOnRetrieverError(t *testing.T) {
 		t.Fatalf("Evaluate returned error: %v", err)
 	}
 
-	if !strings.Contains(state.FallbackReply, "我暂时没有找到足够准确的信息") {
-		t.Fatalf("expected configured fallback on retrieval error, got %q", state.FallbackReply)
+	if state.FallbackReply != "" {
+		t.Fatalf("expected no direct fallback on retrieval error, got %q", state.FallbackReply)
+	}
+	if len(state.Decision.Instructions) != 1 {
+		t.Fatalf("expected one retrieval-error instruction, got %d", len(state.Decision.Instructions))
+	}
+	if !strings.Contains(state.Decision.Instructions[0].Content, "知识库检索暂时不可用") {
+		t.Fatalf("unexpected retrieval-error instruction: %q", state.Decision.Instructions[0].Content)
 	}
 	if collector.Data.Answerability.Status != answerabilityStatusUnanswerable {
 		t.Fatalf("unexpected status: %q", collector.Data.Answerability.Status)
 	}
 	if collector.Data.Answerability.Reason != "knowledge retrieval failed" {
 		t.Fatalf("unexpected reason: %q", collector.Data.Answerability.Reason)
+	}
+}
+
+func TestBuildRunMessagesContinuesAgentFlowWhenRetrievalFails(t *testing.T) {
+	summary := &RunResult{}
+	gate := newTestKnowledgePolicyGate(&fakeKnowledgeContextRetriever{
+		knowledgeBaseIDs: []int64{1},
+		err:              errors.New("vector store unavailable"),
+	})
+
+	messages := buildRunMessages(context.Background(), newKnowledgePolicyRunInput("你好", "1"), summary, nil, gate)
+
+	if summary.ReplyText != "" {
+		t.Fatalf("expected no early fallback reply, got %q", summary.ReplyText)
+	}
+	if !messagesContainContent(messages, "知识库检索暂时不可用") {
+		t.Fatalf("expected retrieval-error instruction in messages: %#v", messages)
+	}
+	if !messagesContainContent(messages, "你好") {
+		t.Fatalf("expected current user message to remain in messages: %#v", messages)
 	}
 }

@@ -53,6 +53,19 @@ func buildKnowledgeNoContextDecision(aiAgent models.AIAgent, knowledgeBaseIDs []
 	}
 }
 
+func buildKnowledgeRetrievalErrorDecision(aiAgent models.AIAgent, knowledgeBaseIDs []int64) knowledgeGuardDecision {
+	if len(knowledgeBaseIDs) == 0 {
+		return knowledgeGuardDecision{}
+	}
+	instruction := buildKnowledgeRetrievalErrorInstruction(resolveKnowledgeFallbackReply(aiAgent))
+	if instruction == "" {
+		return knowledgeGuardDecision{}
+	}
+	return knowledgeGuardDecision{
+		Instructions: []*schema.Message{schema.SystemMessage(instruction)},
+	}
+}
+
 func resolveKnowledgeFallbackReply(aiAgent models.AIAgent) string {
 	if reply := strings.TrimSpace(aiAgent.FallbackMessage); reply != "" {
 		return reply
@@ -92,6 +105,19 @@ func buildKnowledgeNoContextInstruction(fallbackReply string) string {
 	return "知识库检索状态：当前没有从知识库检索到可用资料。\n" +
 		"回复策略：\n" +
 		"1. 如果用户只是寒暄、问候、感谢、确认或结束语，可以自然、简短地回复。\n" +
+		"2. 如果用户表达不清楚或缺少上下文，应追问具体场景、对象、报错信息或操作步骤。\n" +
+		"3. 如果用户询问业务事实、规则、价格、流程、配置、时效、承诺、售后、退款、权限或政策，不得编造答案，必须明确回复：" + fallbackReply + "\n" +
+		"4. 不得输出知识库未提供的具体事实、流程、承诺、价格、时效或政策。"
+}
+
+func buildKnowledgeRetrievalErrorInstruction(fallbackReply string) string {
+	fallbackReply = strings.TrimSpace(fallbackReply)
+	if fallbackReply == "" {
+		fallbackReply = "当前知识库暂无明确信息。"
+	}
+	return "知识库检索状态：知识库检索暂时不可用，当前没有可用的知识库资料。\n" +
+		"回复策略：\n" +
+		"1. 如果用户只是寒暄、问候、感谢、确认或结束语，可以自然、简短地回复，不要使用知识库兜底话术。\n" +
 		"2. 如果用户表达不清楚或缺少上下文，应追问具体场景、对象、报错信息或操作步骤。\n" +
 		"3. 如果用户询问业务事实、规则、价格、流程、配置、时效、承诺、售后、退款、权限或政策，不得编造答案，必须明确回复：" + fallbackReply + "\n" +
 		"4. 不得输出知识库未提供的具体事实、流程、承诺、价格、时效或政策。"
