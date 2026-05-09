@@ -52,6 +52,9 @@ func (g *HandoffGraph) Run(ctx context.Context, argumentsInJSON string) (string,
 		}
 		handled, err := services.ConversationService.TryOffHoursHandoffByAI(g.conversation.ID, g.aiAgent, reason)
 		if err != nil || handled {
+			if handled && err == nil {
+				return services.HandoffOffHoursMessage, nil
+			}
 			return "", err
 		}
 		info := HandoffGraphInterruptInfo{

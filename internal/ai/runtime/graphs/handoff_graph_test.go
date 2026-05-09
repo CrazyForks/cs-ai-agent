@@ -25,8 +25,8 @@ func TestHandoffGraphOffHoursSendsNoticeWithoutConfirmation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
-	if reply != "" {
-		t.Fatalf("expected no graph reply, got %q", reply)
+	if reply != services.HandoffOffHoursMessage {
+		t.Fatalf("expected off-hours graph reply, got %q", reply)
 	}
 
 	message := services.MessageService.FindOne(sqls.NewCnd().Eq("conversation_id", conversation.ID).Desc("id"))
