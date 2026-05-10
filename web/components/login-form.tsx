@@ -93,7 +93,7 @@ export function LoginForm({
           <Input
             id="username"
             name="username"
-            placeholder="admin"
+            placeholder="用户名或邮箱"
             autoComplete="username"
             required
           />
@@ -101,14 +101,12 @@ export function LoginForm({
         <Field>
           <div className="flex items-center">
             <FieldLabel htmlFor="password">密码</FieldLabel>
-            {/* <span className="ml-auto text-xs text-muted-foreground">
-              演示环境接受任意非空密码
-            </span> */}
           </div>
           <Input
             id="password"
             name="password"
             type="password"
+            placeholder="请输入密码"
             autoComplete="current-password"
             required
           />
