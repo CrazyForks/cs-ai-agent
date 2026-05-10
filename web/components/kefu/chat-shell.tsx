@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  HeadphonesIcon,
   Maximize2Icon,
   Minimize2Icon,
   MinusIcon,
@@ -13,6 +14,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type ComponentProps,
   type CSSProperties,
 } from "react"
 import { useShallow } from "zustand/react/shallow"
@@ -32,7 +34,6 @@ import {
 } from "@/lib/kefu-host-bridge"
 import { useKefuChatStore } from "@/lib/stores/kefu-chat"
 import { Button } from "@/components/ui/button"
-import { ButtonGroup } from "@/components/ui/button-group"
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { cn } from "@/lib/utils"
+
+const windowActionButtonClass =
+  "size-8 rounded-md border-0 bg-transparent text-muted-foreground shadow-none hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-primary/20 dark:hover:bg-white/10"
+
+function WindowActionButton({
+  className,
+  ...props
+}: ComponentProps<typeof Button>) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      className={cn(windowActionButtonClass, className)}
+      {...props}
+    />
+  )
+}
 
 function useKefuSystemTheme() {
   useLayoutEffect(() => {
@@ -259,77 +279,69 @@ export function KefuChatShell() {
       style={{ "--primary": themeColor } as CSSProperties}
     >
       <section className="flex h-full w-full flex-col overflow-hidden bg-card text-card-foreground">
-        <header className="shrink-0 border-b border-border bg-card/95 px-3 py-2.5 shadow-[0_8px_24px_rgba(15,23,42,0.04)] dark:shadow-none sm:px-4 sm:py-3">
+        <header className="shrink-0 border-b border-primary/[0.10] bg-primary/[0.06] px-3 py-2.5 shadow-[0_10px_26px_rgba(15,23,42,0.06)] dark:border-primary/20 dark:bg-primary/10 dark:shadow-none sm:px-4 sm:py-3">
           <div className="flex min-w-0 items-center justify-between gap-2 sm:gap-3">
-            <div className="min-w-0">
-              <div className="truncate text-base font-semibold text-foreground">
-                {title}
+            <div className="flex min-w-0 items-center gap-2.5">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-[0_8px_18px_rgba(37,99,235,0.18)]">
+                <HeadphonesIcon className="size-[18px]" />
               </div>
-              <div className="mt-0.5 truncate text-xs text-muted-foreground sm:mt-1">{subtitle}</div>
+              <div className="min-w-0">
+                <div className="truncate text-base font-semibold text-foreground">
+                  {title}
+                </div>
+                <div className="mt-0.5 truncate text-xs text-muted-foreground sm:mt-1">
+                  {subtitle}
+                </div>
+              </div>
             </div>
             <div className="flex shrink-0 items-center gap-1 sm:gap-2">
               {status !== "connected" ? (
                 <KefuConnectionStatus status={status} />
               ) : null}
-              <ButtonGroup>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon-sm"
+              <div className="flex items-center gap-0.5 rounded-lg bg-background/55 p-0.5 shadow-sm ring-1 ring-border/70 dark:bg-background/25 dark:ring-white/10">
+                <WindowActionButton
                   onClick={retry}
                   aria-label="重新连接"
                   title="重新连接"
-                  className="bg-background text-muted-foreground hover:text-sky-600 dark:hover:text-sky-400"
                 >
                   <RotateCwIcon className="size-4" />
-                </Button>
+                </WindowActionButton>
                 {isEmbedded ? (
                   <>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon-sm"
+                    <WindowActionButton
                       onClick={handleMinimize}
                       aria-label="收起聊天窗口"
                       title="收起聊天窗口"
-                      className="bg-background text-muted-foreground hover:text-foreground"
                     >
                       <MinusIcon className="size-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon-sm"
+                    </WindowActionButton>
+                    <WindowActionButton
                       onClick={handleToggleMaximize}
                       aria-label={isMaximized ? "取消最大化" : "最大化聊天窗口"}
                       title={isMaximized ? "取消最大化" : "最大化聊天窗口"}
-                      className="bg-background text-muted-foreground hover:text-emerald-700 dark:hover:text-emerald-400"
                     >
                       {isMaximized ? (
                         <Minimize2Icon className="size-4" />
                       ) : (
                         <Maximize2Icon className="size-4" />
                       )}
-                    </Button>
+                    </WindowActionButton>
                   </>
                 ) : null}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon-sm"
+                <WindowActionButton
                   onClick={() => setIsCloseDialogOpen(true)}
                   aria-label="关闭聊天窗口"
                   title="关闭聊天窗口"
-                  className="bg-background text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
+                  className="hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/45 dark:hover:text-rose-300"
                 >
                   <XIcon className="size-4" />
-                </Button>
-              </ButtonGroup>
+                </WindowActionButton>
+              </div>
             </div>
           </div>
         </header>
 
-        <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden bg-muted/70">
+        <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden bg-muted/60 dark:bg-muted/30">
           <KefuMessageList
             ref={messageListRef}
             messages={safeMessages}
@@ -338,7 +350,7 @@ export function KefuChatShell() {
             loadingOlder={messagesLoadingMore}
             onLoadOlder={loadOlderMessages}
           />
-          <div className="shrink-0 pb-[env(safe-area-inset-bottom)]">
+          <div className="shrink-0 border-t border-border/80 bg-card/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_24px_rgba(15,23,42,0.05)] dark:bg-card/90 dark:shadow-none">
             <CustomerMessageEditor
               disabled={!conversation}
               onSend={handleSend}
