@@ -1,13 +1,13 @@
 ---
 name: release-version
-description: Create a new repository release using semantic version tags in the form `vx.y.z`, generate Chinese and English upgrade notes by comparing the new tag against the previous release tag, update `docs/zh/changelog.md` and `docs/en/changelog.md`, commit and push the `docs` submodule, then commit the parent repo's submodule pointer and push the new tag. Use when Codex needs to perform release preparation, changelog drafting, Git tag analysis, submodule release updates, or end-to-end version publishing.
+description: Use when preparing or publishing a new semantic version release, updating bilingual changelogs, creating Git tags, or publishing GitHub/Gitee release pages for this repository.
 ---
 
 # Release Version
 
 ## Overview
 
-Create releases with a strict `vx.y.z` tag, produce bilingual changelog entries from actual Git history, and publish both the `docs` submodule update and the repository tag in one controlled workflow.
+Create releases with a strict `vx.y.z` tag, produce bilingual changelog entries from actual Git history, publish both the `docs` submodule update and repository tag, and create the GitHub and Gitee Release page entries in one controlled workflow.
 
 Run the workflow from the repository root. Read [references/changelog-style.md](references/changelog-style.md) before drafting the human-facing update notes.
 
@@ -19,6 +19,8 @@ Run the workflow from the repository root. Read [references/changelog-style.md](
 4. Commit and push the `docs` submodule.
 5. Commit the parent repository update if the submodule pointer changed.
 6. Create and push the annotated tag.
+7. Create GitHub and Gitee Release page entries for the tag.
+8. Verify both remote tags and both Release pages.
 
 Do not skip the repository inspection step. Release notes must come from the real diff between tags, not from guesswork.
 
@@ -33,7 +35,7 @@ Do not skip the repository inspection step. Release notes must come from the rea
 Use the helper script first:
 
 ```bash
-python3 ~/.codex/skills/release-version/scripts/collect_release_context.py \
+python3 .codex/skills/release-version/scripts/collect_release_context.py \
   --repo . \
   --tag v1.2.3
 ```
@@ -41,11 +43,13 @@ python3 ~/.codex/skills/release-version/scripts/collect_release_context.py \
 If the caller already specifies the previous tag, pass it explicitly:
 
 ```bash
-python3 ~/.codex/skills/release-version/scripts/collect_release_context.py \
+python3 .codex/skills/release-version/scripts/collect_release_context.py \
   --repo . \
   --tag v1.2.3 \
   --previous-tag v1.2.2
 ```
+
+If the repository-local helper is unavailable, fall back to `~/.codex/skills/release-version/scripts/collect_release_context.py`.
 
 ## Inspect The Repository
 
@@ -62,8 +66,8 @@ If the working tree contains unrelated changes that would be risky to include in
 
 Update these files:
 
-- `docs/zh/changelog.md`
-- `docs/en/changelog.md`
+- `docs/zh/docs/changelog.md`
+- `docs/en/docs/changelog.md`
 
 Prepend a new entry using this exact structure:
 
@@ -77,7 +81,7 @@ ${content}
 ### 发布地址
 
 - Github: <https://github.com/huabeitech/cs-ai-agent/releases/tag/${tag}>
-- Gitee: <https://gitee.com/mlogclub/bbs-go/releases/tag/${tag}>
+- Gitee: <https://gitee.com/huabeitech/cs-ai-agent/releases/tag/${tag}>
 ```
 
 For the English file, keep the same links and heading level, but translate the section heading and content naturally:
@@ -92,7 +96,7 @@ ${content}
 ### Release Links
 
 - Github: <https://github.com/huabeitech/cs-ai-agent/releases/tag/${tag}>
-- Gitee: <https://gitee.com/mlogclub/bbs-go/releases/tag/${tag}>
+- Gitee: <https://gitee.com/huabeitech/cs-ai-agent/releases/tag/${tag}>
 ```
 
 Changelog writing rules:
@@ -109,7 +113,7 @@ Changelog writing rules:
 After editing the changelog files:
 
 1. Run `git -C docs status --short`.
-2. Review the diff with `git -C docs diff -- docs/zh/changelog.md docs/en/changelog.md` or the actual file paths present in the submodule.
+2. Review the diff with `git -C docs diff -- zh/docs/changelog.md en/docs/changelog.md`.
 3. Commit inside the `docs` submodule with a focused message such as `docs: update changelog for v1.2.3`.
 4. Push the `docs` submodule commit to its remote branch.
 
@@ -151,9 +155,71 @@ git push origin v1.2.3
 
 Adjust the branch name if `HEAD` is not tracking the intended release branch.
 
+## Create GitHub And Gitee Releases
+
+Pushing tags is not enough. The release is incomplete until both Release pages exist:
+
+- GitHub: `https://github.com/huabeitech/cs-ai-agent/releases/tag/${tag}`
+- Gitee: `https://gitee.com/huabeitech/cs-ai-agent/releases/tag/${tag}`
+
+Use the same concise release notes derived from the changelog. Prefer a bilingual body with Chinese first and English second.
+
+Required credentials:
+
+- GitHub: `GITHUB_TOKEN` or `GH_TOKEN` with access to `huabeitech/cs-ai-agent` and permission to create releases. For a fine-grained PAT, use an organization-allowed lifetime and grant the repository at least `Contents: Read and write` plus `Metadata: Read`.
+- Gitee: `GITEE_ACCESS_TOKEN` or `GITEE_TOKEN` with release write access to `huabeitech/cs-ai-agent`.
+
+Never print tokens in command output or final responses. If the user pastes a token into the conversation, use it only for the requested release operation and recommend rotation after use.
+
+Build the release body from the new changelog entry, for example:
+
+```bash
+mkdir -p /tmp/cs-ai-agent-release
+awk 'BEGIN{p=0} /^## v1\.2\.3 /{p=1; next} /^## v[0-9]/{if(p) exit} p{print}' \
+  docs/zh/docs/changelog.md | sed '/^### 发布地址/,$d' > /tmp/cs-ai-agent-release/v1.2.3-zh.md
+awk 'BEGIN{p=0} /^## v1\.2\.3 /{p=1; next} /^## v[0-9]/{if(p) exit} p{print}' \
+  docs/en/docs/changelog.md | sed '/^### Release Links/,$d' > /tmp/cs-ai-agent-release/v1.2.3-en.md
+{
+  printf '## 更新内容\n\n'
+  sed '1,/^### 更新内容$/d' /tmp/cs-ai-agent-release/v1.2.3-zh.md
+  printf '\n## Updates\n\n'
+  sed '1,/^### Updates$/d' /tmp/cs-ai-agent-release/v1.2.3-en.md
+} > /tmp/cs-ai-agent-release/v1.2.3-release-body.md
+```
+
+Create the GitHub Release:
+
+```bash
+token="${GITHUB_TOKEN:-$GH_TOKEN}"
+curl -sS -o /tmp/github_release_v1.2.3.json -w '%{http_code}' \
+  -X POST https://api.github.com/repos/huabeitech/cs-ai-agent/releases \
+  -H "Authorization: Bearer ${token}" \
+  -H 'Accept: application/vnd.github+json' \
+  -H 'X-GitHub-Api-Version: 2022-11-28' \
+  -H 'Content-Type: application/json' \
+  -d @<(jq -n --rawfile body /tmp/cs-ai-agent-release/v1.2.3-release-body.md \
+    '{tag_name:"v1.2.3", target_commitish:"main", name:"v1.2.3", body:$body, draft:false, prerelease:false}')
+```
+
+Create the Gitee Release:
+
+```bash
+token="${GITEE_ACCESS_TOKEN:-$GITEE_TOKEN}"
+curl -sS -o /tmp/gitee_release_v1.2.3.json -w '%{http_code}' \
+  -X POST https://gitee.com/api/v5/repos/huabeitech/cs-ai-agent/releases \
+  -H 'Content-Type: application/json' \
+  -d @<(jq -n --rawfile body /tmp/cs-ai-agent-release/v1.2.3-release-body.md --arg token "${token}" \
+    '{access_token:$token, tag_name:"v1.2.3", target_commitish:"main", name:"v1.2.3", body:$body, prerelease:false}')
+```
+
+If creation returns `422`/already exists, fetch the existing release and verify it references the target tag before treating it as complete. If GitHub returns `Resource not accessible by personal access token`, inspect the API message and ask for a token that satisfies the organization policy and repository permissions.
+
 ## Final Verification
 
 - Confirm `git rev-parse v1.2.3^{tag}` succeeds.
 - Confirm `git ls-remote --tags github v1.2.3` and `git ls-remote --tags origin v1.2.3` show the new tag.
+- Confirm `curl -sS -o /tmp/github_release_verify.json -w '%{http_code}' https://api.github.com/repos/huabeitech/cs-ai-agent/releases/tags/v1.2.3` returns `200`.
+- Confirm `curl -sS -o /tmp/gitee_release_verify.json -w '%{http_code}' https://gitee.com/api/v5/repos/huabeitech/cs-ai-agent/releases/tags/v1.2.3` returns `200`.
 - Confirm the `docs` submodule remote contains the changelog commit.
-- Summarize the previous tag used for comparison, the files updated, the commit hashes created, and the remotes pushed.
+- Confirm both parent and `docs` working trees are clean.
+- Summarize the previous tag used for comparison, the files updated, the commit hashes created, the remotes pushed, and the GitHub/Gitee Release URLs.
