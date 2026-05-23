@@ -1,134 +1,120 @@
-.PHONY: help install run run-server run-web build build-all build-assets build-web \
-	package-current package-platform build-linux-amd64 clean-dist clean-temp generator enums migration testdata
+APP := cs-agent
+MAIN := ./cmd/server
+WEB_DIR := web
+SPA_INDEX := $(WEB_DIR)/out/index.html
 
-DIST_DIR ?= dist
-TMP_DIR := $(DIST_DIR)/.tmp
-APP_NAME ?= cs-agent
-ARCHIVE_NAME ?= cs-ai-agent
-PACKAGE_ROOT_DIR ?= $(ARCHIVE_NAME)
-APP_ENTRY ?= ./cmd/server
-PLATFORMS := linux-amd64 linux-arm64 darwin-amd64 darwin-arm64 windows-amd64
-CURRENT_GOOS := $(shell go env GOOS)
-CURRENT_GOARCH := $(shell go env GOARCH)
-CURRENT_PLATFORM := $(CURRENT_GOOS)-$(CURRENT_GOARCH)
-PLATFORM ?= $(CURRENT_PLATFORM)
+GO ?= go
+PNPM ?= pnpm
+GOOS ?= $(shell $(GO) env GOOS)
+GOARCH ?= $(shell $(GO) env GOARCH)
+
+.DEFAULT_GOAL := help
+
+.PHONY: all help build build-go build-linux release run run-go dev test check clean clean-web \
+	web-install web-dev web-build-spa ensure-spa build-spa web-build-ssr web-typecheck web-lint \
+	generator enums migration testdata
+
+all: build
 
 help:
 	@echo "Available targets:"
-	@echo "  make help                 Show this help message"
-	@echo "  make install              Install Go and web dependencies"
-	@echo "  make run                  Run server and web"
-	@echo "  make run-server           Run Go server"
-	@echo "  make run-web              Run web app"
-	@echo "  make build                Build assets and package current platform"
-	@echo "  make build-all            Build and package all platforms"
-	@echo "  make build-assets         Build web assets"
-	@echo "  make build-web            Build web app and sdk"
-	@echo "  make package-current      Package current platform"
-	@echo "  make package-platform     Package specified PLATFORM"
-	@echo "  make build-linux-amd64    Build and package linux amd64 release"
-	@echo "  make clean-dist           Remove dist directory"
-	@echo "  make clean-temp           Remove temporary packaging files"
+	@echo "  make build                Build web SPA and Go binary"
+	@echo "  make build-go             Build Go binary only, ensuring SPA exists"
+	@echo "  make build-linux          Build linux amd64 binary"
+	@echo "  make release              Build release binaries for common platforms"
+	@echo "  make run                  Build web SPA then run server"
+	@echo "  make run-go               Run server only, ensuring SPA exists"
+	@echo "  make dev                  Run Go server with dev tag and web dev server"
+	@echo "  make test                 Run Go tests, ensuring SPA exists"
+	@echo "  make check                Run Go tests, web typecheck, and web lint"
+	@echo "  make clean                Remove Go binaries"
+	@echo "  make clean-web            Remove web build output"
+	@echo "  make web-install          Install web dependencies"
+	@echo "  make web-dev              Run web dev server"
+	@echo "  make web-build-spa        Build static web SPA"
+	@echo "  make web-typecheck        Run web typecheck"
+	@echo "  make web-lint             Run web lint"
 	@echo "  make generator            Run code generator"
 	@echo "  make enums                Generate frontend enums"
 	@echo "  make migration            Run migration command"
 	@echo "  make testdata             Run testdata generator"
 
-install:
-	go mod download
-	cd web && pnpm install
-	@echo "[install] done"
+build: web-build-spa
+	@$(MAKE) build-go
 
-run:
-	@server_pid=0; \
-	web_pid=0; \
-	trap 'kill $$server_pid $$web_pid 2>/dev/null || true' INT TERM EXIT; \
-	$(MAKE) run-server & \
+build-go: ensure-spa
+	@echo "Building $(APP)..."
+	@$(GO) build -v -o $(APP) $(MAIN)
+
+build-linux: web-build-spa
+	@echo "Building $(APP) for linux/amd64..."
+	@GOOS=linux GOARCH=amd64 $(GO) build -v -o $(APP)-linux-amd64 $(MAIN)
+
+release: web-build-spa
+	@echo "Building release binaries..."
+	@GOOS=linux GOARCH=amd64 $(GO) build -v -o $(APP)-linux-amd64 $(MAIN)
+	@GOOS=linux GOARCH=arm64 $(GO) build -v -o $(APP)-linux-arm64 $(MAIN)
+	@GOOS=darwin GOARCH=amd64 $(GO) build -v -o $(APP)-darwin-amd64 $(MAIN)
+	@GOOS=darwin GOARCH=arm64 $(GO) build -v -o $(APP)-darwin-arm64 $(MAIN)
+	@GOOS=windows GOARCH=amd64 $(GO) build -v -o $(APP)-windows-amd64.exe $(MAIN)
+
+run: web-build-spa
+	@$(GO) run $(MAIN)
+
+run-go: ensure-spa
+	@$(GO) run $(MAIN)
+
+dev:
+	@$(GO) run -tags dev $(MAIN) & \
 	server_pid=$$!; \
-	$(MAKE) run-web & \
-	web_pid=$$!; \
-	while kill -0 $$server_pid 2>/dev/null && kill -0 $$web_pid 2>/dev/null; do \
-		sleep 1; \
-	done; \
-	status=0; \
-	wait $$server_pid || status=$$?; \
-	wait $$web_pid || status=$$?; \
-	kill $$server_pid $$web_pid 2>/dev/null || true; \
-	exit $$status
+	trap 'kill $$server_pid 2>/dev/null || true' EXIT INT TERM; \
+	$(MAKE) web-dev
 
-run-server:
-	go run ./cmd/server
+test: ensure-spa
+	@$(GO) test ./...
 
-run-web:
-	cd web && pnpm dev
+check: test web-typecheck web-lint
 
-build: clean-dist build-assets package-current clean-temp
-	@echo "[build] done"
+clean:
+	@rm -f $(APP) $(APP)-linux-amd64 $(APP)-linux-arm64 $(APP)-darwin-amd64 $(APP)-darwin-arm64 $(APP)-windows-amd64.exe
 
-build-all: clean-dist build-assets
-	@echo "[build-all] packaging platforms: $(PLATFORMS)"
-	@for platform in $(PLATFORMS); do \
-		echo "[build-all] packaging $$platform"; \
-		$(MAKE) package-platform PLATFORM=$$platform; \
-	done
-	@$(MAKE) clean-temp
-	@echo "[build-all] done"
+clean-web:
+	@rm -rf $(WEB_DIR)/out
 
-build-assets: build-web
-	@echo "[build-assets] done"
+web-install:
+	@cd $(WEB_DIR) && $(PNPM) install --frozen-lockfile
 
-build-web:
-	@echo "[build-web] building web sdk and app"
-	cd web && pnpm build:sdk && pnpm build
-	@echo "[build-web] done"
+web-dev:
+	@cd $(WEB_DIR) && $(PNPM) dev
 
-package-current:
-	@$(MAKE) package-platform PLATFORM=$(CURRENT_PLATFORM)
+web-build-spa:
+	@cd $(WEB_DIR) && $(PNPM) build:sdk && $(PNPM) build
 
-build-linux-amd64: clean-dist build-assets
-	@$(MAKE) package-platform PLATFORM=linux-amd64
-	@$(MAKE) clean-temp
-	@echo "[build-linux-amd64] done"
+ensure-spa:
+	@if [ ! -f "$(SPA_INDEX)" ]; then \
+		echo "SPA build missing; running web-build-spa..."; \
+		$(MAKE) web-build-spa; \
+	fi
 
-package-platform:
-	@platform="$(PLATFORM)"; \
-	goos=$${platform%-*}; \
-	goarch=$${platform#*-}; \
-	stage_dir="$(TMP_DIR)/$$platform"; \
-	package_dir="$$stage_dir/$(PACKAGE_ROOT_DIR)"; \
-	dist_dir="$(CURDIR)/$(DIST_DIR)"; \
-	archive_base="$$dist_dir/$(ARCHIVE_NAME)-$$platform"; \
-	binary_name="$(APP_NAME)"; \
-	if [ "$$goos" = "windows" ]; then binary_name="$(APP_NAME).exe"; fi; \
-	echo "[package] start $$platform"; \
-	rm -rf "$$stage_dir"; \
-	mkdir -p "$$package_dir/web" "$$package_dir/config" "$$dist_dir"; \
-	echo "[package] go build $$platform"; \
-	GOOS=$$goos GOARCH=$$goarch go build -o "$$package_dir/$$binary_name" $(APP_ENTRY); \
-	echo "[package] copy assets $$platform"; \
-	cp -R web/out "$$package_dir/web/out"; \
-	echo "[package] include example config only"; \
-	cp config/config.example.yaml "$$package_dir/config/config.example.yaml"; \
-	rm -f "$$archive_base.zip"; \
-	echo "[package] archive $$archive_base.zip"; \
-	cd "$$stage_dir" && zip -rXq "$$archive_base.zip" "$(PACKAGE_ROOT_DIR)" -x "*.DS_Store" "__MACOSX/*"; \
-	rm -rf "$$stage_dir"; \
-	echo "[package] done $$platform -> $$archive_base.zip"
+build-spa: web-build-spa
 
-clean-dist:
-	rm -rf $(DIST_DIR)
+web-build-ssr:
+	@cd $(WEB_DIR) && $(PNPM) build
 
-clean-temp:
-	rm -rf $(TMP_DIR)
+web-typecheck:
+	@cd $(WEB_DIR) && $(PNPM) typecheck
+
+web-lint:
+	@cd $(WEB_DIR) && $(PNPM) lint
 
 generator:
-	go run ./cmd/generator/generator.go
+	@$(GO) run ./cmd/generator/generator.go
 
 enums:
-	go run ./cmd/enums/generator.go
+	@$(GO) run ./cmd/enums/generator.go
 
 migration:
-	go run ./cmd/migration
+	@$(GO) run ./cmd/migration
 
 testdata:
-	go run ./cmd/testdata
+	@$(GO) run ./cmd/testdata

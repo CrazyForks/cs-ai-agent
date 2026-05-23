@@ -3,8 +3,6 @@ package bootstrap
 import (
 	"log/slog"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -12,9 +10,13 @@ import (
 	_ "cs-agent/internal/ai/runtime"
 	"cs-agent/internal/middleware"
 	"cs-agent/internal/pkg/config"
+	"cs-agent/internal/pkg/ginx"
+	"cs-agent/internal/pkg/httpx"
 	"cs-agent/internal/services"
+	webspa "cs-agent/web"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mlogclub/simple/web"
 
 	_ "cs-agent/internal/services/wx_callback_handlers"
 )
@@ -29,8 +31,25 @@ func NewServer() (*gin.Engine, error) {
 
 	addRouter(app)
 
-	app.StaticFS(cfg.Storage.Local.BaseURL, http.Dir(cfg.Storage.Local.Root))
-	registerDashboardStatic(app, "web/out")
+	notFoundPrefixes := []string{"/api/"}
+	if baseURL := strings.TrimRight(cfg.Storage.Local.BaseURL, "/"); baseURL != "" {
+		notFoundPrefixes = append(notFoundPrefixes, baseURL+"/")
+	}
+	app.StaticFS(cfg.Storage.Local.BaseURL, ginx.StaticFiles(cfg.Storage.Local.Root))
+	ginx.HandleSPA(app, ginx.SPAOptions{
+		Root:         "./web/out",
+		EmbeddedFS:   webspa.SPA,
+		EmbeddedRoot: "out",
+		DirOptions: ginx.DirOptions{
+			ShowList:  false,
+			SPA:       true,
+			IndexName: "index.html",
+		},
+		NotFoundPrefixes: notFoundPrefixes,
+		NotFoundHandler: func(ctx *gin.Context) {
+			httpx.WriteHttpStatusJSON(ctx, http.StatusNotFound, web.JsonErrorCode(http.StatusNotFound, "Not found"))
+		},
+	})
 
 	return app, nil
 }
@@ -133,27 +152,4 @@ func addRouter(app *gin.Engine) {
 
 	thirdGroup := app.Group("/api/third")
 	registerThirdWechatRoutes(thirdGroup.Group("/wechat"))
-}
-
-func registerDashboardStatic(app *gin.Engine, root string) {
-	app.NoRoute(func(ctx *gin.Context) {
-		if strings.HasPrefix(ctx.Request.URL.Path, "/api/") {
-			ctx.JSON(http.StatusNotFound, gin.H{"success": false, "message": "not found"})
-			return
-		}
-		requestPath := filepath.Clean(strings.TrimPrefix(ctx.Request.URL.Path, "/"))
-		if strings.HasPrefix(requestPath, "..") {
-			ctx.Status(http.StatusBadRequest)
-			return
-		}
-		if requestPath == "." {
-			requestPath = "index.html"
-		}
-		fullPath := filepath.Join(root, requestPath)
-		if stat, err := os.Stat(fullPath); err == nil && !stat.IsDir() {
-			ctx.File(fullPath)
-			return
-		}
-		ctx.File(filepath.Join(root, "index.html"))
-	})
 }

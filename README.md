@@ -241,14 +241,14 @@ cd ..
 同时启动后端和前端：
 
 ```bash
-make run
+make dev
 ```
 
 或分别启动：
 
 ```bash
-make run-server
-make run-web
+make run-go
+make web-dev
 ```
 
 开发环境默认入口：
@@ -263,16 +263,19 @@ make run-web
 ## 常用命令
 
 ```bash
-make run          # 同时启动后端和前端
-make run-server   # 启动后端
-make run-web      # 启动前端
-make build        # 构建前端静态资源并打包当前平台
-make build-web    # 构建 web 应用和嵌入式 SDK
-make test         # 运行 Go 测试
-make tidy         # go mod tidy
-make generator    # 执行代码生成
-make enums        # 生成前端枚举
-make migration    # 执行 migration
+make dev            # 同时启动后端和前端开发服务
+make run            # 构建前端 SPA 后启动后端
+make run-go         # 启动后端，自动确保 SPA 已构建
+make web-dev        # 启动前端开发服务
+make build          # 构建前端 SPA 和当前平台 Go 二进制
+make build-linux    # 构建 linux/amd64 二进制
+make release        # 构建常用平台二进制
+make web-build-spa  # 构建 web 静态 SPA 和嵌入式 SDK
+make test           # 运行 Go 测试，自动确保 SPA 已构建
+make check          # 运行 Go 测试、前端 typecheck 和 lint
+make generator      # 执行代码生成
+make enums          # 生成前端枚举
+make migration      # 执行 migration
 ```
 
 ## 系统视角
