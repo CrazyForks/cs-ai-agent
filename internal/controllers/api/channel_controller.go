@@ -6,12 +6,12 @@ import (
 	"cs-agent/internal/pkg/errorsx"
 	"cs-agent/internal/services"
 
-	"github.com/kataras/iris/v12"
+	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/web"
 )
 
 type ChannelController struct {
-	Ctx iris.Context
+	Ctx *gin.Context
 }
 
 func (c *ChannelController) AnyConfig() *web.JsonResult {

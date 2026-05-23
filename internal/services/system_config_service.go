@@ -4,8 +4,8 @@ import (
 	"cs-agent/internal/models"
 	"cs-agent/internal/repositories"
 
+	"cs-agent/internal/pkg/httpx/params"
 	"github.com/mlogclub/simple/sqls"
-	"github.com/mlogclub/simple/web/params"
 )
 
 var SystemConfigService = newSystemConfigService()
@@ -64,4 +64,3 @@ func (s *systemConfigService) UpdateColumn(id int64, name string, value interfac
 func (s *systemConfigService) Delete(id int64) {
 	repositories.SystemConfigRepository.Delete(sqls.DB(), id)
 }
-

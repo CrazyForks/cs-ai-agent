@@ -7,10 +7,10 @@ import (
 	"net/url"
 	"strings"
 
+	"cs-agent/internal/pkg/httpx/params"
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/kataras/iris/v12"
 	"github.com/mlogclub/simple/common/strs"
-	"github.com/mlogclub/simple/web/params"
 )
 
 // ExternalUser 外部访客身份（IM 客户），与站内 AuthPrincipal 区分。
@@ -26,7 +26,7 @@ type UserTokenClaims struct {
 	jwt.RegisteredClaims
 }
 
-func GetExternalUser(ctx iris.Context, secret string) (*ExternalUser, error) {
+func GetExternalUser(ctx *gin.Context, secret string) (*ExternalUser, error) {
 	if userToken := getUserToken(ctx); strs.IsNotBlank(userToken) {
 		claims, err := verifyUserToken(userToken, secret)
 		if err != nil {
@@ -83,7 +83,7 @@ func verifyUserToken(userToken, secret string) (*UserTokenClaims, error) {
 	return claims, nil
 }
 
-func getUserToken(ctx iris.Context) string {
+func getUserToken(ctx *gin.Context) string {
 	auth := strings.TrimSpace(ctx.GetHeader("Authorization"))
 	if len(auth) > 7 && strings.EqualFold(auth[:7], "Bearer ") {
 		if token := strings.TrimSpace(auth[7:]); token != "" {
@@ -94,7 +94,7 @@ func getUserToken(ctx iris.Context) string {
 	return strings.TrimSpace(userToken)
 }
 
-func getGuestUser(ctx iris.Context) (*ExternalUser, error) {
+func getGuestUser(ctx *gin.Context) (*ExternalUser, error) {
 	externalID := getExternalID(ctx)
 	if strs.IsBlank(externalID) {
 		return nil, errorsx.Unauthorized("用户标识不能为空")
@@ -106,7 +106,7 @@ func getGuestUser(ctx iris.Context) (*ExternalUser, error) {
 	}, nil
 }
 
-func getExternalID(ctx iris.Context) string {
+func getExternalID(ctx *gin.Context) string {
 	externalID := ctx.GetHeader("X-External-Id")
 	if strs.IsBlank(externalID) {
 		externalID, _ = params.Get(ctx, "externalId")
@@ -114,7 +114,7 @@ func getExternalID(ctx iris.Context) string {
 	return externalID
 }
 
-func getExternalName(ctx iris.Context) string {
+func getExternalName(ctx *gin.Context) string {
 	externalName := ctx.GetHeader("X-External-Name")
 	if strs.IsBlank(externalName) {
 		externalName, _ = params.Get(ctx, "externalName")

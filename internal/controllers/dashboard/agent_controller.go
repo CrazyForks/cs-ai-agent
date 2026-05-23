@@ -6,13 +6,13 @@ import (
 	"cs-agent/internal/pkg/dto/request"
 	"cs-agent/internal/services"
 
-	"github.com/kataras/iris/v12"
+	"cs-agent/internal/pkg/httpx/params"
+	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/web"
-	"github.com/mlogclub/simple/web/params"
 )
 
 type AgentController struct {
-	Ctx iris.Context
+	Ctx *gin.Context
 }
 
 func (c *AgentController) AnyList() *web.JsonResult {

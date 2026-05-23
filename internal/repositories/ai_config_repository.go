@@ -5,7 +5,7 @@ import (
 	"cs-agent/internal/pkg/enums"
 
 	"github.com/mlogclub/simple/sqls"
-	"github.com/mlogclub/simple/web/params"
+	"cs-agent/internal/pkg/httpx/params"
 	"gorm.io/gorm"
 )
 

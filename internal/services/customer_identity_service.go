@@ -4,8 +4,8 @@ import (
 	"cs-agent/internal/models"
 	"cs-agent/internal/repositories"
 
+	"cs-agent/internal/pkg/httpx/params"
 	"github.com/mlogclub/simple/sqls"
-	"github.com/mlogclub/simple/web/params"
 )
 
 var CustomerIdentityService = newCustomerIdentityService()
@@ -64,4 +64,3 @@ func (s *customerIdentityService) UpdateColumn(id int64, name string, value inte
 func (s *customerIdentityService) Delete(id int64) {
 	repositories.CustomerIdentityRepository.Delete(sqls.DB(), id)
 }
-

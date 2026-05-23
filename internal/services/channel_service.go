@@ -8,7 +8,7 @@ import (
 	"cs-agent/internal/pkg/dto/response"
 	"cs-agent/internal/pkg/enums"
 	"cs-agent/internal/pkg/errorsx"
-	"cs-agent/internal/pkg/irisx"
+	"cs-agent/internal/pkg/httpx"
 	"cs-agent/internal/pkg/utils"
 	"cs-agent/internal/repositories"
 	"cs-agent/internal/wxwork"
@@ -17,10 +17,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kataras/iris/v12"
+	"cs-agent/internal/pkg/httpx/params"
+	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/common/strs"
 	"github.com/mlogclub/simple/sqls"
-	"github.com/mlogclub/simple/web/params"
 	"github.com/silenceper/wechat/v2/work/kf"
 )
 
@@ -369,8 +369,8 @@ func (s *channelService) GetEnabledWxWorkKFChannelByOpenKfID(openKfID string) *m
 	return nil
 }
 
-func (s *channelService) GetEnabledChannel(ctx iris.Context) *models.Channel {
-	channelID := irisx.GetChannelID(ctx)
+func (s *channelService) GetEnabledChannel(ctx *gin.Context) *models.Channel {
+	channelID := httpx.GetChannelID(ctx)
 	channel := repositories.ChannelRepository.GetByChannelID(sqls.DB(), channelID)
 	if channel == nil {
 		return nil

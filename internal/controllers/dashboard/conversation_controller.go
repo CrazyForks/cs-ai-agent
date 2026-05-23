@@ -10,15 +10,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kataras/iris/v12"
+	"cs-agent/internal/pkg/httpx/params"
+	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/common/strs"
 	"github.com/mlogclub/simple/web"
-	"github.com/mlogclub/simple/web/params"
 	"github.com/spf13/cast"
 )
 
 type ConversationController struct {
-	Ctx iris.Context
+	Ctx *gin.Context
 }
 
 func (c *ConversationController) AnyList() *web.JsonResult {
@@ -272,7 +272,7 @@ func (c *ConversationController) PostUpload_image() *web.JsonResult {
 		return web.JsonError(err)
 	}
 
-	rawConv := strings.TrimSpace(c.Ctx.FormValue("conversationId"))
+	rawConv := strings.TrimSpace(params.FormValue(c.Ctx, "conversationId"))
 	if rawConv == "" {
 		return web.JsonErrorMsg("conversationId不能为空")
 	}
@@ -284,12 +284,10 @@ func (c *ConversationController) PostUpload_image() *web.JsonResult {
 		return web.JsonError(err)
 	}
 
-	f, header, err := c.Ctx.FormFile("file")
+	header, err := c.Ctx.FormFile("file")
 	if err != nil {
 		return web.JsonErrorMsg("请选择上传图片")
 	}
-	_ = f.Close()
-
 	if !strings.HasPrefix(strings.ToLower(header.Header.Get("Content-Type")), "image/") {
 		return web.JsonErrorMsg("仅支持上传图片文件")
 	}
@@ -307,7 +305,7 @@ func (c *ConversationController) PostUpload_attachment() *web.JsonResult {
 		return web.JsonError(err)
 	}
 
-	rawConv := strings.TrimSpace(c.Ctx.FormValue("conversationId"))
+	rawConv := strings.TrimSpace(params.FormValue(c.Ctx, "conversationId"))
 	if rawConv == "" {
 		return web.JsonErrorMsg("conversationId不能为空")
 	}
@@ -319,12 +317,10 @@ func (c *ConversationController) PostUpload_attachment() *web.JsonResult {
 		return web.JsonError(err)
 	}
 
-	f, header, err := c.Ctx.FormFile("file")
+	header, err := c.Ctx.FormFile("file")
 	if err != nil {
 		return web.JsonErrorMsg("请选择上传附件")
 	}
-	_ = f.Close()
-
 	item, err := services.AssetService.UploadFile(header, "attachments", operator)
 	if err != nil {
 		return web.JsonError(err)

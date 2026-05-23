@@ -4,26 +4,26 @@ import (
 	"cs-agent/internal/builders"
 	"cs-agent/internal/pkg/dto/request"
 	"cs-agent/internal/pkg/enums"
-	"cs-agent/internal/pkg/irisx"
+	"cs-agent/internal/pkg/httpx"
 	"cs-agent/internal/services"
 	"strconv"
 	"strings"
 
-	"github.com/kataras/iris/v12"
+	"cs-agent/internal/pkg/httpx/params"
+	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/web"
-	"github.com/mlogclub/simple/web/params"
 	"github.com/spf13/cast"
 )
 
 type MessageController struct {
-	Ctx iris.Context
+	Ctx *gin.Context
 }
 
 func (c *MessageController) AnyList() *web.JsonResult {
 	if services.ChannelService.GetEnabledChannel(c.Ctx) == nil {
 		return web.JsonErrorMsg("接入渠道未初始化")
 	}
-	external := irisx.GetExternalUser(c.Ctx)
+	external := httpx.GetExternalUser(c.Ctx)
 	if external == nil {
 		return web.JsonErrorMsg("外部身份未初始化")
 	}
@@ -57,7 +57,7 @@ func (c *MessageController) PostSend() *web.JsonResult {
 	if services.ChannelService.GetEnabledChannel(c.Ctx) == nil {
 		return web.JsonErrorMsg("接入渠道未初始化")
 	}
-	external := irisx.GetExternalUser(c.Ctx)
+	external := httpx.GetExternalUser(c.Ctx)
 	if external == nil {
 		return web.JsonErrorMsg("外部身份未初始化")
 	}
@@ -78,7 +78,7 @@ func (c *MessageController) PostRead() *web.JsonResult {
 	if services.ChannelService.GetEnabledChannel(c.Ctx) == nil {
 		return web.JsonErrorMsg("接入渠道未初始化")
 	}
-	external := irisx.GetExternalUser(c.Ctx)
+	external := httpx.GetExternalUser(c.Ctx)
 	if external == nil {
 		return web.JsonErrorMsg("外部身份未初始化")
 	}
@@ -97,12 +97,12 @@ func (c *MessageController) PostUpload_image() *web.JsonResult {
 	if services.ChannelService.GetEnabledChannel(c.Ctx) == nil {
 		return web.JsonErrorMsg("接入渠道未初始化")
 	}
-	external := irisx.GetExternalUser(c.Ctx)
+	external := httpx.GetExternalUser(c.Ctx)
 	if external == nil {
 		return web.JsonErrorMsg("外部身份未初始化")
 	}
 
-	rawConv := strings.TrimSpace(c.Ctx.FormValue("conversationId"))
+	rawConv := strings.TrimSpace(params.FormValue(c.Ctx, "conversationId"))
 	if rawConv == "" {
 		return web.JsonErrorMsg("conversationId不能为空")
 	}
@@ -121,12 +121,10 @@ func (c *MessageController) PostUpload_image() *web.JsonResult {
 		return web.JsonError(err)
 	}
 
-	f, header, err := c.Ctx.FormFile("file")
+	header, err := c.Ctx.FormFile("file")
 	if err != nil {
 		return web.JsonErrorMsg("请选择上传图片")
 	}
-	_ = f.Close()
-
 	if !strings.HasPrefix(strings.ToLower(header.Header.Get("Content-Type")), "image/") {
 		return web.JsonErrorMsg("仅支持上传图片文件")
 	}
@@ -142,12 +140,12 @@ func (c *MessageController) PostUpload_attachment() *web.JsonResult {
 	if services.ChannelService.GetEnabledChannel(c.Ctx) == nil {
 		return web.JsonErrorMsg("接入渠道未初始化")
 	}
-	external := irisx.GetExternalUser(c.Ctx)
+	external := httpx.GetExternalUser(c.Ctx)
 	if external == nil {
 		return web.JsonErrorMsg("外部身份未初始化")
 	}
 
-	rawConv := strings.TrimSpace(c.Ctx.FormValue("conversationId"))
+	rawConv := strings.TrimSpace(params.FormValue(c.Ctx, "conversationId"))
 	if rawConv == "" {
 		return web.JsonErrorMsg("conversationId不能为空")
 	}
@@ -159,12 +157,10 @@ func (c *MessageController) PostUpload_attachment() *web.JsonResult {
 		return web.JsonError(err)
 	}
 
-	f, header, err := c.Ctx.FormFile("file")
+	header, err := c.Ctx.FormFile("file")
 	if err != nil {
 		return web.JsonErrorMsg("请选择上传附件")
 	}
-	_ = f.Close()
-
 	item, err := services.AssetService.UploadFile(header, "attachments", nil)
 	if err != nil {
 		return web.JsonError(err)

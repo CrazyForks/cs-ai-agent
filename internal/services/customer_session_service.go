@@ -13,10 +13,10 @@ import (
 	"cs-agent/internal/pkg/openidentity"
 	"cs-agent/internal/repositories"
 
+	"cs-agent/internal/pkg/httpx/params"
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/kataras/iris/v12"
 	"github.com/mlogclub/simple/sqls"
-	"github.com/mlogclub/simple/web/params"
 )
 
 const (
@@ -115,7 +115,7 @@ func (s *customerSessionService) Sign(channel *models.Channel, customer *models.
 	return token, expiresAt, nil
 }
 
-func (s *customerSessionService) VerifyRequest(ctx iris.Context, channel *models.Channel) (*CustomerSessionVerifyResult, error) {
+func (s *customerSessionService) VerifyRequest(ctx *gin.Context, channel *models.Channel) (*CustomerSessionVerifyResult, error) {
 	token := s.getCustomerSessionToken(ctx)
 	if token == "" {
 		return nil, errorsx.Unauthorized("客服会话不能为空")
@@ -155,7 +155,7 @@ func (s *customerSessionService) VerifyRequest(ctx iris.Context, channel *models
 	return result, nil
 }
 
-func (s *customerSessionService) SetRefreshHeaders(ctx iris.Context, result *CustomerSessionVerifyResult) {
+func (s *customerSessionService) SetRefreshHeaders(ctx *gin.Context, result *CustomerSessionVerifyResult) {
 	if ctx == nil || result == nil || !result.Refreshed {
 		return
 	}
@@ -239,7 +239,7 @@ func (s *customerSessionService) identityKey(externalUser openidentity.ExternalU
 	}
 }
 
-func (s *customerSessionService) getCustomerSessionToken(ctx iris.Context) string {
+func (s *customerSessionService) getCustomerSessionToken(ctx *gin.Context) string {
 	auth := strings.TrimSpace(ctx.GetHeader("Authorization"))
 	if len(auth) > 7 && strings.EqualFold(auth[:7], "Bearer ") {
 		if token := strings.TrimSpace(auth[7:]); token != "" {

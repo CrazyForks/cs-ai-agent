@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
+	"cs-agent/internal/pkg/httpx/params"
 	"github.com/mlogclub/simple/common/strs"
 	"github.com/mlogclub/simple/sqls"
-	"github.com/mlogclub/simple/web/params"
 )
 
 var MessageService = newMessageService()

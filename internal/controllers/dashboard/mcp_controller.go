@@ -8,13 +8,13 @@ import (
 	"cs-agent/internal/pkg/dto/response"
 	"cs-agent/internal/services"
 
-	"github.com/kataras/iris/v12"
+	"cs-agent/internal/pkg/httpx/params"
+	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/web"
-	"github.com/mlogclub/simple/web/params"
 )
 
 type MCPController struct {
-	Ctx iris.Context
+	Ctx *gin.Context
 }
 
 func (c *MCPController) AnyList_servers() *web.JsonResult {

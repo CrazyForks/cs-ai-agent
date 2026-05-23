@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kataras/iris/v12"
+	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/common/strs"
 	"github.com/mlogclub/simple/sqls"
 	"golang.org/x/crypto/bcrypt"
@@ -37,18 +37,18 @@ func newAuthService() *authService {
 type authService struct {
 }
 
-func (s *authService) GetAuthPrincipal(ctx iris.Context) *dto.AuthPrincipal {
+func (s *authService) GetAuthPrincipal(ctx *gin.Context) *dto.AuthPrincipal {
 	if ctx == nil {
 		return nil
 	}
-	v := ctx.Values().Get(authPrincipalContextKey)
+	v, _ := ctx.Get(authPrincipalContextKey)
 	if principal, ok := v.(*dto.AuthPrincipal); ok {
 		return principal
 	}
 	return nil
 }
 
-func (s *authService) setAuthPrincipal(ctx iris.Context, user *models.User, roles, permissions []string) *dto.AuthPrincipal {
+func (s *authService) setAuthPrincipal(ctx *gin.Context, user *models.User, roles, permissions []string) *dto.AuthPrincipal {
 	principal := &dto.AuthPrincipal{
 		UserID:      user.ID,
 		Username:    user.Username,
@@ -58,11 +58,11 @@ func (s *authService) setAuthPrincipal(ctx iris.Context, user *models.User, role
 		Roles:       roles,
 		Permissions: permissions,
 	}
-	ctx.Values().Set(authPrincipalContextKey, principal)
+	ctx.Set(authPrincipalContextKey, principal)
 	return principal
 }
 
-func (s *authService) RequirePermission(ctx iris.Context, permission constants.Permission) (principal *dto.AuthPrincipal, err error) {
+func (s *authService) RequirePermission(ctx *gin.Context, permission constants.Permission) (principal *dto.AuthPrincipal, err error) {
 	if principal = s.GetAuthPrincipal(ctx); principal == nil {
 		if principal, err = s.Authenticate(ctx); err != nil {
 			return nil, err
@@ -143,14 +143,14 @@ func (s *authService) Logout(accessToken string) error {
 	return nil
 }
 
-func (s *authService) Authenticate(ctx iris.Context) (*dto.AuthPrincipal, error) {
+func (s *authService) Authenticate(ctx *gin.Context) (*dto.AuthPrincipal, error) {
 	if principal := s.GetAuthPrincipal(ctx); principal != nil {
 		return principal, nil
 	}
 
 	token := s.extractBearerToken(ctx.GetHeader("Authorization"))
 	if token == "" {
-		token = strings.TrimSpace(ctx.URLParam("accessToken"))
+		token = strings.TrimSpace(ctx.Query("accessToken"))
 	}
 	if token == "" {
 		return nil, errorsx.Unauthorized("未登录或登录已过期")
@@ -181,7 +181,7 @@ func (s *authService) Authenticate(ctx iris.Context) (*dto.AuthPrincipal, error)
 	return principal, nil
 }
 
-func (s *authService) HasPermission(ctx iris.Context, permissionCode string) bool {
+func (s *authService) HasPermission(ctx *gin.Context, permissionCode string) bool {
 	principal := s.GetAuthPrincipal(ctx)
 	if principal == nil {
 		return false
@@ -189,7 +189,7 @@ func (s *authService) HasPermission(ctx iris.Context, permissionCode string) boo
 	return slices.Contains(principal.Permissions, permissionCode)
 }
 
-func (s *authService) CurrentProfile(ctx iris.Context) (*response.LoginResponse, error) {
+func (s *authService) CurrentProfile(ctx *gin.Context) (*response.LoginResponse, error) {
 	principal, err := s.Authenticate(ctx)
 	if err != nil {
 		return nil, err

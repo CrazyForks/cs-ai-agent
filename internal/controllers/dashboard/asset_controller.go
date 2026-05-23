@@ -9,13 +9,13 @@ import (
 	"cs-agent/internal/services"
 	"strings"
 
-	"github.com/kataras/iris/v12"
+	"cs-agent/internal/pkg/httpx/params"
+	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/web"
-	"github.com/mlogclub/simple/web/params"
 )
 
 type AssetController struct {
-	Ctx iris.Context
+	Ctx *gin.Context
 }
 
 func (c *AssetController) AnyList() *web.JsonResult {
@@ -29,7 +29,7 @@ func (c *AssetController) AnyList() *web.JsonResult {
 		params.QueryFilter{ParamName: "createUserId"},
 		params.QueryFilter{ParamName: "filename", Op: params.Like},
 	).Desc("id")
-	if strings.TrimSpace(c.Ctx.URLParam("status")) == "" {
+	if strings.TrimSpace(c.Ctx.Query("status")) == "" {
 		cnd = cnd.Eq("status", enums.AssetStatusSuccess)
 	}
 
@@ -62,12 +62,10 @@ func (c *AssetController) PostCreate() *web.JsonResult {
 	if err := params.ReadForm(c.Ctx, &req); err != nil {
 		return web.JsonError(err)
 	}
-	f, header, err := c.Ctx.FormFile("file")
+	header, err := c.Ctx.FormFile("file")
 	if err != nil {
 		return web.JsonErrorMsg("请选择上传文件")
 	}
-	_ = f.Close()
-
 	item, err := services.AssetService.UploadFile(header, req.Prefix, operator)
 	if err != nil {
 		return web.JsonError(err)

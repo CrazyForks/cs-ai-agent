@@ -7,13 +7,13 @@ import (
 	"cs-agent/internal/pkg/enums"
 	"cs-agent/internal/services"
 
-	"github.com/kataras/iris/v12"
+	"cs-agent/internal/pkg/httpx/params"
+	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/web"
-	"github.com/mlogclub/simple/web/params"
 )
 
 type AIConfigController struct {
-	Ctx iris.Context
+	Ctx *gin.Context
 }
 
 func (c *AIConfigController) AnyList() *web.JsonResult {
@@ -133,7 +133,7 @@ func (c *AIConfigController) PostUpdate_sort() *web.JsonResult {
 	}
 
 	var ids []int64
-	if err := c.Ctx.ReadJSON(&ids); err != nil {
+	if err := params.ReadJSON(c.Ctx, &ids); err != nil {
 		return web.JsonError(err)
 	}
 	if err := services.AIConfigService.UpdateSort(ids); err != nil {

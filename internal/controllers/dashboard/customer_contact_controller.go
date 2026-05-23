@@ -6,13 +6,13 @@ import (
 	"cs-agent/internal/pkg/dto/request"
 	"cs-agent/internal/services"
 
-	"github.com/kataras/iris/v12"
+	"cs-agent/internal/pkg/httpx/params"
+	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/web"
-	"github.com/mlogclub/simple/web/params"
 )
 
 type CustomerContactController struct {
-	Ctx iris.Context
+	Ctx *gin.Context
 }
 
 // AnyList GET/POST /customer-contact/list?customerId=

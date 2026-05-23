@@ -1,28 +1,28 @@
-package irisx
+package httpx
 
 import (
+	"cs-agent/internal/pkg/httpx/params"
 	"cs-agent/internal/pkg/openidentity"
 
-	"github.com/kataras/iris/v12"
+	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/common/strs"
-	"github.com/mlogclub/simple/web/params"
 )
 
 const (
 	ctxKeyExternalUser = "externalUser"
 )
 
-func SetExternalUser(ctx iris.Context, ext *openidentity.ExternalUser) {
-	ctx.Values().Set(ctxKeyExternalUser, ext)
+func SetExternalUser(ctx *gin.Context, ext *openidentity.ExternalUser) {
+	ctx.Set(ctxKeyExternalUser, ext)
 }
 
-func GetExternalUser(ctx iris.Context) *openidentity.ExternalUser {
-	v := ctx.Values().Get(ctxKeyExternalUser)
+func GetExternalUser(ctx *gin.Context) *openidentity.ExternalUser {
+	v, _ := ctx.Get(ctxKeyExternalUser)
 	ext, _ := v.(*openidentity.ExternalUser)
 	return ext
 }
 
-func GetChannelID(ctx iris.Context) string {
+func GetChannelID(ctx *gin.Context) string {
 	if channelID := ctx.GetHeader("X-Channel-ID"); strs.IsNotBlank(channelID) {
 		return channelID
 	}

@@ -8,13 +8,13 @@ import (
 	"cs-agent/internal/services"
 	"time"
 
-	"github.com/kataras/iris/v12"
+	"cs-agent/internal/pkg/httpx/params"
+	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/web"
-	"github.com/mlogclub/simple/web/params"
 )
 
 type SessionController struct {
-	Ctx iris.Context
+	Ctx *gin.Context
 }
 
 func (c *SessionController) AnyList() *web.JsonResult {

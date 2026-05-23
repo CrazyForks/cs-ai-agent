@@ -13,14 +13,14 @@ import (
 	"cs-agent/internal/pkg/utils"
 	"cs-agent/internal/services"
 
-	"github.com/kataras/iris/v12"
+	"cs-agent/internal/pkg/httpx/params"
+	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/sqls"
 	"github.com/mlogclub/simple/web"
-	"github.com/mlogclub/simple/web/params"
 )
 
 type AIAgentController struct {
-	Ctx iris.Context
+	Ctx *gin.Context
 }
 
 func (c *AIAgentController) AnyList() *web.JsonResult {
@@ -114,7 +114,7 @@ func (c *AIAgentController) PostUpdate_sort() *web.JsonResult {
 		return web.JsonError(err)
 	}
 	var ids []int64
-	if err := c.Ctx.ReadJSON(&ids); err != nil {
+	if err := params.ReadJSON(c.Ctx, &ids); err != nil {
 		return web.JsonError(err)
 	}
 	if err := services.AIAgentService.UpdateSort(ids); err != nil {

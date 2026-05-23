@@ -3,6 +3,8 @@ package bootstrap
 import (
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -13,131 +15,149 @@ import (
 	"cs-agent/internal/controllers/third"
 	"cs-agent/internal/middleware"
 	"cs-agent/internal/pkg/config"
+	"cs-agent/internal/pkg/ginx"
 	"cs-agent/internal/services"
 
-	"github.com/kataras/iris/v12"
-	"github.com/kataras/iris/v12/middleware/cors"
-	"github.com/kataras/iris/v12/middleware/recover"
-	"github.com/kataras/iris/v12/mvc"
+	"github.com/gin-gonic/gin"
 
 	_ "cs-agent/internal/services/wx_callback_handlers"
 )
 
-func NewServer() (*iris.Application, error) {
+func NewServer() (*gin.Engine, error) {
 	cfg := config.Current()
-	app := iris.New()
-	corsHandler := cors.New().
-		AllowOrigin("*").
-		AllowHeaders("Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With", "X-Guest-Id", "X-Channel-Id", "X-External-Id", "X-External-Name", "X-Customer-Session-Token", "X-Customer-Session-Expires-At").
-		MaxAge(600).
-		ExposeHeaders("Content-Length", "Content-Type", "Authorization", "X-Guest-Id", "X-Channel-Id", "X-External-Id", "X-External-Name", "X-Customer-Session-Token", "X-Customer-Session-Expires-At").
-		Handler()
-	app.UseRouter(func(ctx iris.Context) {
-		// WebSocket upgrade is validated by the upgrader's origin policy.
+	app := gin.New()
+	app.Use(corsMiddleware())
+	app.Use(gin.Recovery())
+	app.Use(requestLogMiddleware())
+	app.Use(maxBodySizeMiddleware(cfg.Storage.MaxRequestBodySizeBytes()))
+
+	addRouter(app)
+
+	app.StaticFS(cfg.Storage.Local.BaseURL, http.Dir(cfg.Storage.Local.Root))
+	registerDashboardStatic(app, "web/out")
+
+	return app, nil
+}
+
+func corsMiddleware() gin.HandlerFunc {
+	allowHeaders := "Origin, Content-Type, Accept, Authorization, X-Requested-With, X-Guest-Id, X-Channel-Id, X-External-Id, X-External-Name, X-Customer-Session-Token, X-Customer-Session-Expires-At"
+	exposeHeaders := "Content-Length, Content-Type, Authorization, X-Guest-Id, X-Channel-Id, X-External-Id, X-External-Name, X-Customer-Session-Token, X-Customer-Session-Expires-At"
+	return func(ctx *gin.Context) {
 		if isWebsocketUpgrade(ctx) {
 			ctx.Next()
 			return
 		}
-		corsHandler(ctx)
-	})
-	app.UseRouter(recover.New())
-	app.UseRouter(func(ctx iris.Context) {
+		ctx.Header("Access-Control-Allow-Origin", "*")
+		ctx.Header("Access-Control-Allow-Headers", allowHeaders)
+		ctx.Header("Access-Control-Expose-Headers", exposeHeaders)
+		ctx.Header("Access-Control-Max-Age", "600")
+		if ctx.Request.Method == http.MethodOptions {
+			ctx.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+		ctx.Next()
+	}
+}
+
+func requestLogMiddleware() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
 		start := time.Now()
-		path := ctx.Path()
-		method := ctx.Method()
+		path := ctx.Request.URL.Path
+		method := ctx.Request.Method
 		ctx.Next()
 
 		slog.Info("http request",
 			"method", method,
 			"path", path,
-			"status", ctx.GetStatusCode(),
+			"status", ctx.Writer.Status(),
 			"elapsed", time.Since(start).Milliseconds(),
-			"clientIp", ctx.RemoteAddr(),
+			"clientIp", ctx.ClientIP(),
 		)
-	})
-	app.UseRouter(func(ctx iris.Context) {
-		ctx.SetMaxRequestBodySize(cfg.Storage.MaxRequestBodySizeBytes())
-		ctx.Next()
-	})
-
-	// 注册路由
-	addRouter(app)
-
-	// 注册本地存储静态资源服务
-	app.HandleDir(cfg.Storage.Local.BaseURL, iris.Dir(cfg.Storage.Local.Root), iris.DirOptions{
-		ShowList: false,
-	})
-
-	// 注册dashboard静态资源服务
-	app.HandleDir("/", iris.Dir("web/out"), iris.DirOptions{
-		IndexName: "index.html",
-		Compress:  true,
-		ShowList:  false,
-	})
-
-	return app, nil
+	}
 }
 
-func isWebsocketUpgrade(ctx iris.Context) bool {
+func maxBodySizeMiddleware(limit int64) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		ctx.Request.Body = http.MaxBytesReader(ctx.Writer, ctx.Request.Body, limit)
+		ctx.Next()
+	}
+}
+
+func isWebsocketUpgrade(ctx *gin.Context) bool {
 	if !strings.EqualFold(ctx.GetHeader("Upgrade"), "websocket") {
 		return false
 	}
 	return strings.Contains(strings.ToLower(ctx.GetHeader("Connection")), "upgrade")
 }
 
-func addRouter(app *iris.Application) {
-	mcpHandler := mcps.NewHTTPHandler()
+func addRouter(app *gin.Engine) {
+	app.Any("/api/mcp", gin.WrapH(mcps.NewHTTPHandler()))
 
-	app.Any("/api/mcp", iris.FromStd(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		mcpHandler.ServeHTTP(w, r)
-	})))
+	apiGroup := app.Group("/api")
+	ginx.HandleController(apiGroup, "/auth", new(api.AuthController))
+	ginx.HandleController(apiGroup, "/channel", new(api.ChannelController))
+	ginx.HandleController(apiGroup, "/customer", new(api.CustomerController))
+	ginx.HandleController(apiGroup, "/conversation", new(api.ConversationController), middleware.ExternalUserMiddleware)
+	ginx.HandleController(apiGroup, "/message", new(api.MessageController), middleware.ExternalUserMiddleware)
 
-	mvc.Configure(app.Party("/api"), func(m *mvc.Application) {
-		m.Party("/auth").Handle(new(api.AuthController))
-		m.Party("/channel").Handle(new(api.ChannelController))
-		m.Party("/customer").Handle(new(api.CustomerController))
-		m.Party("/conversation", middleware.ExternalUserMiddleware).Handle(new(api.ConversationController))
-		m.Party("/message", middleware.ExternalUserMiddleware).Handle(new(api.MessageController))
-	})
+	wsGroup := app.Group("/api/ws")
+	wsGroup.GET("/dashboard", middleware.AuthMiddleware, services.WsService.HandleDashboardWS)
+	wsGroup.GET("/dashboard/notification", middleware.AuthMiddleware, services.WsService.HandleDashboardNotificationWS)
+	wsGroup.GET("/open", services.WsService.HandleOpenWS)
 
-	mvc.Configure(app.Party("/api/ws"), func(m *mvc.Application) {
-		m.Router.Get("/dashboard", middleware.AuthMiddleware, services.WsService.HandleDashboardWS)
-		m.Router.Get("/dashboard/notification", middleware.AuthMiddleware, services.WsService.HandleDashboardNotificationWS)
-		m.Router.Get("/open", services.WsService.HandleOpenWS)
-	})
+	dashboardGroup := app.Group("/api/dashboard", middleware.AuthMiddleware)
+	ginx.HandleController(dashboardGroup, "/dashboard", new(dashboard.DashboardController))
+	ginx.HandleController(dashboardGroup, "/user", new(dashboard.UserController))
+	ginx.HandleController(dashboardGroup, "/company", new(dashboard.CompanyController))
+	ginx.HandleController(dashboardGroup, "/customer", new(dashboard.CustomerController))
+	ginx.HandleController(dashboardGroup, "/customer-contact", new(dashboard.CustomerContactController))
+	ginx.HandleController(dashboardGroup, "/role", new(dashboard.RoleController))
+	ginx.HandleController(dashboardGroup, "/permission", new(dashboard.PermissionController))
+	ginx.HandleController(dashboardGroup, "/session", new(dashboard.SessionController))
+	ginx.HandleController(dashboardGroup, "/tag", new(dashboard.TagController))
+	ginx.HandleController(dashboardGroup, "/conversation", new(dashboard.ConversationController))
+	ginx.HandleController(dashboardGroup, "/ticket", new(dashboard.TicketController))
+	ginx.HandleController(dashboardGroup, "/notification", new(dashboard.NotificationController))
+	ginx.HandleController(dashboardGroup, "/quick-reply", new(dashboard.QuickReplyController))
+	ginx.HandleController(dashboardGroup, "/channel", new(dashboard.ChannelController))
+	ginx.HandleController(dashboardGroup, "/agent", new(dashboard.AgentController))
+	ginx.HandleController(dashboardGroup, "/agent-team", new(dashboard.AgentTeamController))
+	ginx.HandleController(dashboardGroup, "/agent-team-schedule", new(dashboard.AgentTeamScheduleController))
+	ginx.HandleController(dashboardGroup, "/ai-agent", new(dashboard.AIAgentController))
+	ginx.HandleController(dashboardGroup, "/ai-config", new(dashboard.AIConfigController))
+	ginx.HandleController(dashboardGroup, "/asset", new(dashboard.AssetController))
+	ginx.HandleController(dashboardGroup, "/knowledge-base", new(dashboard.KnowledgeBaseController))
+	ginx.HandleController(dashboardGroup, "/knowledge-document", new(dashboard.KnowledgeDocumentController))
+	ginx.HandleController(dashboardGroup, "/knowledge-faq", new(dashboard.KnowledgeFAQController))
+	ginx.HandleController(dashboardGroup, "/knowledge-retrieve", new(dashboard.KnowledgeRetrieveController))
+	ginx.HandleController(dashboardGroup, "/knowledge-retrieve-log", new(dashboard.KnowledgeRetrieveLogController))
+	ginx.HandleController(dashboardGroup, "/agent-run-log", new(dashboard.AgentRunLogController))
+	ginx.HandleController(dashboardGroup, "/skill-definition", new(dashboard.SkillDefinitionController))
+	ginx.HandleController(dashboardGroup, "/mcp", new(dashboard.MCPController))
 
-	mvc.Configure(app.Party("/api/dashboard", middleware.AuthMiddleware), func(m *mvc.Application) {
-		m.Party("/dashboard").Handle(new(dashboard.DashboardController))
-		m.Party("/user").Handle(new(dashboard.UserController))
-		m.Party("/company").Handle(new(dashboard.CompanyController))
-		m.Party("/customer").Handle(new(dashboard.CustomerController))
-		m.Party("/customer-contact").Handle(new(dashboard.CustomerContactController))
-		m.Party("/role").Handle(new(dashboard.RoleController))
-		m.Party("/permission").Handle(new(dashboard.PermissionController))
-		m.Party("/session").Handle(new(dashboard.SessionController))
-		m.Party("/tag").Handle(new(dashboard.TagController))
-		m.Party("/conversation").Handle(new(dashboard.ConversationController))
-		m.Party("/ticket").Handle(new(dashboard.TicketController))
-		m.Party("/notification").Handle(new(dashboard.NotificationController))
-		m.Party("/quick-reply").Handle(new(dashboard.QuickReplyController))
-		m.Party("/channel").Handle(new(dashboard.ChannelController))
-		m.Party("/agent").Handle(new(dashboard.AgentController))
-		m.Party("/agent-team").Handle(new(dashboard.AgentTeamController))
-		m.Party("/agent-team-schedule").Handle(new(dashboard.AgentTeamScheduleController))
-		m.Party("/ai-agent").Handle(new(dashboard.AIAgentController))
-		m.Party("/ai-config").Handle(new(dashboard.AIConfigController))
-		m.Party("/asset").Handle(new(dashboard.AssetController))
-		m.Party("/knowledge-base").Handle(new(dashboard.KnowledgeBaseController))
-		m.Party("/knowledge-document").Handle(new(dashboard.KnowledgeDocumentController))
-		m.Party("/knowledge-faq").Handle(new(dashboard.KnowledgeFAQController))
-		m.Party("/knowledge-retrieve").Handle(new(dashboard.KnowledgeRetrieveController))
-		m.Party("/knowledge-retrieve-log").Handle(new(dashboard.KnowledgeRetrieveLogController))
-		m.Party("/agent-run-log").Handle(new(dashboard.AgentRunLogController))
-		m.Party("/skill-definition").Handle(new(dashboard.SkillDefinitionController))
-		m.Party("/mcp").Handle(new(dashboard.MCPController))
-	})
+	thirdGroup := app.Group("/api/third")
+	ginx.HandleController(thirdGroup, "/wechat", new(third.WechatController))
+}
 
-	mvc.Configure(app.Party("/api/third"), func(m *mvc.Application) {
-		m.Party("/wechat").Handle(new(third.WechatController))
+func registerDashboardStatic(app *gin.Engine, root string) {
+	app.NoRoute(func(ctx *gin.Context) {
+		if strings.HasPrefix(ctx.Request.URL.Path, "/api/") {
+			ctx.JSON(http.StatusNotFound, gin.H{"success": false, "message": "not found"})
+			return
+		}
+		requestPath := filepath.Clean(strings.TrimPrefix(ctx.Request.URL.Path, "/"))
+		if strings.HasPrefix(requestPath, "..") {
+			ctx.Status(http.StatusBadRequest)
+			return
+		}
+		if requestPath == "." {
+			requestPath = "index.html"
+		}
+		fullPath := filepath.Join(root, requestPath)
+		if stat, err := os.Stat(fullPath); err == nil && !stat.IsDir() {
+			ctx.File(fullPath)
+			return
+		}
+		ctx.File(filepath.Join(root, "index.html"))
 	})
 }

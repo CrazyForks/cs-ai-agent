@@ -10,13 +10,13 @@ import (
 	"cs-agent/internal/pkg/enums"
 	"cs-agent/internal/services"
 
-	"github.com/kataras/iris/v12"
+	"cs-agent/internal/pkg/httpx/params"
+	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/web"
-	"github.com/mlogclub/simple/web/params"
 )
 
 type NotificationController struct {
-	Ctx iris.Context
+	Ctx *gin.Context
 }
 
 func (c *NotificationController) AnyList() *web.JsonResult {
@@ -31,7 +31,7 @@ func (c *NotificationController) AnyList() *web.JsonResult {
 		Eq("status", enums.StatusOk).
 		Desc("id")
 
-	switch strings.TrimSpace(c.Ctx.URLParam("readStatus")) {
+	switch strings.TrimSpace(c.Ctx.Query("readStatus")) {
 	case "unread":
 		cnd.Where("read_at IS NULL")
 	case "read":

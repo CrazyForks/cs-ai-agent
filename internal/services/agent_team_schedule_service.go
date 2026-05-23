@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
+	"cs-agent/internal/pkg/httpx/params"
 	"github.com/mlogclub/simple/sqls"
-	"github.com/mlogclub/simple/web/params"
 	"gorm.io/gorm"
 )
 

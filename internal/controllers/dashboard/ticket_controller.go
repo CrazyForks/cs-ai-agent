@@ -8,14 +8,14 @@ import (
 	"cs-agent/internal/pkg/dto/request"
 	"cs-agent/internal/services"
 
-	"github.com/kataras/iris/v12"
+	"cs-agent/internal/pkg/httpx/params"
+	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/sqls"
 	"github.com/mlogclub/simple/web"
-	"github.com/mlogclub/simple/web/params"
 )
 
 type TicketController struct {
-	Ctx iris.Context
+	Ctx *gin.Context
 }
 
 func (c *TicketController) AnyList() *web.JsonResult {

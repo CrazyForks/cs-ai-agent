@@ -4,12 +4,12 @@ import (
 	"cs-agent/internal/pkg/openidentity"
 	"cs-agent/internal/services"
 
-	"github.com/kataras/iris/v12"
+	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/web"
 )
 
 type CustomerController struct {
-	Ctx iris.Context
+	Ctx *gin.Context
 }
 
 func (c *CustomerController) PostSession_exchange() *web.JsonResult {

@@ -17,8 +17,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"github.com/kataras/iris/v12"
 	"github.com/mlogclub/simple/web"
 )
 
@@ -41,36 +41,36 @@ func newWsService() *wsService {
 	}
 }
 
-func (s *wsService) HandleDashboardWS(ctx iris.Context) {
+func (s *wsService) HandleDashboardWS(ctx *gin.Context) {
 	principal := AuthService.GetAuthPrincipal(ctx)
 	if principal == nil {
-		_ = ctx.StopWithJSON(iris.StatusUnauthorized, web.JsonError(errorsx.Unauthorized("未登录或登录已过期")))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, web.JsonError(errorsx.Unauthorized("未登录或登录已过期")))
 		return
 	}
 	if err := s.upgradeConnection(ctx, principal, nil, realtimeRoleAdmin); err != nil {
-		slog.Error("upgrade admin websocket failed", "error", err, "path", ctx.Path())
-		ctx.StopExecution()
+		slog.Error("upgrade admin websocket failed", "error", err, "path", ctx.Request.URL.Path)
+		ctx.Abort()
 		return
 	}
 }
 
-func (s *wsService) HandleDashboardNotificationWS(ctx iris.Context) {
+func (s *wsService) HandleDashboardNotificationWS(ctx *gin.Context) {
 	principal := AuthService.GetAuthPrincipal(ctx)
 	if principal == nil {
-		_ = ctx.StopWithJSON(iris.StatusUnauthorized, web.JsonError(errorsx.Unauthorized("未登录或登录已过期")))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, web.JsonError(errorsx.Unauthorized("未登录或登录已过期")))
 		return
 	}
 	if err := s.upgradeConnection(ctx, principal, nil, realtimeRoleNotification); err != nil {
-		slog.Error("upgrade dashboard notification websocket failed", "error", err, "path", ctx.Path())
-		ctx.StopExecution()
+		slog.Error("upgrade dashboard notification websocket failed", "error", err, "path", ctx.Request.URL.Path)
+		ctx.Abort()
 		return
 	}
 }
 
-func (s *wsService) HandleOpenWS(ctx iris.Context) {
+func (s *wsService) HandleOpenWS(ctx *gin.Context) {
 	channel := ChannelService.GetEnabledChannel(ctx)
 	if channel == nil {
-		_ = ctx.StopWithJSON(iris.StatusBadRequest, web.JsonErrorMsg("接入渠道不存在或已停用"))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, web.JsonErrorMsg("接入渠道不存在或已停用"))
 		return
 	}
 
@@ -82,21 +82,21 @@ func (s *wsService) HandleOpenWS(ctx iris.Context) {
 	if principal == nil {
 		result, err := CustomerSessionService.VerifyRequest(ctx, channel)
 		if err != nil {
-			_ = ctx.StopWithJSON(iris.StatusUnauthorized, web.JsonError(err))
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, web.JsonError(err))
 			return
 		}
 		external = result.ExternalUser
 		customerSessionInfo = result
 	}
 	if err := s.upgradeConnection(ctx, principal, external, realtimeRoleUser, customerSessionInfo); err != nil {
-		slog.Error("upgrade open im websocket failed", "error", err, "path", ctx.Path(), "channelId", channel.ChannelID, "channel_id", channel.ID)
-		ctx.StopExecution()
+		slog.Error("upgrade open im websocket failed", "error", err, "path", ctx.Request.URL.Path, "channelId", channel.ChannelID, "channel_id", channel.ID)
+		ctx.Abort()
 		return
 	}
 }
 
-func (s *wsService) upgradeConnection(ctx iris.Context, principal *dto.AuthPrincipal, external *openidentity.ExternalUser, role string, customerSessionInfo ...*CustomerSessionVerifyResult) error {
-	conn, err := s.upgrader.Upgrade(ctx.ResponseWriter().Naive(), ctx.Request(), nil)
+func (s *wsService) upgradeConnection(ctx *gin.Context, principal *dto.AuthPrincipal, external *openidentity.ExternalUser, role string, customerSessionInfo ...*CustomerSessionVerifyResult) error {
+	conn, err := s.upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
 		return err
 	}
@@ -643,11 +643,11 @@ func (s *wsService) canSubscribeConversation(session *ClientSession, conversatio
 	return false
 }
 
-func (s *wsService) resolveTerminalType(ctx iris.Context, role string) string {
+func (s *wsService) resolveTerminalType(ctx *gin.Context, role string) string {
 	if ctx == nil {
 		return "web"
 	}
-	terminalType := strings.TrimSpace(ctx.URLParam("terminalType"))
+	terminalType := strings.TrimSpace(ctx.Query("terminalType"))
 	if terminalType != "" {
 		return terminalType
 	}

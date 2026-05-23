@@ -4,23 +4,23 @@ import (
 	"cs-agent/internal/builders"
 	"cs-agent/internal/pkg/dto/request"
 	"cs-agent/internal/pkg/dto/response"
-	"cs-agent/internal/pkg/irisx"
+	"cs-agent/internal/pkg/httpx"
 	"cs-agent/internal/services"
 
-	"github.com/kataras/iris/v12"
+	"cs-agent/internal/pkg/httpx/params"
+	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/web"
-	"github.com/mlogclub/simple/web/params"
 )
 
 type ConversationController struct {
-	Ctx iris.Context
+	Ctx *gin.Context
 }
 
 func (c *ConversationController) GetBy(id int64) *web.JsonResult {
 	if services.ChannelService.GetEnabledChannel(c.Ctx) == nil {
 		return web.JsonErrorMsg("接入渠道未初始化")
 	}
-	external := irisx.GetExternalUser(c.Ctx)
+	external := httpx.GetExternalUser(c.Ctx)
 	if external == nil {
 		return web.JsonErrorMsg("外部身份未初始化")
 	}
@@ -45,7 +45,7 @@ func (c *ConversationController) PostCreate_or_match() *web.JsonResult {
 	if channel == nil {
 		return web.JsonErrorMsg("接入渠道未初始化")
 	}
-	external := irisx.GetExternalUser(c.Ctx)
+	external := httpx.GetExternalUser(c.Ctx)
 	if external == nil {
 		return web.JsonErrorMsg("外部身份未初始化")
 	}
@@ -61,7 +61,7 @@ func (c *ConversationController) PostClose() *web.JsonResult {
 	if services.ChannelService.GetEnabledChannel(c.Ctx) == nil {
 		return web.JsonErrorMsg("接入渠道未初始化")
 	}
-	external := irisx.GetExternalUser(c.Ctx)
+	external := httpx.GetExternalUser(c.Ctx)
 	if external == nil {
 		return web.JsonErrorMsg("外部身份未初始化")
 	}

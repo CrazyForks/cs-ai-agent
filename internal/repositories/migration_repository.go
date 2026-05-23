@@ -4,7 +4,7 @@ import (
 	"cs-agent/internal/models"
 
 	"github.com/mlogclub/simple/sqls"
-	"github.com/mlogclub/simple/web/params"
+	"cs-agent/internal/pkg/httpx/params"
 	"gorm.io/gorm"
 )
 

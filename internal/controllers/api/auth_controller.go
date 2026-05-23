@@ -3,17 +3,18 @@ package api
 import (
 	"cs-agent/internal/pkg/config"
 	"cs-agent/internal/pkg/dto/request"
+	"cs-agent/internal/pkg/httpx/params"
 	"cs-agent/internal/services"
+	"net/http"
 	"net/url"
 	"strings"
 
-	"github.com/kataras/iris/v12"
+	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/web"
-	"github.com/mlogclub/simple/web/params"
 )
 
 type AuthController struct {
-	Ctx iris.Context
+	Ctx *gin.Context
 }
 
 func (c *AuthController) PostLogin() *web.JsonResult {
@@ -23,7 +24,7 @@ func (c *AuthController) PostLogin() *web.JsonResult {
 		return web.JsonError(err)
 	}
 
-	ret, err := services.AuthService.Login(req, cfg.Auth, c.Ctx.RemoteAddr(), c.Ctx.GetHeader("User-Agent"))
+	ret, err := services.AuthService.Login(req, cfg.Auth, c.Ctx.ClientIP(), c.Ctx.GetHeader("User-Agent"))
 	if err != nil {
 		return web.JsonError(err)
 	}
@@ -31,37 +32,37 @@ func (c *AuthController) PostLogin() *web.JsonResult {
 }
 
 func (c *AuthController) GetWxwork_login() {
-	loginURL, err := services.WxWorkLoginService.BuildWxWorkLoginURL(c.Ctx.URLParam("next"))
+	loginURL, err := services.WxWorkLoginService.BuildWxWorkLoginURL(c.Ctx.Query("next"))
 	if err != nil {
 		c.redirectWxWorkError(err.Error())
 		return
 	}
-	c.Ctx.Redirect(loginURL, iris.StatusFound)
+	c.Ctx.Redirect(http.StatusFound, loginURL)
 }
 
 func (c *AuthController) GetWxwork_qr_login() {
-	loginURL, err := services.WxWorkLoginService.BuildWxWorkQRCodeLoginURL(c.Ctx.URLParam("next"))
+	loginURL, err := services.WxWorkLoginService.BuildWxWorkQRCodeLoginURL(c.Ctx.Query("next"))
 	if err != nil {
 		c.redirectWxWorkError(err.Error())
 		return
 	}
-	c.Ctx.Redirect(loginURL, iris.StatusFound)
+	c.Ctx.Redirect(http.StatusFound, loginURL)
 }
 
 func (c *AuthController) GetWxwork_callback() {
 	cfg := config.Current()
 	ticket, next, err := services.WxWorkLoginService.LoginByWxWork(
-		c.Ctx.URLParam("code"),
-		c.Ctx.URLParam("state"),
+		c.Ctx.Query("code"),
+		c.Ctx.Query("state"),
 		cfg.Auth,
-		c.Ctx.RemoteAddr(),
+		c.Ctx.ClientIP(),
 		c.Ctx.GetHeader("User-Agent"),
 	)
 	if err != nil {
 		c.redirectWxWorkError(err.Error())
 		return
 	}
-	c.Ctx.Redirect("/dashboard/login/wxwork/callback?ticket="+url.QueryEscape(ticket)+"&next="+url.QueryEscape(next), iris.StatusFound)
+	c.Ctx.Redirect(http.StatusFound, "/dashboard/login/wxwork/callback?ticket="+url.QueryEscape(ticket)+"&next="+url.QueryEscape(next))
 }
 
 func (c *AuthController) PostWxwork_exchange() *web.JsonResult {
@@ -95,5 +96,5 @@ func (c *AuthController) redirectWxWorkError(message string) {
 	if idx := strings.Index(message, ": "); idx >= 0 {
 		message = message[idx+2:]
 	}
-	c.Ctx.Redirect("/login?wxworkError="+url.QueryEscape(message), iris.StatusFound)
+	c.Ctx.Redirect(http.StatusFound, "/login?wxworkError="+url.QueryEscape(message))
 }

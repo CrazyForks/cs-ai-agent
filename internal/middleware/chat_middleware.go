@@ -1,27 +1,27 @@
 package middleware
 
 import (
-	"cs-agent/internal/pkg/irisx"
+	"cs-agent/internal/pkg/httpx"
 	"cs-agent/internal/services"
 
-	"github.com/kataras/iris/v12"
+	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/web"
 )
 
-func ExternalUserMiddleware(ctx iris.Context) {
+func ExternalUserMiddleware(ctx *gin.Context) {
 	channel := services.ChannelService.GetEnabledChannel(ctx)
 	if channel == nil {
-		ctx.StopExecution()
-		_ = ctx.JSON(web.JsonErrorMsg("接入渠道异常"))
+		ctx.JSON(200, web.JsonErrorMsg("接入渠道异常"))
+		ctx.Abort()
 		return
 	}
 	result, err := services.CustomerSessionService.VerifyRequest(ctx, channel)
 	if err != nil {
-		ctx.StopExecution()
-		_ = ctx.JSON(web.JsonError(err))
+		ctx.JSON(200, web.JsonError(err))
+		ctx.Abort()
 		return
 	}
 	services.CustomerSessionService.SetRefreshHeaders(ctx, result)
-	irisx.SetExternalUser(ctx, result.ExternalUser)
+	httpx.SetExternalUser(ctx, result.ExternalUser)
 	ctx.Next()
 }

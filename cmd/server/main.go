@@ -25,7 +25,7 @@ func main() {
 		return
 	}
 
-	if err := app.Listen(cfg.Server.Address()); err != nil {
+	if err := app.Run(cfg.Server.Address()); err != nil {
 		slog.Error("start server failed", "error", err)
 		return
 	}
