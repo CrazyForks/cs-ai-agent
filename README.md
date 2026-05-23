@@ -278,6 +278,22 @@ make enums          # 生成前端枚举
 make migration      # 执行 migration
 ```
 
+## Docker
+
+```bash
+docker build -t cs-agent .
+docker run --rm -p 8083:8083 -v cs-agent-data:/app/data cs-agent
+```
+
+容器默认使用 `/app/config/config.yaml`，镜像内会基于 `config/config.example.yaml` 放置一份默认配置。生产环境建议通过挂载配置文件覆盖：
+
+```bash
+docker run --rm -p 8083:8083 \
+  -v $(pwd)/config/config.yaml:/app/config/config.yaml:ro \
+  -v cs-agent-data:/app/data \
+  cs-agent
+```
+
 ## 系统视角
 
 - 管理后台：负责 AI Agent、知识库、客服组、工单与运营配置
