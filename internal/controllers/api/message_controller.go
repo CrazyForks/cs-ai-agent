@@ -53,7 +53,6 @@ func MessageAnyList(ctx *gin.Context) {
 	)
 	results := builders.BuildMessages(list)
 	httpx.WriteJSON(ctx, httpx.CursorData(results, cast.ToString(nextCursor), hasMore))
-	return
 }
 
 func MessagePostSend(ctx *gin.Context) {
@@ -79,7 +78,6 @@ func MessagePostSend(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildMessage(item))
-	return
 }
 
 func MessagePostRead(ctx *gin.Context) {
@@ -103,7 +101,6 @@ func MessagePostRead(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func MessagePostUpload_image(ctx *gin.Context) {
@@ -157,7 +154,6 @@ func MessagePostUpload_image(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildAsset(item))
-	return
 }
 
 func MessagePostUpload_attachment(ctx *gin.Context) {
@@ -197,5 +193,4 @@ func MessagePostUpload_attachment(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildAsset(item))
-	return
 }

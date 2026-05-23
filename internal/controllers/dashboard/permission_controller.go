@@ -45,7 +45,6 @@ func PermissionAnyList(ctx *gin.Context) {
 		})
 	}
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
-	return
 }
 
 func PermissionGetBy(ctx *gin.Context, id int64) {
@@ -70,5 +69,4 @@ func PermissionGetBy(ctx *gin.Context, id int64) {
 		Status:    item.Status,
 		SortNo:    item.SortNo,
 	})
-	return
 }

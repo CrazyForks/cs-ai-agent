@@ -36,7 +36,6 @@ func RoleAnyList(ctx *gin.Context) {
 		})
 	}
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
-	return
 }
 
 func RoleGetList_all(ctx *gin.Context) {
@@ -58,7 +57,6 @@ func RoleGetList_all(ctx *gin.Context) {
 		})
 	}
 	httpx.WriteJSON(ctx, results)
-	return
 }
 
 func RoleGetBy(ctx *gin.Context, id int64) {
@@ -90,7 +88,6 @@ func RoleGetBy(ctx *gin.Context, id int64) {
 		SortNo:      item.SortNo,
 		Permissions: permissionCodes,
 	})
-	return
 }
 
 func RolePostCreate(ctx *gin.Context) {
@@ -118,7 +115,6 @@ func RolePostCreate(ctx *gin.Context) {
 		IsSystem: role.IsSystem,
 		SortNo:   role.SortNo,
 	})
-	return
 }
 
 func RolePostUpdate(ctx *gin.Context) {
@@ -138,7 +134,6 @@ func RolePostUpdate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func RolePostDelete(ctx *gin.Context) {
@@ -157,7 +152,6 @@ func RolePostDelete(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func RolePostUpdate_status(ctx *gin.Context) {
@@ -177,7 +171,6 @@ func RolePostUpdate_status(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func RolePostAssign_permission(ctx *gin.Context) {
@@ -197,7 +190,6 @@ func RolePostAssign_permission(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func RolePostUpdate_sort(ctx *gin.Context) {
@@ -211,5 +203,4 @@ func RolePostUpdate_sort(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }

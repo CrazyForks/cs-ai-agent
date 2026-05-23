@@ -26,7 +26,6 @@ func CustomerContactAnyList(ctx *gin.Context) {
 	}
 	list := services.CustomerContactService.FindActiveByCustomerID(customerID)
 	httpx.WriteJSON(ctx, builders.BuildCustomerContactList(list))
-	return
 }
 
 func CustomerContactPostCreate(ctx *gin.Context) {
@@ -47,7 +46,6 @@ func CustomerContactPostCreate(ctx *gin.Context) {
 	}
 	ret := builders.BuildCustomerContactResponse(item)
 	httpx.WriteJSON(ctx, &ret)
-	return
 }
 
 func CustomerContactPostUpdate(ctx *gin.Context) {
@@ -66,7 +64,6 @@ func CustomerContactPostUpdate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func CustomerContactPostDelete(ctx *gin.Context) {
@@ -85,5 +82,4 @@ func CustomerContactPostDelete(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }

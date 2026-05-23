@@ -26,5 +26,4 @@ func CustomerPostSession_exchange(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, resp)
-	return
 }

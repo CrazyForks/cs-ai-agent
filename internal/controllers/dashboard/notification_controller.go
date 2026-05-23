@@ -42,7 +42,6 @@ func NotificationAnyList(ctx *gin.Context) {
 		Results: builders.BuildNotificationList(list),
 		Page:    paging,
 	})
-	return
 }
 
 func NotificationGetUnread_count(ctx *gin.Context) {
@@ -54,7 +53,6 @@ func NotificationGetUnread_count(ctx *gin.Context) {
 	httpx.WriteJSON(ctx, &response.NotificationUnreadCountResponse{
 		UnreadCount: services.NotificationService.CountUnread(operator.UserID),
 	})
-	return
 }
 
 func NotificationPostMark_read(ctx *gin.Context) {
@@ -73,7 +71,6 @@ func NotificationPostMark_read(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func NotificationPostMark_all_read(ctx *gin.Context) {
@@ -87,5 +84,4 @@ func NotificationPostMark_all_read(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }

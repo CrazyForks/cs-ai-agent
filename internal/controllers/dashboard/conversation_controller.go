@@ -68,7 +68,6 @@ func ConversationAnyList(ctx *gin.Context) {
 		results = append(results, builders.BuildConversation(&item))
 	}
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
-	return
 }
 
 func ConversationAnyConversations(ctx *gin.Context) {
@@ -98,7 +97,6 @@ func ConversationAnyConversations(ctx *gin.Context) {
 		results = append(results, builders.BuildConversation(&item))
 	}
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
-	return
 }
 
 func ConversationGetBy(ctx *gin.Context, id int64) {
@@ -118,7 +116,6 @@ func ConversationGetBy(ctx *gin.Context, id int64) {
 		Participants:         builders.BuildParticipantResponses(id),
 	}
 	httpx.WriteJSON(ctx, detail)
-	return
 }
 
 func ConversationAnyMessage_list(ctx *gin.Context) {
@@ -145,7 +142,6 @@ func ConversationAnyMessage_list(ctx *gin.Context) {
 	results := builders.BuildMessages(list)
 
 	httpx.WriteJSON(ctx, httpx.CursorData(results, cast.ToString(nextCursor), hasMore))
-	return
 }
 
 func ConversationPostAssign(ctx *gin.Context) {
@@ -165,7 +161,6 @@ func ConversationPostAssign(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func ConversationPostDispatch(ctx *gin.Context) {
@@ -185,7 +180,6 @@ func ConversationPostDispatch(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func ConversationPostTransfer(ctx *gin.Context) {
@@ -205,7 +199,6 @@ func ConversationPostTransfer(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func ConversationPostClose(ctx *gin.Context) {
@@ -225,7 +218,6 @@ func ConversationPostClose(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func ConversationPostLink_customer(ctx *gin.Context) {
@@ -244,7 +236,6 @@ func ConversationPostLink_customer(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func ConversationPostSend_message(ctx *gin.Context) {
@@ -265,7 +256,6 @@ func ConversationPostSend_message(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildMessage(item))
-	return
 }
 
 func ConversationPostRecall_message(ctx *gin.Context) {
@@ -286,7 +276,6 @@ func ConversationPostRecall_message(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildMessage(item))
-	return
 }
 
 func ConversationPostRead(ctx *gin.Context) {
@@ -306,7 +295,6 @@ func ConversationPostRead(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func ConversationPostUpload_image(ctx *gin.Context) {
@@ -347,7 +335,6 @@ func ConversationPostUpload_image(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildAsset(item))
-	return
 }
 
 func ConversationPostUpload_attachment(ctx *gin.Context) {
@@ -383,7 +370,6 @@ func ConversationPostUpload_attachment(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildAsset(item))
-	return
 }
 
 func ConversationPostAdd_tag(ctx *gin.Context) {
@@ -403,7 +389,6 @@ func ConversationPostAdd_tag(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func ConversationPostRemove_tag(ctx *gin.Context) {
@@ -422,5 +407,4 @@ func ConversationPostRemove_tag(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }

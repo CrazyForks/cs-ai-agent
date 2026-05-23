@@ -39,7 +39,6 @@ func SkillDefinitionAnyList(ctx *gin.Context) {
 		results = append(results, builders.BuildSkillDefinitionResponse(&item))
 	}
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
-	return
 }
 
 func SkillDefinitionGetList_all(ctx *gin.Context) {
@@ -60,7 +59,6 @@ func SkillDefinitionGetList_all(ctx *gin.Context) {
 		results = append(results, builders.BuildSkillDefinitionResponse(&item))
 	}
 	httpx.WriteJSON(ctx, results)
-	return
 }
 
 func SkillDefinitionGetBy(ctx *gin.Context, id int64) {
@@ -75,7 +73,6 @@ func SkillDefinitionGetBy(ctx *gin.Context, id int64) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildSkillDefinitionResponse(item))
-	return
 }
 
 func SkillDefinitionPostCreate(ctx *gin.Context) {
@@ -96,7 +93,6 @@ func SkillDefinitionPostCreate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildSkillDefinitionResponse(item))
-	return
 }
 
 func SkillDefinitionPostUpdate(ctx *gin.Context) {
@@ -116,7 +112,6 @@ func SkillDefinitionPostUpdate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func SkillDefinitionPostUpdate_status(ctx *gin.Context) {
@@ -163,7 +158,6 @@ func SkillDefinitionPostUpdate_status(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func SkillDefinitionPostDelete(ctx *gin.Context) {
@@ -196,7 +190,6 @@ func SkillDefinitionPostDelete(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func SkillDefinitionPostRestore(ctx *gin.Context) {
@@ -236,7 +229,6 @@ func SkillDefinitionPostRestore(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func SkillDefinitionPostDebug_run(ctx *gin.Context) {
@@ -256,7 +248,6 @@ func SkillDefinitionPostDebug_run(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, resp)
-	return
 }
 
 func SkillDefinitionPostDebug_resume(ctx *gin.Context) {
@@ -276,5 +267,4 @@ func SkillDefinitionPostDebug_resume(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, resp)
-	return
 }

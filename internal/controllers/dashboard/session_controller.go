@@ -45,7 +45,6 @@ func SessionAnyList(ctx *gin.Context) {
 		})
 	}
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
-	return
 }
 
 func SessionPostRevoke(ctx *gin.Context) {
@@ -65,7 +64,6 @@ func SessionPostRevoke(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func SessionPostRevokeByUser(ctx *gin.Context) {
@@ -85,5 +83,4 @@ func SessionPostRevokeByUser(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }

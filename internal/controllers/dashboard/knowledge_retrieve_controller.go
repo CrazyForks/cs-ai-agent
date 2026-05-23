@@ -33,7 +33,6 @@ func KnowledgeRetrievePostDebugSearch(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, resp)
-	return
 }
 
 func KnowledgeRetrievePostDebugAnswer(ctx *gin.Context) {
@@ -55,7 +54,6 @@ func KnowledgeRetrievePostDebugAnswer(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, resp)
-	return
 }
 
 func KnowledgeRetrievePostBuild(ctx *gin.Context) {
@@ -95,5 +93,4 @@ func KnowledgeRetrievePostBuild(ctx *gin.Context) {
 	}
 
 	httpx.WriteJSON(ctx, web.JsonErrorMsg("documentId或faqId不能为空"))
-	return
 }

@@ -27,7 +27,6 @@ func AgentAnyList(ctx *gin.Context) {
 	).Desc("id"))
 	results := builders.BuildAgentProfileList(list)
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
-	return
 }
 
 func AgentGetList_all(ctx *gin.Context) {
@@ -43,7 +42,6 @@ func AgentGetList_all(ctx *gin.Context) {
 	).Desc("id"))
 
 	httpx.WriteJSON(ctx, builders.BuildAgentProfileList(list))
-	return
 }
 
 func AgentGetBy(ctx *gin.Context, id int64) {
@@ -57,7 +55,6 @@ func AgentGetBy(ctx *gin.Context, id int64) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildAgentProfileResponse(item))
-	return
 }
 
 func AgentPostCreate(ctx *gin.Context) {
@@ -77,7 +74,6 @@ func AgentPostCreate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildAgentProfileResponse(item))
-	return
 }
 
 func AgentPostUpdate(ctx *gin.Context) {
@@ -96,7 +92,6 @@ func AgentPostUpdate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func AgentPostDelete(ctx *gin.Context) {
@@ -114,5 +109,4 @@ func AgentPostDelete(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }

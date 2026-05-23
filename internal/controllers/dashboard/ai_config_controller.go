@@ -31,7 +31,6 @@ func AIConfigAnyList(ctx *gin.Context) {
 		results = append(results, response.BuildAIConfigResponse(&item))
 	}
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
-	return
 }
 
 func AIConfigAnyList_all(ctx *gin.Context) {
@@ -49,7 +48,6 @@ func AIConfigAnyList_all(ctx *gin.Context) {
 		results = append(results, response.BuildAIConfigResponse(&item))
 	}
 	httpx.WriteJSON(ctx, results)
-	return
 }
 
 func AIConfigGetBy(ctx *gin.Context, id int64) {
@@ -64,7 +62,6 @@ func AIConfigGetBy(ctx *gin.Context, id int64) {
 		return
 	}
 	httpx.WriteJSON(ctx, response.BuildAIConfigResponse(item))
-	return
 }
 
 func AIConfigPostCreate(ctx *gin.Context) {
@@ -85,7 +82,6 @@ func AIConfigPostCreate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, response.BuildAIConfigResponse(item))
-	return
 }
 
 func AIConfigPostUpdate(ctx *gin.Context) {
@@ -105,7 +101,6 @@ func AIConfigPostUpdate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func AIConfigPostDelete(ctx *gin.Context) {
@@ -125,7 +120,6 @@ func AIConfigPostDelete(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func AIConfigPostUpdate_status(ctx *gin.Context) {
@@ -145,7 +139,6 @@ func AIConfigPostUpdate_status(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func AIConfigPostUpdate_sort(ctx *gin.Context) {
@@ -164,5 +157,4 @@ func AIConfigPostUpdate_sort(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }

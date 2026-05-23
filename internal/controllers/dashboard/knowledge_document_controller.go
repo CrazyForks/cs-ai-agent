@@ -45,7 +45,6 @@ func KnowledgeDocumentAnyList(ctx *gin.Context) {
 		results = append(results, builders.BuildKnowledgeDocumentList(&item))
 	}
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
-	return
 }
 
 func KnowledgeDocumentGetBy(ctx *gin.Context, id int64) {
@@ -60,7 +59,6 @@ func KnowledgeDocumentGetBy(ctx *gin.Context, id int64) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildKnowledgeDocument(item))
-	return
 }
 
 func KnowledgeDocumentPostCreate(ctx *gin.Context) {
@@ -81,7 +79,6 @@ func KnowledgeDocumentPostCreate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildKnowledgeDocument(item))
-	return
 }
 
 func KnowledgeDocumentPostUpdate(ctx *gin.Context) {
@@ -101,7 +98,6 @@ func KnowledgeDocumentPostUpdate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func KnowledgeDocumentPostDelete(ctx *gin.Context) {
@@ -123,5 +119,4 @@ func KnowledgeDocumentPostDelete(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }

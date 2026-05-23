@@ -40,7 +40,6 @@ func QuickReplyAnyList(ctx *gin.Context) {
 		})
 	}
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
-	return
 }
 
 func QuickReplyGetList_all(ctx *gin.Context) {
@@ -61,7 +60,6 @@ func QuickReplyGetList_all(ctx *gin.Context) {
 		})
 	}
 	httpx.WriteJSON(ctx, results)
-	return
 }
 
 func QuickReplyPostCreate(ctx *gin.Context) {
@@ -89,7 +87,6 @@ func QuickReplyPostCreate(ctx *gin.Context) {
 		Status:    item.Status,
 		SortNo:    item.SortNo,
 	})
-	return
 }
 
 func QuickReplyPostUpdate(ctx *gin.Context) {
@@ -109,7 +106,6 @@ func QuickReplyPostUpdate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func QuickReplyPostDelete(ctx *gin.Context) {
@@ -128,5 +124,4 @@ func QuickReplyPostDelete(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }

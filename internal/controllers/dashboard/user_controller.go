@@ -33,7 +33,6 @@ func UserAnyList(ctx *gin.Context) {
 		Permissions: false,
 	})
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
-	return
 }
 
 func UserAnyList_all(ctx *gin.Context) {
@@ -55,7 +54,6 @@ func UserAnyList_all(ctx *gin.Context) {
 		Permissions: false,
 	})
 	httpx.WriteJSON(ctx, results)
-	return
 }
 
 func UserGetBy(ctx *gin.Context, id int64) {
@@ -73,7 +71,6 @@ func UserGetBy(ctx *gin.Context, id int64) {
 		Roles:       true,
 		Permissions: true,
 	}))
-	return
 }
 
 func UserPostCreate(ctx *gin.Context) {
@@ -97,7 +94,6 @@ func UserPostCreate(ctx *gin.Context) {
 		User:     builders.BuildUserResponse(user, builders.UserBuildOptions{Roles: true, Permissions: true}),
 		Password: generatedPassword,
 	})
-	return
 }
 
 func UserPostUpdate(ctx *gin.Context) {
@@ -117,7 +113,6 @@ func UserPostUpdate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func UserPostDelete(ctx *gin.Context) {
@@ -137,7 +132,6 @@ func UserPostDelete(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func UserPostUpdate_status(ctx *gin.Context) {
@@ -157,7 +151,6 @@ func UserPostUpdate_status(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func UserPostReset_password(ctx *gin.Context) {
@@ -182,7 +175,6 @@ func UserPostReset_password(ctx *gin.Context) {
 	httpx.WriteJSON(ctx, map[string]any{
 		"password": password,
 	})
-	return
 }
 
 func UserPostChange_password(ctx *gin.Context) {
@@ -209,7 +201,6 @@ func UserPostChange_password(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func UserPostAssign_role(ctx *gin.Context) {
@@ -229,5 +220,4 @@ func UserPostAssign_role(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }

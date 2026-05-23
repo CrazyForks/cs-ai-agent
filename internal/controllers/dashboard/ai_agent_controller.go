@@ -37,7 +37,6 @@ func AIAgentAnyList(ctx *gin.Context) {
 		results = append(results, buildAIAgentResponse(&item))
 	}
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
-	return
 }
 
 func AIAgentGetList_all(ctx *gin.Context) {
@@ -51,7 +50,6 @@ func AIAgentGetList_all(ctx *gin.Context) {
 		results = append(results, buildAIAgentResponse(&item))
 	}
 	httpx.WriteJSON(ctx, results)
-	return
 }
 
 func AIAgentGetBy(ctx *gin.Context, id int64) {
@@ -65,7 +63,6 @@ func AIAgentGetBy(ctx *gin.Context, id int64) {
 		return
 	}
 	httpx.WriteJSON(ctx, buildAIAgentResponse(item))
-	return
 }
 
 func AIAgentPostCreate(ctx *gin.Context) {
@@ -85,7 +82,6 @@ func AIAgentPostCreate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, buildAIAgentResponse(item))
-	return
 }
 
 func AIAgentPostUpdate(ctx *gin.Context) {
@@ -104,7 +100,6 @@ func AIAgentPostUpdate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func AIAgentPostDelete(ctx *gin.Context) {
@@ -123,7 +118,6 @@ func AIAgentPostDelete(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func AIAgentPostUpdate_sort(ctx *gin.Context) {
@@ -141,7 +135,6 @@ func AIAgentPostUpdate_sort(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func AIAgentPostUpdate_status(ctx *gin.Context) {
@@ -160,7 +153,6 @@ func AIAgentPostUpdate_status(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func buildAIAgentResponse(item *models.AIAgent) response.AIAgentResponse {

@@ -25,7 +25,6 @@ func TagAnyList(ctx *gin.Context) {
 	).Asc("sort_no").Desc("id"))
 	results := builders.BuildTagResponses(list)
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
-	return
 }
 
 func TagGetList_all(ctx *gin.Context) {
@@ -36,7 +35,6 @@ func TagGetList_all(ctx *gin.Context) {
 	list := services.TagService.FindAll()
 	results := builders.BuildTagTreeResponses(list)
 	httpx.WriteJSON(ctx, results)
-	return
 }
 
 func TagGetBy(ctx *gin.Context, id int64) {
@@ -52,7 +50,6 @@ func TagGetBy(ctx *gin.Context, id int64) {
 	}
 	result := builders.BuildTagResponse(item)
 	httpx.WriteJSON(ctx, &result)
-	return
 }
 
 func TagPostCreate(ctx *gin.Context) {
@@ -74,7 +71,6 @@ func TagPostCreate(ctx *gin.Context) {
 	}
 	result := builders.BuildTagResponse(item)
 	httpx.WriteJSON(ctx, &result)
-	return
 }
 
 func TagPostUpdate(ctx *gin.Context) {
@@ -94,7 +90,6 @@ func TagPostUpdate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func TagPostDelete(ctx *gin.Context) {
@@ -113,7 +108,6 @@ func TagPostDelete(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func TagPostUpdate_sort(ctx *gin.Context) {
@@ -127,7 +121,6 @@ func TagPostUpdate_sort(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func TagPostUpdate_status(ctx *gin.Context) {
@@ -147,5 +140,4 @@ func TagPostUpdate_status(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }

@@ -35,7 +35,6 @@ func AgentTeamAnyList(ctx *gin.Context) {
 		results = append(results, buildAgentTeamResponse(&item))
 	}
 	httpx.WriteJSON(ctx, results)
-	return
 }
 
 func AgentTeamGetList_all(ctx *gin.Context) {
@@ -49,7 +48,6 @@ func AgentTeamGetList_all(ctx *gin.Context) {
 		results = append(results, buildAgentTeamResponse(&item))
 	}
 	httpx.WriteJSON(ctx, results)
-	return
 }
 
 func AgentTeamGetBy(ctx *gin.Context, id int64) {
@@ -63,7 +61,6 @@ func AgentTeamGetBy(ctx *gin.Context, id int64) {
 		return
 	}
 	httpx.WriteJSON(ctx, buildAgentTeamResponse(item))
-	return
 }
 
 func AgentTeamPostCreate(ctx *gin.Context) {
@@ -83,7 +80,6 @@ func AgentTeamPostCreate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, buildAgentTeamResponse(item))
-	return
 }
 
 func AgentTeamPostUpdate(ctx *gin.Context) {
@@ -102,7 +98,6 @@ func AgentTeamPostUpdate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func AgentTeamPostDelete(ctx *gin.Context) {
@@ -121,7 +116,6 @@ func AgentTeamPostDelete(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func buildAgentTeamResponse(item *models.AgentTeam) response.AgentTeamResponse {

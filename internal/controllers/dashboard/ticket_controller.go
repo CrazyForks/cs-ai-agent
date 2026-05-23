@@ -60,7 +60,6 @@ func TicketAnyList(ctx *gin.Context) {
 		}),
 		Page: aggregate.Paging,
 	})
-	return
 }
 
 func TicketAnySummary(ctx *gin.Context) {
@@ -71,7 +70,6 @@ func TicketAnySummary(ctx *gin.Context) {
 	}
 	staleHours, _ := params.GetInt(ctx, "staleHours")
 	httpx.WriteJSON(ctx, builders.BuildTicketSummary(services.TicketService.GetSummary(operator, staleHours)))
-	return
 }
 
 func TicketAnyView_list(ctx *gin.Context) {
@@ -81,7 +79,6 @@ func TicketAnyView_list(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildTicketViewList(services.TicketViewService.ListByUser(operator.UserID)))
-	return
 }
 
 func TicketPostSave_view(ctx *gin.Context) {
@@ -101,7 +98,6 @@ func TicketPostSave_view(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildTicketView(item))
-	return
 }
 
 func TicketPostDelete_view(ctx *gin.Context) {
@@ -120,7 +116,6 @@ func TicketPostDelete_view(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func TicketGetBy(ctx *gin.Context, id int64) {
@@ -134,7 +129,6 @@ func TicketGetBy(ctx *gin.Context, id int64) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildTicketDetail(detail))
-	return
 }
 
 func TicketPostCreate(ctx *gin.Context) {
@@ -154,7 +148,6 @@ func TicketPostCreate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildTicket(item))
-	return
 }
 
 func TicketPostCreate_from_conversation(ctx *gin.Context) {
@@ -174,7 +167,6 @@ func TicketPostCreate_from_conversation(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildTicket(item))
-	return
 }
 
 func TicketPostUpdate(ctx *gin.Context) {
@@ -193,7 +185,6 @@ func TicketPostUpdate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func TicketPostLink_customer(ctx *gin.Context) {
@@ -212,7 +203,6 @@ func TicketPostLink_customer(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func TicketPostAssign(ctx *gin.Context) {
@@ -231,7 +221,6 @@ func TicketPostAssign(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func TicketPostChange_status(ctx *gin.Context) {
@@ -250,7 +239,6 @@ func TicketPostChange_status(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func TicketAnyProgressList(ctx *gin.Context) {
@@ -269,12 +257,10 @@ func TicketAnyProgressList(ctx *gin.Context) {
 	}
 	progresses := services.TicketProgressService.Find(sqls.NewCnd().Eq("ticket_id", ticketID).Asc("id"))
 	httpx.WriteJSON(ctx, builders.BuildTicketProgressList(progresses))
-	return
 }
 
 func TicketPostProgressCreate(ctx *gin.Context) {
 	ticketCreateProgress(ctx)
-	return
 }
 
 func ticketCreateProgress(ctx *gin.Context) {
@@ -294,5 +280,4 @@ func ticketCreateProgress(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildTicketProgress(item))
-	return
 }

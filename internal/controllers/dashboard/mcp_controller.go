@@ -20,7 +20,6 @@ func MCPAnyList_servers(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, response.BuildMCPServerInfoResponses(services.MCPDebugService.ListServers()))
-	return
 }
 
 func MCPAnyCatalog(ctx *gin.Context) {
@@ -48,7 +47,6 @@ func MCPAnyCatalog(ctx *gin.Context) {
 		})
 	}
 	httpx.WriteJSON(ctx, ret)
-	return
 }
 
 func MCPPostTest_connection(ctx *gin.Context) {
@@ -67,7 +65,6 @@ func MCPPostTest_connection(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, response.BuildMCPConnectionResponse(result))
-	return
 }
 
 func MCPPostList_tools(ctx *gin.Context) {
@@ -86,7 +83,6 @@ func MCPPostList_tools(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, response.BuildMCPToolInfoResponses(result))
-	return
 }
 
 func MCPPostCall_tool(ctx *gin.Context) {
@@ -105,5 +101,4 @@ func MCPPostCall_tool(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, response.BuildMCPCallToolResponse(result))
-	return
 }

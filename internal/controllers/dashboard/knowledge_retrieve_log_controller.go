@@ -46,7 +46,6 @@ func KnowledgeRetrieveLogAnyList(ctx *gin.Context) {
 		results = append(results, resp)
 	}
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
-	return
 }
 
 func KnowledgeRetrieveLogGetBy(ctx *gin.Context, id int64) {
@@ -76,5 +75,4 @@ func KnowledgeRetrieveLogGetBy(ctx *gin.Context, id int64) {
 		Log:  logResp,
 		Hits: hitResults,
 	})
-	return
 }

@@ -38,7 +38,6 @@ func AssetAnyList(ctx *gin.Context) {
 		results = append(results, builders.BuildAsset(&item))
 	}
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
-	return
 }
 
 func AssetGetBy(ctx *gin.Context, id int64) {
@@ -52,7 +51,6 @@ func AssetGetBy(ctx *gin.Context, id int64) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildAsset(item))
-	return
 }
 
 func AssetPostCreate(ctx *gin.Context) {
@@ -78,7 +76,6 @@ func AssetPostCreate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildAsset(item))
-	return
 }
 
 func AssetPostDelete(ctx *gin.Context) {
@@ -98,5 +95,4 @@ func AssetPostDelete(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }

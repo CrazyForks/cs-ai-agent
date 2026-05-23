@@ -27,7 +27,6 @@ func CustomerPostList(ctx *gin.Context) {
 	}
 	list, paging := services.CustomerService.ListCustomers(req)
 	httpx.WriteJSON(ctx, &web.PageResult{Results: builders.BuildCustomerList(list), Page: paging})
-	return
 }
 
 func CustomerGetBy(ctx *gin.Context, id int64) {
@@ -42,7 +41,6 @@ func CustomerGetBy(ctx *gin.Context, id int64) {
 	}
 	ret := builders.BuildCustomer(item)
 	httpx.WriteJSON(ctx, &ret)
-	return
 }
 
 // PostSave_profile POST /save_profile — 客户主信息与联系方式在同一事务中保存。
@@ -71,7 +69,6 @@ func CustomerPostSave_profile(ctx *gin.Context) {
 	}
 	ret := builders.BuildCustomer(item)
 	httpx.WriteJSON(ctx, &ret)
-	return
 }
 
 func CustomerPostCreate(ctx *gin.Context) {
@@ -92,7 +89,6 @@ func CustomerPostCreate(ctx *gin.Context) {
 	}
 	ret := builders.BuildCustomer(item)
 	httpx.WriteJSON(ctx, &ret)
-	return
 }
 
 func CustomerPostUpdate(ctx *gin.Context) {
@@ -111,7 +107,6 @@ func CustomerPostUpdate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func CustomerPostDelete(ctx *gin.Context) {
@@ -130,7 +125,6 @@ func CustomerPostDelete(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func CustomerPostUpdate_status(ctx *gin.Context) {
@@ -149,5 +143,4 @@ func CustomerPostUpdate_status(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }

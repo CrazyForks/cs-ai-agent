@@ -35,7 +35,6 @@ func CompanyAnyList(ctx *gin.Context) {
 		results[i].CustomerCount = countMap[results[i].ID]
 	}
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
-	return
 }
 
 func CompanyGetBy(ctx *gin.Context, id int64) {
@@ -50,7 +49,6 @@ func CompanyGetBy(ctx *gin.Context, id int64) {
 	}
 	ret := builders.BuildCompany(item)
 	httpx.WriteJSON(ctx, &ret)
-	return
 }
 
 func CompanyPostCreate(ctx *gin.Context) {
@@ -71,7 +69,6 @@ func CompanyPostCreate(ctx *gin.Context) {
 	}
 	ret := builders.BuildCompany(item)
 	httpx.WriteJSON(ctx, &ret)
-	return
 }
 
 func CompanyPostUpdate(ctx *gin.Context) {
@@ -90,7 +87,6 @@ func CompanyPostUpdate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func CompanyPostDelete(ctx *gin.Context) {
@@ -109,7 +105,6 @@ func CompanyPostDelete(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func CompanyPostUpdate_status(ctx *gin.Context) {
@@ -128,5 +123,4 @@ func CompanyPostUpdate_status(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }

@@ -29,7 +29,6 @@ func AgentTeamScheduleAnyList(ctx *gin.Context) {
 		results = append(results, buildAgentTeamScheduleResponse(&item))
 	}
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
-	return
 }
 
 func AgentTeamScheduleAnyCalendar(ctx *gin.Context) {
@@ -54,7 +53,6 @@ func AgentTeamScheduleAnyCalendar(ctx *gin.Context) {
 		results = append(results, buildAgentTeamScheduleResponse(&item))
 	}
 	httpx.WriteJSON(ctx, results)
-	return
 }
 
 func AgentTeamSchedulePostBatch_preview(ctx *gin.Context) {
@@ -74,7 +72,6 @@ func AgentTeamSchedulePostBatch_preview(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildAgentTeamScheduleBatchPreviewResponse(ret))
-	return
 }
 
 func AgentTeamSchedulePostBatch_generate(ctx *gin.Context) {
@@ -94,7 +91,6 @@ func AgentTeamSchedulePostBatch_generate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildAgentTeamScheduleBatchGenerateResponse(ret))
-	return
 }
 
 func AgentTeamScheduleGetBy(ctx *gin.Context, id int64) {
@@ -108,7 +104,6 @@ func AgentTeamScheduleGetBy(ctx *gin.Context, id int64) {
 		return
 	}
 	httpx.WriteJSON(ctx, buildAgentTeamScheduleResponse(item))
-	return
 }
 
 func AgentTeamSchedulePostCreate(ctx *gin.Context) {
@@ -128,7 +123,6 @@ func AgentTeamSchedulePostCreate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, buildAgentTeamScheduleResponse(item))
-	return
 }
 
 func AgentTeamSchedulePostUpdate(ctx *gin.Context) {
@@ -147,7 +141,6 @@ func AgentTeamSchedulePostUpdate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func AgentTeamSchedulePostDelete(ctx *gin.Context) {
@@ -165,7 +158,6 @@ func AgentTeamSchedulePostDelete(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func buildAgentTeamScheduleResponse(item *models.AgentTeamSchedule) response.AgentTeamScheduleResponse {

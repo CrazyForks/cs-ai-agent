@@ -41,7 +41,6 @@ func KnowledgeBaseAnyList(ctx *gin.Context) {
 		results = append(results, resp)
 	}
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
-	return
 }
 
 func KnowledgeBaseAnyList_all(ctx *gin.Context) {
@@ -59,7 +58,6 @@ func KnowledgeBaseAnyList_all(ctx *gin.Context) {
 		results = append(results, resp)
 	}
 	httpx.WriteJSON(ctx, results)
-	return
 }
 
 func KnowledgeBaseGetBy(ctx *gin.Context, id int64) {
@@ -77,7 +75,6 @@ func KnowledgeBaseGetBy(ctx *gin.Context, id int64) {
 	resp.DocumentCount = repositories.KnowledgeDocumentRepository.CountByKnowledgeBaseID(sqls.DB(), item.ID)
 	resp.FAQCount = repositories.KnowledgeFAQRepository.CountByKnowledgeBaseID(sqls.DB(), item.ID)
 	httpx.WriteJSON(ctx, resp)
-	return
 }
 
 func KnowledgeBasePostCreate(ctx *gin.Context) {
@@ -98,7 +95,6 @@ func KnowledgeBasePostCreate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildKnowledgeBase(item))
-	return
 }
 
 func KnowledgeBasePostUpdate(ctx *gin.Context) {
@@ -118,7 +114,6 @@ func KnowledgeBasePostUpdate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func KnowledgeBasePostDelete(ctx *gin.Context) {
@@ -139,7 +134,6 @@ func KnowledgeBasePostDelete(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func KnowledgeBasePostUpdate_sort(ctx *gin.Context) {
@@ -153,7 +147,6 @@ func KnowledgeBasePostUpdate_sort(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func KnowledgeBasePostRebuild_index(ctx *gin.Context) {
@@ -184,5 +177,4 @@ func KnowledgeBasePostRebuild_index(ctx *gin.Context) {
 	}()
 
 	httpx.WriteJSON(ctx, nil)
-	return
 }

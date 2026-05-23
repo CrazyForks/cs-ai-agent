@@ -31,7 +31,6 @@ func KnowledgeFAQAnyList(ctx *gin.Context) {
 		results = append(results, builders.BuildKnowledgeFAQ(&item))
 	}
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
-	return
 }
 
 func KnowledgeFAQGetBy(ctx *gin.Context, id int64) {
@@ -46,7 +45,6 @@ func KnowledgeFAQGetBy(ctx *gin.Context, id int64) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildKnowledgeFAQ(item))
-	return
 }
 
 func KnowledgeFAQPostCreate(ctx *gin.Context) {
@@ -66,7 +64,6 @@ func KnowledgeFAQPostCreate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildKnowledgeFAQ(item))
-	return
 }
 
 func KnowledgeFAQPostUpdate(ctx *gin.Context) {
@@ -85,7 +82,6 @@ func KnowledgeFAQPostUpdate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func KnowledgeFAQPostDelete(ctx *gin.Context) {
@@ -105,5 +101,4 @@ func KnowledgeFAQPostDelete(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }

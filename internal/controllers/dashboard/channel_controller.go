@@ -31,7 +31,6 @@ func ChannelAnyList(ctx *gin.Context) {
 		results = append(results, buildChannelResponse(&item))
 	}
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
-	return
 }
 
 func ChannelGetBy(ctx *gin.Context, id int64) {
@@ -45,7 +44,6 @@ func ChannelGetBy(ctx *gin.Context, id int64) {
 		return
 	}
 	httpx.WriteJSON(ctx, buildChannelResponse(item))
-	return
 }
 
 func ChannelAnyWxworkKfAccounts(ctx *gin.Context) {
@@ -59,7 +57,6 @@ func ChannelAnyWxworkKfAccounts(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, list)
-	return
 }
 
 func ChannelPostCreate(ctx *gin.Context) {
@@ -79,7 +76,6 @@ func ChannelPostCreate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, buildChannelResponse(item))
-	return
 }
 
 func ChannelPostUpdate(ctx *gin.Context) {
@@ -98,7 +94,6 @@ func ChannelPostUpdate(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func ChannelPostUpdate_status(ctx *gin.Context) {
@@ -117,7 +112,6 @@ func ChannelPostUpdate_status(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func ChannelPostReset_user_token_secret(ctx *gin.Context) {
@@ -137,7 +131,6 @@ func ChannelPostReset_user_token_secret(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, map[string]string{"userTokenSecret": secret})
-	return
 }
 
 func ChannelPostDelete(ctx *gin.Context) {
@@ -156,7 +149,6 @@ func ChannelPostDelete(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
 
 func buildChannelResponse(item *models.Channel) response.ChannelResponse {

@@ -44,7 +44,6 @@ func AgentRunLogAnyList(ctx *gin.Context) {
 		results = append(results, builders.BuildAgentRunLog(&item))
 	}
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
-	return
 }
 
 func AgentRunLogGetBy(ctx *gin.Context, id int64) {
@@ -59,5 +58,4 @@ func AgentRunLogGetBy(ctx *gin.Context, id int64) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildAgentRunLog(item))
-	return
 }

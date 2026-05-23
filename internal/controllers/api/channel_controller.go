@@ -33,7 +33,6 @@ func ChannelAnyConfig(ctx *gin.Context) {
 		Width:       cfg.Width,
 	}
 	httpx.WriteJSON(ctx, ret)
-	return
 }
 
 type webLikeWidgetConfig struct {

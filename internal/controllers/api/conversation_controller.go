@@ -39,7 +39,6 @@ func ConversationGetBy(ctx *gin.Context, id int64) {
 		Participants:         builders.BuildParticipantResponses(id),
 	}
 	httpx.WriteJSON(ctx, detail)
-	return
 }
 
 func ConversationPostCreate_or_match(ctx *gin.Context) {
@@ -60,7 +59,6 @@ func ConversationPostCreate_or_match(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildConversation(item))
-	return
 }
 
 func ConversationPostClose(ctx *gin.Context) {
@@ -84,5 +82,4 @@ func ConversationPostClose(ctx *gin.Context) {
 		return
 	}
 	httpx.WriteJSON(ctx, nil)
-	return
 }
