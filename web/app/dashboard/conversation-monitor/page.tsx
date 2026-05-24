@@ -12,6 +12,12 @@ import { toast } from "sonner"
 
 import { ConversationCloseDialog } from "@/components/conversation-actions/close-dialog"
 import { ConversationTransferDialog } from "@/components/conversation-actions/transfer-dialog"
+import {
+  DashboardPage,
+  DashboardTableShell,
+  DashboardTableStateRow,
+  DashboardToolbar,
+} from "@/components/dashboard-page"
 import { ListPagination } from "@/components/list-pagination"
 import {
   OptionCombobox,
@@ -634,9 +640,20 @@ export default function DashboardConversationsPage() {
 
   return (
     <>
-      <div className="flex flex-1 flex-col gap-6 p-4 lg:p-6">
-        <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-end">
-          <div className="relative min-w-72">
+      <DashboardPage>
+        <DashboardToolbar
+          actions={
+            <Button
+              variant="outline"
+              onClick={() => void handleRefresh()}
+              disabled={loading || refreshing}
+            >
+              <RefreshCwIcon className={loading || refreshing ? "animate-spin" : ""} />
+              刷新
+            </Button>
+          }
+        >
+          <div className="relative w-full sm:w-72">
             <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={keywordInput}
@@ -647,7 +664,7 @@ export default function DashboardConversationsPage() {
             />
           </div>
           <Select value={statusFilterInput} onValueChange={handleStatusFilterChange}>
-            <SelectTrigger className="w-full xl:w-36">
+            <SelectTrigger className="w-full sm:w-36">
               <SelectValue>{getStatusLabel(statusFilterInput)}</SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -658,7 +675,7 @@ export default function DashboardConversationsPage() {
               ))}
             </SelectContent>
           </Select>
-          <div className="w-full xl:w-64">
+          <div className="w-full sm:w-64">
             <OptionCombobox
               value={tagFilterInput}
               options={tagOptions}
@@ -668,7 +685,7 @@ export default function DashboardConversationsPage() {
               onChange={setTagFilterInput}
             />
           </div>
-          <div className="w-full xl:w-56">
+          <div className="w-full sm:w-56">
             <OptionCombobox
               value={assigneeFilterInput}
               options={assigneeOptions}
@@ -678,7 +695,7 @@ export default function DashboardConversationsPage() {
               onChange={setAssigneeFilterInput}
             />
           </div>
-          <div className="w-full xl:w-56">
+          <div className="w-full sm:w-56">
             <OptionCombobox
               value={agentTeamFilterInput}
               options={agentTeamOptions}
@@ -692,18 +709,20 @@ export default function DashboardConversationsPage() {
             <SearchIcon />
             查询
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => void handleRefresh()}
-            disabled={loading || refreshing}
-          >
-            <RefreshCwIcon className={loading || refreshing ? "animate-spin" : ""} />
-            刷新列表
-          </Button>
-        </div>
+        </DashboardToolbar>
 
-        <div className="space-y-4">
-          <div className="overflow-hidden rounded-2xl border bg-background">
+        <DashboardTableShell
+          pagination={
+            <ListPagination
+              page={result.page.page}
+              total={result.page.total}
+              limit={result.page.limit}
+              loading={loading || refreshing}
+              onPageChange={handlePageChange}
+              onLimitChange={handleLimitChange}
+            />
+          }
+        >
             <Table>
               <TableHeader className="bg-muted/40">
                 <TableRow>
@@ -804,27 +823,18 @@ export default function DashboardConversationsPage() {
                     </TableRow>
                   )
                 })}
-                {!loading && result.results.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
-                      没有匹配的会话记录
-                    </TableCell>
-                  </TableRow>
+                {loading || result.results.length === 0 ? (
+                  <DashboardTableStateRow
+                    colSpan={7}
+                    loading={loading}
+                    loadingText="正在加载会话记录..."
+                    emptyText="没有匹配的会话记录"
+                  />
                 ) : null}
               </TableBody>
             </Table>
-          </div>
-
-          <ListPagination
-            page={result.page.page}
-            total={result.page.total}
-            limit={result.page.limit}
-            loading={loading || refreshing}
-            onPageChange={handlePageChange}
-            onLimitChange={handleLimitChange}
-          />
-        </div>
-      </div>
+        </DashboardTableShell>
+      </DashboardPage>
 
       <ConversationDetailDialog
         open={detailOpen}
