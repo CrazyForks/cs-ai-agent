@@ -4,6 +4,11 @@ import { Loader2Icon, PlugZapIcon, WrenchIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import {
+  DashboardPage,
+  DashboardTableShell,
+  DashboardToolbar,
+} from "@/components/dashboard-page";
 import { JsonCodeEditor } from "@/components/json-code-editor";
 import { JsonViewer } from "@/components/json-viewer";
 import { OptionCombobox } from "@/components/option-combobox";
@@ -158,7 +163,7 @@ export default function MCPDashboardPage() {
 
   return (
     <>
-      <div className="space-y-6 p-6">
+      <DashboardPage className="gap-6">
         {/* <div className="flex flex-col gap-2">
           <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div className="flex items-center gap-2">
@@ -178,28 +183,9 @@ export default function MCPDashboardPage() {
           </div>
         </div> */}
 
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border px-4 py-2">
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <span className="shrink-0 text-sm font-medium">服务配置</span>
-              <div className="min-w-[280px] max-w-[520px] flex-1">
-                <OptionCombobox
-                  value={serverCode}
-                  options={serverOptions}
-                  placeholder="选择一个 MCP Server"
-                  searchPlaceholder="搜索 serverCode"
-                  emptyText="没有可用的 MCP Server"
-                  disabled={loadingServers}
-                  onChange={(value) => {
-                    setServerCode(value);
-                    setConnection(null);
-                    setTools([]);
-                    setToolResult(null);
-                    setActiveTool(null);
-                  }}
-                />
-              </div>
-            </div>
-            <div className="flex shrink-0 flex-wrap gap-2">
+        <DashboardToolbar
+          actions={
+            <>
               <Button
                 onClick={() => void handleTestConnection()}
                 disabled={testing || loadingServers || !serverCode}
@@ -223,34 +209,56 @@ export default function MCPDashboardPage() {
                 )}
                 列出工具
               </Button>
+            </>
+          }
+        >
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <span className="shrink-0 text-sm font-medium">服务配置</span>
+            <div className="min-w-[280px] max-w-[520px] flex-1">
+              <OptionCombobox
+                value={serverCode}
+                options={serverOptions}
+                placeholder="选择一个 MCP Server"
+                searchPlaceholder="搜索 serverCode"
+                emptyText="没有可用的 MCP Server"
+                disabled={loadingServers}
+                onChange={(value) => {
+                  setServerCode(value);
+                  setConnection(null);
+                  setTools([]);
+                  setToolResult(null);
+                  setActiveTool(null);
+                }}
+              />
             </div>
-            {connection ? (
-              <div className="w-full rounded-lg border bg-muted/30 p-4 text-sm">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge>已连接</Badge>
-                  <span className="font-medium">
-                    {connection.serverName || "-"}
-                  </span>
-                </div>
-                <div className="mt-3 grid gap-2 text-muted-foreground grid-cols-5">
-                  <div>serverCode: {connection.serverCode}</div>
-                  <div>protocol: {connection.protocol || "-"}</div>
-                  <div className="md:col-span-2 break-all">
-                    endpoint: {connection.endpoint}
-                  </div>
-                  <div>version: {connection.version || "-"}</div>
-                </div>
+          </div>
+          {connection ? (
+            <div className="w-full rounded-lg border bg-muted/30 p-4 text-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge>已连接</Badge>
+                <span className="font-medium">
+                  {connection.serverName || "-"}
+                </span>
               </div>
-            ) : null}
-        </div>
+              <div className="mt-3 grid gap-2 text-muted-foreground grid-cols-1 md:grid-cols-5">
+                <div>serverCode: {connection.serverCode}</div>
+                <div>protocol: {connection.protocol || "-"}</div>
+                <div className="break-all md:col-span-2">
+                  endpoint: {connection.endpoint}
+                </div>
+                <div>version: {connection.version || "-"}</div>
+              </div>
+            </div>
+          ) : null}
+        </DashboardToolbar>
 
         {tools.length === 0 ? (
           <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
             暂无工具结果，先点击上方“列出工具”。
           </div>
         ) : (
-          <div className="border rounded-lg">
-            <div className="overflow-hidden">
+          <DashboardTableShell>
+            <div>
               <div className="grid grid-cols-[minmax(0,220px)_minmax(0,1fr)_88px] gap-4 border-b bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground">
                 <div>工具名</div>
                 <div>描述</div>
@@ -278,9 +286,9 @@ export default function MCPDashboardPage() {
                 </div>
               ))}
             </div>
-          </div>
+          </DashboardTableShell>
         )}
-      </div>
+      </DashboardPage>
 
       <Drawer open={drawerOpen} direction="right" onOpenChange={setDrawerOpen}>
         <DrawerContent className="min-w-3xl">
