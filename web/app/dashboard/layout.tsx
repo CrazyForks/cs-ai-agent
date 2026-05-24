@@ -33,7 +33,7 @@ export default function DashboardLayout({
 
   if (!ready || !session) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[linear-gradient(160deg,#f3f4f6_0%,#fff7ed_45%,#ecfeff_100%)] p-6">
+      <div className="flex min-h-screen items-center justify-center bg-[linear-gradient(160deg,#f3f1e8_0%,#f8faf5_46%,#e8f7f2_100%)] p-6">
         <div className="flex items-center gap-3">
           <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
             <Loader2Icon className="size-5 animate-spin" />
@@ -61,7 +61,7 @@ export default function DashboardLayout({
     >
       <NotificationProvider>
         <AppSidebar variant="inset" />
-        <SidebarInset>
+        <SidebarInset className="overflow-hidden border border-border/65 shadow-[0_18px_50px_rgba(20,83,69,0.09)] dark:shadow-none">
           <SiteHeader />
           <div className="@container/main flex min-h-0 flex-1 flex-col gap-2 overflow-auto">
             {children}

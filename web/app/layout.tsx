@@ -22,6 +22,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 })
 
+const paletteScript = `
+try {
+  var palette = window.localStorage.getItem("dashboard_palette");
+  document.documentElement.dataset.palette = palette === "blue" || palette === "gray" ? palette : "green";
+} catch (_) {
+  document.documentElement.dataset.palette = "green";
+}
+`
+
 export const metadata: Metadata = {
   title: "AI 客服后台管理系统",
   description: "AI 客服后台管理系统",
@@ -37,6 +46,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <script dangerouslySetInnerHTML={{ __html: paletteScript }} />
         <ThemeProvider>
           <AuthProvider>
             <ConfirmProvider>

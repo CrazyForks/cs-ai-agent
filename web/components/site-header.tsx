@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { RealtimeConnectionStatus } from "@/components/realtime-connection-status"
 import { getPageTitle } from "@/lib/navigation"
 import { useAgentConversationsStore } from "@/lib/stores/agent-conversations"
+import { PaletteToggle } from "@/components/palette-toggle"
 import { ThemeToggle } from "@/components/theme-toggle"
 import {
   Breadcrumb,
@@ -50,7 +51,7 @@ export function SiteHeader() {
   }, [isMobile, open])
 
   return (
-    <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
+    <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b border-border/70 bg-background/82 backdrop-blur supports-[backdrop-filter]:bg-background/72 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
       <div className="flex w-full items-center justify-between gap-3 px-4 lg:px-6">
         <div className="flex min-w-0 items-center gap-2">
           <SidebarTrigger className="-ml-1" />
@@ -73,7 +74,8 @@ export function SiteHeader() {
             </Breadcrumb>
           </div>
         </div>
-        <div className="flex items-center justify-end gap-3">
+        <div className="flex items-center justify-end gap-2">
+          <PaletteToggle />
           <ThemeToggle />
         </div>
       </div>

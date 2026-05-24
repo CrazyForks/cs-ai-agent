@@ -29,7 +29,7 @@ export function DashboardToolbar({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 rounded-lg border bg-card p-3 lg:flex-row lg:items-center lg:justify-between",
+        "flex flex-col gap-3 rounded-lg border border-border/70 bg-card/95 p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)] lg:flex-row lg:items-center lg:justify-between dark:shadow-none",
         className
       )}
     >
@@ -54,7 +54,7 @@ export function DashboardTableShell({
 }) {
   return (
     <div className={cn("space-y-4", className)}>
-      <div className="overflow-hidden rounded-lg border bg-card text-card-foreground">
+      <div className="overflow-hidden rounded-lg border border-border/70 bg-card text-card-foreground shadow-[0_1px_2px_rgba(15,23,42,0.035)] dark:shadow-none">
         {children}
       </div>
       {pagination ? <div>{pagination}</div> : null}
