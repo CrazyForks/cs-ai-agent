@@ -25,6 +25,7 @@ func NewServer() (*gin.Engine, error) {
 	cfg := config.Current()
 
 	gin.SetMode(gin.ReleaseMode)
+	printBanner()
 
 	app := gin.New()
 	app.Use(corsMiddleware())
