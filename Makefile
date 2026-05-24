@@ -7,6 +7,7 @@ GO ?= go
 PNPM ?= pnpm
 GOOS ?= $(shell $(GO) env GOOS)
 GOARCH ?= $(shell $(GO) env GOARCH)
+DEV_SERVER_URL ?= http://127.0.0.1:8083
 
 .DEFAULT_GOAL := help
 
@@ -68,6 +69,15 @@ dev:
 	@$(GO) run -tags dev $(MAIN) & \
 	server_pid=$$!; \
 	trap 'kill $$server_pid 2>/dev/null || true' EXIT INT TERM; \
+	echo "Waiting for server at $(DEV_SERVER_URL)..."; \
+	until curl -fsS "$(DEV_SERVER_URL)" >/dev/null 2>&1; do \
+		if ! kill -0 $$server_pid 2>/dev/null; then \
+			wait $$server_pid; \
+			exit $$?; \
+		fi; \
+		sleep 1; \
+	done; \
+	echo "Server is ready; starting web dev server..."; \
 	$(MAKE) web-dev
 
 test: ensure-spa
