@@ -274,14 +274,16 @@ export default function DashboardCustomersPage() {
             />
           </div>
 
-          <OptionCombobox
-            value={genderFilterInput}
-            options={genderOptions}
-            placeholder={getLabel(genderFilterInput, genderOptions, t("customer.select"))}
-            onChange={(v) => setGenderFilterInput(v)}
-          />
+          <div className="w-full sm:w-36">
+            <OptionCombobox
+              value={genderFilterInput}
+              options={genderOptions}
+              placeholder={getLabel(genderFilterInput, genderOptions, t("customer.select"))}
+              onChange={(v) => setGenderFilterInput(v)}
+            />
+          </div>
 
-          <div className="w-full xl:w-56">
+          <div className="w-full sm:w-56">
             <OptionCombobox
               value={companyFilterInput}
               options={companyOptions}
@@ -291,12 +293,14 @@ export default function DashboardCustomersPage() {
             />
           </div>
 
-          <OptionCombobox
-            value={statusFilterInput}
-            options={listStatusOptions}
-            placeholder={getLabel(statusFilterInput, listStatusOptions, t("customer.select"))}
-            onChange={(v) => setStatusFilterInput(v)}
-          />
+          <div className="w-full sm:w-36">
+            <OptionCombobox
+              value={statusFilterInput}
+              options={listStatusOptions}
+              placeholder={getLabel(statusFilterInput, listStatusOptions, t("customer.select"))}
+              onChange={(v) => setStatusFilterInput(v)}
+            />
+          </div>
 
           <Button variant="outline" onClick={applyFilters} disabled={loading}>
             <SearchIcon />
