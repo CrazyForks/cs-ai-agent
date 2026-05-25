@@ -1,6 +1,7 @@
 "use client"
 
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react"
+import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -44,11 +45,12 @@ export function OptionCombobox({
   onChange,
 }: OptionComboboxProps) {
   const t = useI18n()
+  const [open, setOpen] = useState(false)
   const selectedLabel =
     options.find((option) => option.value === value)?.label ?? placeholder
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         render={
           <Button
@@ -72,7 +74,10 @@ export function OptionCombobox({
                 <CommandItem
                   key={option.value}
                   value={`${option.label} ${option.value}`}
-                  onSelect={() => onChange(option.value)}
+                  onSelect={() => {
+                    onChange(option.value)
+                    setOpen(false)
+                  }}
                 >
                   <CheckIcon
                     className={cn(
