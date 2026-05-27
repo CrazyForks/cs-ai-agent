@@ -29,10 +29,10 @@ func NewServer() (*gin.Engine, error) {
 	printBanner()
 
 	app := gin.New()
-	app.Use(corsMiddleware(cfg.Server.CORS.AllowedOrigins))
+	app.Use(corsMiddleware())
 	app.Use(gin.Recovery())
 	app.Use(requestLogMiddleware())
-	app.Use(maxBodySizeMiddleware(cfg.Storage.MaxRequestBodySizeBytes()))
+	app.Use(maxBodySizeMiddleware())
 	app.Use(i18nx.Middleware())
 
 	addRouter(app)
@@ -60,7 +60,8 @@ func NewServer() (*gin.Engine, error) {
 	return app, nil
 }
 
-func corsMiddleware(allowedOrigins []string) gin.HandlerFunc {
+func corsMiddleware() gin.HandlerFunc {
+	allowedOrigins := config.Current().Server.CORS.AllowedOrigins
 	allowHeaders := "Origin, Content-Type, Accept, Authorization, X-Requested-With, X-Guest-Id, X-Channel-Id, X-External-Id, X-External-Name, X-Customer-Session-Token, X-Customer-Session-Expires-At"
 	exposeHeaders := "Content-Length, Content-Type, Authorization, X-Guest-Id, X-Channel-Id, X-External-Id, X-External-Name, X-Customer-Session-Token, X-Customer-Session-Expires-At"
 	allowMethods := "GET, POST, PUT, PATCH, DELETE, OPTIONS"
@@ -119,7 +120,8 @@ func requestLogMiddleware() gin.HandlerFunc {
 	}
 }
 
-func maxBodySizeMiddleware(limit int64) gin.HandlerFunc {
+func maxBodySizeMiddleware() gin.HandlerFunc {
+	limit := config.Current().Storage.MaxRequestBodySizeBytes()
 	return func(ctx *gin.Context) {
 		ctx.Request.Body = http.MaxBytesReader(ctx.Writer, ctx.Request.Body, limit)
 		ctx.Next()
