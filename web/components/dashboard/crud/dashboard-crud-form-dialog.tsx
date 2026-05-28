@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import {
   buildDashboardCrudFormValues,
   normalizeDashboardCrudSubmitValues,
+  type DashboardCrudFormInputValue,
   type DashboardCrudFormField,
   type DashboardCrudFormOption,
 } from "./dashboard-crud-utils"
@@ -24,7 +25,7 @@ type DashboardCrudFormDialogProps<TItem, TPayload> = {
   fields: DashboardCrudFormField<TItem>[]
   fetchDetail?: (id: number) => Promise<TItem>
   transformSubmitValues?: (
-    values: Record<string, string | number>,
+    values: Record<string, string | number | boolean | string[] | number[]>,
     context: { mode: "create" | "edit"; item: TItem | null }
   ) => TPayload
   labels: {
@@ -48,9 +49,28 @@ function createFormSchema<TItem>(
   fields: ReadonlyArray<DashboardCrudFormField<TItem>>,
   labels: DashboardCrudFormDialogProps<TItem, unknown>["labels"]
 ) {
-  const shape: Record<string, z.ZodType<string>> = {}
+  const shape: Record<string, z.ZodType> = {}
 
   fields.forEach((field) => {
+    if (field.type === "section" || field.type === "group") {
+      return
+    }
+    if (field.type === "switch" || field.type === "checkbox") {
+      shape[field.name] = field.required
+        ? z.boolean().refine((value) => value, field.requiredMessage ?? labels.required)
+        : z.boolean()
+      return
+    }
+    if (field.type === "multiSelect") {
+      shape[field.name] = field.required
+        ? z.array(z.string()).min(1, field.requiredMessage ?? labels.required)
+        : z.array(z.string())
+      return
+    }
+    if (field.type === "custom") {
+      shape[field.name] = z.any()
+      return
+    }
     let schema = field.trim ? z.string().trim() : z.string()
     if (field.required) {
       schema = schema.min(1, field.requiredMessage ?? labels.required)
@@ -74,6 +94,17 @@ function createFormSchema<TItem>(
         })
       }
     }
+    if (field.type === "json" && field.validateJson !== false) {
+      schema = schema.refine((value) => {
+        if (!value.trim()) return !field.required
+        try {
+          JSON.parse(value)
+          return true
+        } catch {
+          return false
+        }
+      }, field.patternMessage ?? labels.required)
+    }
     shape[field.name] = schema
   })
 
@@ -82,7 +113,11 @@ function createFormSchema<TItem>(
 
 function normalizeFormLayoutFields<TItem>(fields: DashboardCrudFormField<TItem>[]) {
   return fields.map((field) =>
-    field.type === "textarea" ? { ...field, colSpan: field.colSpan ?? 2 } : field
+    ["textarea", "json", "code", "custom", "section", "group"].includes(
+      field.type ?? ""
+    )
+      ? { ...field, colSpan: field.colSpan ?? 2 }
+      : field
   )
 }
 
@@ -107,9 +142,9 @@ export function DashboardCrudFormDialog<TItem, TPayload>({
   const resolver = useMemo(
     () =>
       zodResolver(schema as never) as Resolver<
-        Record<string, string>,
+        Record<string, DashboardCrudFormInputValue>,
         undefined,
-        Record<string, string>
+        Record<string, DashboardCrudFormInputValue>
       >,
     [schema]
   )
@@ -120,7 +155,11 @@ export function DashboardCrudFormDialog<TItem, TPayload>({
   const [fieldOptions, setFieldOptions] = useState<
     Record<string, ReadonlyArray<DashboardCrudFormOption>>
   >({})
-  const form = useForm<Record<string, string>, undefined, Record<string, string>>({
+  const form = useForm<
+    Record<string, DashboardCrudFormInputValue>,
+    undefined,
+    Record<string, DashboardCrudFormInputValue>
+  >({
     resolver,
     defaultValues: initialValues,
   })
@@ -166,7 +205,11 @@ export function DashboardCrudFormDialog<TItem, TPayload>({
 
     let cancelled = false
     const loaders = fields
-      .filter((field) => field.type === "select" && field.loadOptions)
+      .filter(
+        (field) =>
+          (field.type === "select" || field.type === "multiSelect") &&
+          field.loadOptions
+      )
       .map(async (field) => {
         const options = await field.loadOptions!()
         return [field.name, options] as const
@@ -187,7 +230,7 @@ export function DashboardCrudFormDialog<TItem, TPayload>({
     }
   }, [fields, open])
 
-  async function submit(values: Record<string, string>) {
+  async function submit(values: Record<string, DashboardCrudFormInputValue>) {
     const normalizedValues = normalizeDashboardCrudSubmitValues(fields, values)
     const payload = transformSubmitValues
       ? transformSubmitValues(normalizedValues, { mode, item: detailItem })
@@ -240,6 +283,7 @@ export function DashboardCrudFormDialog<TItem, TPayload>({
                 options: fieldOptions[field.name] ?? field.options,
               }}
               control={control}
+              form={form}
               register={register}
               error={errors[field.name]}
             />

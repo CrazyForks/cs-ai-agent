@@ -137,6 +137,35 @@ describe("buildDashboardCrudFormValues", () => {
       }
     )
   })
+
+  it("normalizes boolean and multi-select defaults", async () => {
+    const { buildDashboardCrudFormValues } = await loadModule()
+    const fields = [
+      { name: "enabled", type: "switch", defaultValue: true },
+      { name: "required", type: "checkbox" },
+      { name: "toolIds", type: "multiSelect", defaultValue: [1, "2"] },
+    ]
+
+    assert.deepEqual(plain(buildDashboardCrudFormValues(fields)), {
+      enabled: true,
+      required: false,
+      toolIds: ["1", "2"],
+    })
+    assert.deepEqual(
+      plain(
+        buildDashboardCrudFormValues(fields, {
+          enabled: 0,
+          required: "1",
+          toolIds: [3, "4"],
+        })
+      ),
+      {
+        enabled: false,
+        required: true,
+        toolIds: ["3", "4"],
+      }
+    )
+  })
 })
 
 describe("normalizeDashboardCrudSubmitValues", () => {
@@ -160,6 +189,32 @@ describe("normalizeDashboardCrudSubmitValues", () => {
         title: "Hello",
         sortNo: 12,
         status: 1,
+      }
+    )
+  })
+
+  it("converts boolean and multi-select fields", async () => {
+    const { normalizeDashboardCrudSubmitValues } = await loadModule()
+    const fields = [
+      { name: "enabled", type: "switch" },
+      { name: "toolCodes", type: "multiSelect" },
+      { name: "roleIds", type: "multiSelect", valueType: "number" },
+      { name: "section", type: "section" },
+    ]
+
+    assert.deepEqual(
+      plain(
+        normalizeDashboardCrudSubmitValues(fields, {
+          enabled: true,
+          toolCodes: ["search", "faq"],
+          roleIds: ["1", "2", "bad"],
+          section: "",
+        })
+      ),
+      {
+        enabled: true,
+        toolCodes: ["search", "faq"],
+        roleIds: [1, 2],
       }
     )
   })

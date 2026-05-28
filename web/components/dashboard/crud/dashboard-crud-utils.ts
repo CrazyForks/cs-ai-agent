@@ -1,3 +1,5 @@
+import type { ReactNode } from "react"
+
 export type DashboardCrudQueryValue = string | number | undefined
 
 export type DashboardCrudQueryFilter = {
@@ -23,23 +25,52 @@ export type DashboardCrudPageResult<T> = {
   }
 }
 
-export type DashboardCrudFormValue = string | number | undefined
+export type DashboardCrudFormValue =
+  | string
+  | number
+  | boolean
+  | ReadonlyArray<string | number>
+  | undefined
 
 export type DashboardCrudFormOption = {
   value: string
   label: string
 }
 
+export type DashboardCrudFormInputValue = string | boolean | string[]
+
+export type DashboardCrudFormCustomRenderContext = {
+  name: string
+  label: string
+  value: DashboardCrudFormInputValue
+  values: Record<string, DashboardCrudFormInputValue>
+  setValue: (name: string, value: DashboardCrudFormInputValue) => void
+}
+
 export type DashboardCrudFormField<TItem = unknown> = {
   name: string
   label: string
-  type?: "text" | "textarea" | "number" | "select"
+  type?:
+    | "text"
+    | "textarea"
+    | "number"
+    | "select"
+    | "multiSelect"
+    | "switch"
+    | "checkbox"
+    | "password"
+    | "json"
+    | "code"
+    | "custom"
+    | "section"
+    | "group"
   placeholder?: string
   defaultValue?: DashboardCrudFormValue
+  description?: string
   required?: boolean
   requiredMessage?: string
   trim?: boolean
-  valueType?: "string" | "number"
+  valueType?: "string" | "number" | "boolean"
   min?: number
   max?: number
   step?: number
@@ -49,7 +80,10 @@ export type DashboardCrudFormField<TItem = unknown> = {
   loadOptions?: () => Promise<ReadonlyArray<DashboardCrudFormOption>>
   colSpan?: 1 | 2
   rows?: number
+  language?: string
+  validateJson?: boolean
   valueFromItem?: (item: TItem) => DashboardCrudFormValue
+  render?: (context: DashboardCrudFormCustomRenderContext) => ReactNode
 }
 
 export type DashboardCrudActionRule<TItem> = {
@@ -125,10 +159,10 @@ export function normalizeDashboardCrudPageResult<T>(
 export function buildDashboardCrudFormValues<TItem>(
   fields: ReadonlyArray<DashboardCrudFormField<TItem>>,
   item?: TItem | null
-): Record<string, string> {
+): Record<string, DashboardCrudFormInputValue> {
   return Object.fromEntries(
     fields.map((field) => {
-      let value: unknown = field.defaultValue ?? ""
+      let value: unknown = field.defaultValue ?? getDashboardCrudFormDefaultValue(field)
       if (item) {
         if (field.valueFromItem) {
           value = field.valueFromItem(item)
@@ -136,20 +170,40 @@ export function buildDashboardCrudFormValues<TItem>(
           value = (item as Record<string, unknown>)[field.name]
         }
       }
-      return [field.name, value === undefined || value === null ? "" : String(value)]
+      return [field.name, normalizeDashboardCrudFormInputValue(field, value)]
     })
   )
 }
 
 export function normalizeDashboardCrudSubmitValues<TItem>(
   fields: ReadonlyArray<DashboardCrudFormField<TItem>>,
-  values: Record<string, string>
-): Record<string, string | number> {
-  const output: Record<string, string | number> = {}
+  values: Record<string, DashboardCrudFormInputValue>
+): Record<string, string | number | boolean | string[] | number[]> {
+  const output: Record<string, string | number | boolean | string[] | number[]> = {}
 
   fields.forEach((field) => {
-    const rawValue = values[field.name] ?? ""
-    const text = field.trim ? rawValue.trim() : rawValue
+    if (field.type === "section" || field.type === "group") {
+      return
+    }
+
+    const rawValue = values[field.name] ?? getDashboardCrudFormDefaultValue(field)
+    if (field.type === "switch" || field.type === "checkbox" || field.valueType === "boolean") {
+      output[field.name] = Boolean(rawValue)
+      return
+    }
+    if (field.type === "multiSelect") {
+      const list = Array.isArray(rawValue) ? rawValue : []
+      if (field.valueType === "number") {
+        output[field.name] = list
+          .map((value) => Number(value))
+          .filter((value) => Number.isFinite(value))
+        return
+      }
+      output[field.name] = list.map(String)
+      return
+    }
+    const rawText = typeof rawValue === "string" ? rawValue : String(rawValue ?? "")
+    const text = field.trim ? rawText.trim() : rawText
     if (field.type === "number" || field.valueType === "number") {
       const numberValue = Number(text)
       output[field.name] = Number.isFinite(numberValue) ? numberValue : 0
@@ -159,6 +213,37 @@ export function normalizeDashboardCrudSubmitValues<TItem>(
   })
 
   return output
+}
+
+function getDashboardCrudFormDefaultValue<TItem>(
+  field: DashboardCrudFormField<TItem>
+): DashboardCrudFormInputValue {
+  if (field.type === "switch" || field.type === "checkbox") {
+    return false
+  }
+  if (field.type === "multiSelect") {
+    return []
+  }
+  return ""
+}
+
+function normalizeDashboardCrudFormInputValue<TItem>(
+  field: DashboardCrudFormField<TItem>,
+  value: unknown
+): DashboardCrudFormInputValue {
+  if (value === undefined || value === null) {
+    return getDashboardCrudFormDefaultValue(field)
+  }
+  if (field.type === "switch" || field.type === "checkbox" || field.valueType === "boolean") {
+    return value === true || value === "true" || value === 1 || value === "1"
+  }
+  if (field.type === "multiSelect") {
+    if (!Array.isArray(value)) return []
+    return value
+      .filter((item) => item !== undefined && item !== null)
+      .map((item) => String(item))
+  }
+  return String(value)
 }
 
 export function isDashboardCrudActionVisible<TItem>(

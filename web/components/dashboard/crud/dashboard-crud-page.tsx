@@ -122,7 +122,7 @@ export type DashboardCrudPageProps<TItem, TPayload> = {
     fields: DashboardCrudFormField<TItem>[]
     fetchDetail?: (id: number) => Promise<TItem>
     transformSubmitValues?: (
-      values: Record<string, string | number>,
+      values: Record<string, string | number | boolean | string[] | number[]>,
       context: { mode: "create" | "edit"; item: TItem | null }
     ) => TPayload
     labels: {

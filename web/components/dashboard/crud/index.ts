@@ -19,6 +19,9 @@ export type {
 } from "./dashboard-crud-page"
 export type {
   DashboardCrudFormField,
+  DashboardCrudFormInputValue,
+  DashboardCrudFormOption,
+  DashboardCrudFormValue,
   DashboardCrudFilterStateConfig,
   DashboardCrudPageResult,
   DashboardCrudQueryFilter,
