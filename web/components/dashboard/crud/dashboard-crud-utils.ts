@@ -7,6 +7,13 @@ export type DashboardCrudQueryFilter = {
   valueType?: "string" | "number"
 }
 
+export type DashboardCrudFilterStateConfig<
+  TValue extends string | number = string | number,
+> = {
+  name: string
+  defaultValue: TValue
+}
+
 export type DashboardCrudPageResult<T> = {
   results: T[]
   page: {
@@ -39,9 +46,15 @@ export type DashboardCrudFormField<TItem = unknown> = {
   pattern?: RegExp
   patternMessage?: string
   options?: ReadonlyArray<DashboardCrudFormOption>
+  loadOptions?: () => Promise<ReadonlyArray<DashboardCrudFormOption>>
   colSpan?: 1 | 2
   rows?: number
   valueFromItem?: (item: TItem) => DashboardCrudFormValue
+}
+
+export type DashboardCrudActionRule<TItem> = {
+  visible?: (item: TItem) => boolean
+  disabled?: (item: TItem) => boolean
 }
 
 export function buildDashboardCrudQuery({
@@ -84,6 +97,14 @@ export function buildDashboardCrudQuery({
   query.page = page
   query.limit = limit
   return query
+}
+
+export function buildDashboardCrudInitialFilters(
+  filters: ReadonlyArray<DashboardCrudFilterStateConfig>
+): Record<string, string | number | undefined> {
+  return Object.fromEntries(
+    filters.map((filter) => [filter.name, filter.defaultValue])
+  ) as Record<string, string | number | undefined>
 }
 
 export function normalizeDashboardCrudPageResult<T>(
@@ -138,4 +159,18 @@ export function normalizeDashboardCrudSubmitValues<TItem>(
   })
 
   return output
+}
+
+export function isDashboardCrudActionVisible<TItem>(
+  action: DashboardCrudActionRule<TItem>,
+  item: TItem
+) {
+  return action.visible ? action.visible(item) : true
+}
+
+export function isDashboardCrudActionDisabled<TItem>(
+  action: DashboardCrudActionRule<TItem>,
+  item: TItem
+) {
+  return action.disabled ? action.disabled(item) : false
 }

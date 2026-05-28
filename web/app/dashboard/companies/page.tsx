@@ -1,11 +1,12 @@
 "use client"
 
 import { BanIcon, CheckCircle2Icon } from "lucide-react"
-import { toast } from "sonner"
 
-import { DashboardCrudPage } from "@/components/dashboard/crud"
-import { Badge } from "@/components/ui/badge"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
+import {
+  createDashboardStatusColumn,
+  createDashboardStatusToggleAction,
+  DashboardCrudPage,
+} from "@/components/dashboard/crud"
 import {
   createCompany,
   deleteCompany,
@@ -96,26 +97,19 @@ export default function DashboardCompaniesPage() {
           className: "w-28",
           render: (item) => item.customerCount,
         },
-        {
-          key: "status",
+        createDashboardStatusColumn<AdminCompany, Status>({
           label: t("company.columnStatus"),
           className: "w-24",
-          render: (item) => (
-            <Badge
-              variant={
-                item.status === Status.Ok
-                  ? "default"
-                  : item.status === Status.Deleted
-                    ? "outline"
-                    : "secondary"
-              }
-            >
-              {StatusLabels[item.status as Status]
-                ? getStatusLabel(item.status as Status, t)
-                : t("company.unknownStatus")}
-            </Badge>
-          ),
-        },
+          getStatus: (item) => item.status as Status,
+          getLabel: (status) =>
+            StatusLabels[status] ? getStatusLabel(status, t) : t("company.unknownStatus"),
+          getBadgeVariant: (status) =>
+            status === Status.Ok
+              ? "default"
+              : status === Status.Deleted
+                ? "outline"
+                : "secondary",
+        }),
         {
           key: "remark",
           label: t("company.columnRemark"),
@@ -177,48 +171,23 @@ export default function DashboardCompaniesPage() {
           maxValue: () => t("company.nameRequired"),
         },
       }}
-      renderRowActions={({ item, actionLoading, reload, setActionLoadingId }) => (
-        <DropdownMenuItem
-          disabled={item.status === Status.Deleted}
-          onClick={() => {
-            void (async () => {
-              setActionLoadingId(item.id)
-              try {
-                const nextStatus = item.status === Status.Ok ? Status.Disabled : Status.Ok
-                await updateCompanyStatus(item.id, nextStatus)
-                toast.success(
-                  t(nextStatus === Status.Ok ? "company.enabled" : "company.disabled", {
-                    name: item.name,
-                  })
-                )
-                await reload()
-              } catch (error) {
-                toast.error(
-                  error instanceof Error
-                    ? error.message
-                    : t("company.statusUpdateFailed")
-                )
-              } finally {
-                setActionLoadingId(null)
-              }
-            })()
-          }}
-        >
-          {actionLoading ? (
-            t("company.processing")
-          ) : item.status === Status.Ok ? (
-            <>
-              <BanIcon />
-              {t("company.disable")}
-            </>
-          ) : (
-            <>
-              <CheckCircle2Icon />
-              {t("company.enable")}
-            </>
-          )}
-        </DropdownMenuItem>
-      )}
+      rowActions={[
+        createDashboardStatusToggleAction<AdminCompany, Status>({
+          disabled: (item) => item.status === Status.Deleted,
+          icon: (item) =>
+            item.status === Status.Ok ? <BanIcon /> : <CheckCircle2Icon />,
+          label: (item) =>
+            item.status === Status.Ok ? t("company.disable") : t("company.enable"),
+          getNextStatus: (item) =>
+            item.status === Status.Ok ? Status.Disabled : Status.Ok,
+          updateStatus: (item, nextStatus) => updateCompanyStatus(item.id, nextStatus),
+          successMessage: (item, nextStatus) =>
+            t(nextStatus === Status.Ok ? "company.enabled" : "company.disabled", {
+              name: item.name,
+            }),
+          errorMessage: t("company.statusUpdateFailed"),
+        }),
+      ]}
       labels={{
         refresh: t("company.refresh"),
         create: t("company.new"),

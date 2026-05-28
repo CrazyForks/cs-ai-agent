@@ -1,11 +1,13 @@
 "use client"
 
 import { FileTextIcon, RefreshCwIcon } from "lucide-react"
-import { toast } from "sonner"
 
-import { DashboardCrudPage } from "@/components/dashboard/crud"
+import {
+  createDashboardStatusColumn,
+  createDashboardStatusToggleAction,
+  DashboardCrudPage,
+} from "@/components/dashboard/crud"
 import { Badge } from "@/components/ui/badge"
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import {
   createQuickReply,
   deleteQuickReply,
@@ -93,15 +95,12 @@ export default function DashboardQuickRepliesPage() {
           label: t("quickReply.columnGroup"),
           render: (item) => <Badge variant="outline">{item.groupName}</Badge>,
         },
-        {
-          key: "status",
+        createDashboardStatusColumn<AdminQuickReply, Status>({
           label: t("quickReply.columnStatus"),
-          render: (item) => (
-            <Badge variant={item.status === Status.Ok ? "default" : "outline"}>
-              {getStatusLabel(item.status as Status, t)}
-            </Badge>
-          ),
-        },
+          getStatus: (item) => item.status as Status,
+          getLabel: (status) => getStatusLabel(status, t),
+          getBadgeVariant: (status) => (status === Status.Ok ? "default" : "outline"),
+        }),
         {
           key: "sortNo",
           label: t("quickReply.columnSort"),
@@ -193,51 +192,34 @@ export default function DashboardQuickRepliesPage() {
           maxValue: () => t("quickReply.sortInvalid"),
         },
       }}
-      renderRowActions={({ item, actionLoading, reload, setActionLoadingId }) => (
-        <DropdownMenuItem
-          onClick={() => {
-            void (async () => {
-              setActionLoadingId(item.id)
-              try {
-                const nextStatus =
-                  item.status === Status.Ok ? Status.Disabled : Status.Ok
-                await updateQuickReply({
-                  id: item.id,
-                  groupName: item.groupName,
-                  title: item.title,
-                  content: item.content,
-                  sortNo: item.sortNo,
-                  status: nextStatus,
-                })
-                toast.success(
-                  t(
-                    nextStatus === Status.Ok
-                      ? "quickReply.enabled"
-                      : "quickReply.disabled",
-                    { title: item.title }
-                  )
-                )
-                await reload()
-              } catch (error) {
-                toast.error(
-                  error instanceof Error
-                    ? error.message
-                    : t("quickReply.statusUpdateFailed")
-                )
-              } finally {
-                setActionLoadingId(null)
-              }
-            })()
-          }}
-        >
-          <RefreshCwIcon />
-          {actionLoading
-            ? t("quickReply.processing")
-            : item.status === Status.Ok
+      rowActions={[
+        createDashboardStatusToggleAction<AdminQuickReply, Status>({
+          icon: <RefreshCwIcon />,
+          label: (item) =>
+            item.status === Status.Ok
               ? t("quickReply.disable")
-              : t("quickReply.enable")}
-        </DropdownMenuItem>
-      )}
+              : t("quickReply.enable"),
+          getNextStatus: (item) =>
+            item.status === Status.Ok ? Status.Disabled : Status.Ok,
+          updateStatus: (item, nextStatus) =>
+            updateQuickReply({
+              id: item.id,
+              groupName: item.groupName,
+              title: item.title,
+              content: item.content,
+              sortNo: item.sortNo,
+              status: nextStatus,
+            }),
+          successMessage: (item, nextStatus) =>
+            t(
+              nextStatus === Status.Ok
+                ? "quickReply.enabled"
+                : "quickReply.disabled",
+              { title: item.title }
+            ),
+          errorMessage: t("quickReply.statusUpdateFailed"),
+        }),
+      ]}
       labels={{
         refresh: t("quickReply.refresh"),
         create: t("quickReply.new"),

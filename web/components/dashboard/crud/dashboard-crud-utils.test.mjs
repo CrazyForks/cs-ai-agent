@@ -75,6 +75,27 @@ describe("buildDashboardCrudQuery", () => {
   })
 })
 
+describe("buildDashboardCrudInitialFilters", () => {
+  it("creates stable filter state from defaults", async () => {
+    const { buildDashboardCrudInitialFilters } = await loadModule()
+
+    assert.deepEqual(
+      plain(
+        buildDashboardCrudInitialFilters([
+          { name: "keyword", defaultValue: "" },
+          { name: "status", defaultValue: "all" },
+          { name: "companyId", defaultValue: 0 },
+        ])
+      ),
+      {
+        keyword: "",
+        status: "all",
+        companyId: 0,
+      }
+    )
+  })
+})
+
 describe("normalizeDashboardCrudPageResult", () => {
   it("returns a stable empty page when the API result is missing", async () => {
     const { normalizeDashboardCrudPageResult } = await loadModule()
@@ -141,5 +162,34 @@ describe("normalizeDashboardCrudSubmitValues", () => {
         status: 1,
       }
     )
+  })
+})
+
+describe("dashboard CRUD action rules", () => {
+  it("defaults actions to visible and enabled", async () => {
+    const {
+      isDashboardCrudActionVisible,
+      isDashboardCrudActionDisabled,
+    } = await loadModule()
+    const action = {}
+
+    assert.equal(isDashboardCrudActionVisible(action, { status: 0 }), true)
+    assert.equal(isDashboardCrudActionDisabled(action, { status: 0 }), false)
+  })
+
+  it("honors visible and disabled predicates", async () => {
+    const {
+      isDashboardCrudActionVisible,
+      isDashboardCrudActionDisabled,
+    } = await loadModule()
+    const action = {
+      visible: (item) => item.status !== 2,
+      disabled: (item) => item.status === 1,
+    }
+
+    assert.equal(isDashboardCrudActionVisible(action, { status: 2 }), false)
+    assert.equal(isDashboardCrudActionVisible(action, { status: 0 }), true)
+    assert.equal(isDashboardCrudActionDisabled(action, { status: 1 }), true)
+    assert.equal(isDashboardCrudActionDisabled(action, { status: 0 }), false)
   })
 })

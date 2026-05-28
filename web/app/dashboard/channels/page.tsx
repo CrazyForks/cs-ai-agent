@@ -5,11 +5,12 @@ import {
   MessagesSquareIcon,
   MessageSquareMoreIcon,
 } from "lucide-react"
-import { toast } from "sonner"
 
-import { DashboardCrudPage } from "@/components/dashboard/crud"
+import {
+  createDashboardStatusColumn,
+  DashboardCrudPage,
+} from "@/components/dashboard/crud"
 import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
 import {
   createChannel,
   deleteChannel,
@@ -147,49 +148,28 @@ export default function DashboardChannelsPage() {
           label: t("channel.columnAgent"),
           render: (item) => item.aiAgentName || "-",
         },
-        {
-          key: "status",
+        createDashboardStatusColumn<AdminChannel, Status>({
           label: t("channel.columnStatus"),
-          render: (item, { actionLoading, reload, setActionLoadingId }) => (
-            <div className="flex items-center gap-3">
-              <Switch
-                checked={item.status === Status.Ok}
-                disabled={actionLoading}
-                onCheckedChange={() => {
-                  void (async () => {
-                    setActionLoadingId(item.id)
-                    try {
-                      const nextStatus =
-                        item.status === Status.Ok ? Status.Disabled : Status.Ok
-                      await updateChannelStatus(item.id, nextStatus)
-                      toast.success(
-                        t(
-                          nextStatus === Status.Ok
-                            ? "channel.statusEnabled"
-                            : "channel.statusDisabled",
-                          { name: item.name }
-                        )
-                      )
-                      await reload()
-                    } catch (error) {
-                      toast.error(
-                        error instanceof Error
-                          ? error.message
-                          : t("channel.statusUpdateFailed")
-                      )
-                    } finally {
-                      setActionLoadingId(null)
-                    }
-                  })()
-                }}
-                aria-label={t("channel.toggleStatus", { name: item.name })}
-              />
-              <Badge variant={item.status === Status.Ok ? "default" : "outline"}>
-                {getStatusLabel(item.status as Status, t)}
-              </Badge>
-            </div>
-          ),
-        },
+          getStatus: (item) => item.status as Status,
+          getLabel: (status) => getStatusLabel(status, t),
+          getBadgeVariant: (status) => (status === Status.Ok ? "default" : "outline"),
+          isEnabled: (status) => status === Status.Ok,
+          toggle: {
+            getNextStatus: (item) =>
+              item.status === Status.Ok ? Status.Disabled : Status.Ok,
+            updateStatus: (item, nextStatus) =>
+              updateChannelStatus(item.id, nextStatus),
+            successMessage: (item, nextStatus) =>
+              t(
+                nextStatus === Status.Ok
+                  ? "channel.statusEnabled"
+                  : "channel.statusDisabled",
+                { name: item.name }
+              ),
+            errorMessage: t("channel.statusUpdateFailed"),
+            ariaLabel: (item) => t("channel.toggleStatus", { name: item.name }),
+          },
+        }),
       ]}
       fetchList={fetchChannels}
       getItemId={(item) => item.id}

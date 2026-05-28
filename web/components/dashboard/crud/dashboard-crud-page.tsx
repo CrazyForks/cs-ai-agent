@@ -1,8 +1,26 @@
 "use client"
 
 import type { ReactNode } from "react"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core"
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import {
+  GripVerticalIcon,
   MoreHorizontalIcon,
   PlusIcon,
   RefreshCwIcon,
@@ -11,6 +29,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
+import { useConfirm, type ConfirmOptions } from "@/components/confirm-provider"
 import {
   DashboardPage,
   DashboardTableShell,
@@ -38,15 +57,19 @@ import {
 } from "@/components/ui/table"
 import {
   buildDashboardCrudQuery,
+  isDashboardCrudActionDisabled,
+  isDashboardCrudActionVisible,
   normalizeDashboardCrudPageResult,
+  type DashboardCrudActionRule,
   type DashboardCrudFormField,
   type DashboardCrudPageResult,
   type DashboardCrudQueryFilter,
   type DashboardCrudQueryValue,
 } from "./dashboard-crud-utils"
 import { DashboardCrudFormDialog } from "./dashboard-crud-form-dialog"
+import { useDashboardCrudFilters } from "./use-dashboard-crud-filters"
 
-type DashboardCrudFilter<TValue extends string | number = string> =
+export type DashboardCrudFilter<TValue extends string | number = string> =
   DashboardCrudQueryFilter & {
     label: string
     placeholder?: string
@@ -56,14 +79,14 @@ type DashboardCrudFilter<TValue extends string | number = string> =
     options?: ReadonlyArray<{ value: string; label: string }>
   }
 
-type DashboardCrudColumn<TItem> = {
+export type DashboardCrudColumn<TItem> = {
   key: string
   label: ReactNode
   className?: string
   render: (item: TItem, context: DashboardCrudRowActionContext<TItem>) => ReactNode
 }
 
-type DashboardCrudDialogProps<TItem, TPayload> = {
+export type DashboardCrudDialogProps<TItem, TPayload> = {
   open: boolean
   saving: boolean
   item: TItem | null
@@ -72,15 +95,25 @@ type DashboardCrudDialogProps<TItem, TPayload> = {
   onSubmit: (payload: TPayload) => Promise<void>
 }
 
-type DashboardCrudRowActionContext<TItem> = {
+export type DashboardCrudRowActionContext<TItem> = {
   item: TItem
+  itemId: number
   actionLoading: boolean
   actionLoadingId: number | null
   reload: () => Promise<void>
   setActionLoadingId: (id: number | null) => void
 }
 
-type DashboardCrudPageProps<TItem, TPayload> = {
+export type DashboardCrudRowAction<TItem> = DashboardCrudActionRule<TItem> & {
+  key: string
+  label: ReactNode | ((item: TItem) => ReactNode)
+  icon?: ReactNode | ((item: TItem) => ReactNode)
+  variant?: "default" | "destructive"
+  confirm?: ConfirmOptions | ((item: TItem) => ConfirmOptions)
+  run: (context: DashboardCrudRowActionContext<TItem>) => Promise<void> | void
+}
+
+export type DashboardCrudPageProps<TItem, TPayload> = {
   filters: DashboardCrudFilter[]
   columns: DashboardCrudColumn<TItem>[]
   fetchList: (
@@ -113,7 +146,17 @@ type DashboardCrudPageProps<TItem, TPayload> = {
   updateItem: (item: TItem, payload: TPayload) => Promise<unknown>
   deleteItem?: (item: TItem) => Promise<unknown>
   canDelete?: (item: TItem) => boolean
+  deleteConfirm?: ConfirmOptions | ((item: TItem) => ConfirmOptions)
+  rowActions?: DashboardCrudRowAction<TItem>[]
   renderRowActions?: (context: DashboardCrudRowActionContext<TItem>) => ReactNode
+  sort?: {
+    enabled?: boolean
+    disabled?: boolean
+    onReorder: (items: TItem[]) => Promise<unknown>
+    successMessage?: string
+    errorMessage: string
+    handleLabel: string
+  }
   pageSize?: number
   labels: {
     refresh: string
@@ -146,19 +189,26 @@ export function DashboardCrudPage<TItem, TPayload>({
   updateItem,
   deleteItem,
   canDelete,
+  deleteConfirm,
+  rowActions = [],
   renderRowActions,
+  sort,
   pageSize = 20,
   labels,
 }: DashboardCrudPageProps<TItem, TPayload>) {
-  const initialFilters = useMemo(
-    () =>
-      Object.fromEntries(
-        filters.map((filter) => [filter.name, filter.defaultValue])
-      ) as Record<string, string | number | undefined>,
-    [filters]
+  const confirm = useConfirm()
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 6,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
   )
-  const [draftFilters, setDraftFilters] = useState(initialFilters)
-  const [appliedFilters, setAppliedFilters] = useState(initialFilters)
+  const { draftFilters, appliedFilters, setDraftFilter, applyFilters } =
+    useDashboardCrudFilters(filters)
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(pageSize)
   const [loading, setLoading] = useState(true)
@@ -170,11 +220,6 @@ export function DashboardCrudPage<TItem, TPayload>({
     results: [],
     page: { page: 1, limit: pageSize, total: 0 },
   })
-
-  useEffect(() => {
-    setDraftFilters(initialFilters)
-    setAppliedFilters(initialFilters)
-  }, [initialFilters])
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -199,15 +244,15 @@ export function DashboardCrudPage<TItem, TPayload>({
     void loadData()
   }, [loadData])
 
-  function applyFilters() {
-    setAppliedFilters(draftFilters)
+  function handleApplyFilters() {
+    applyFilters()
     setPage(1)
   }
 
   function handleFilterKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key !== "Enter") return
     event.preventDefault()
-    applyFilters()
+    handleApplyFilters()
   }
 
   function openCreateDialog() {
@@ -249,6 +294,12 @@ export function DashboardCrudPage<TItem, TPayload>({
 
   async function handleDelete(item: TItem) {
     if (!deleteItem) return
+    if (deleteConfirm) {
+      const confirmed = await confirm(
+        typeof deleteConfirm === "function" ? deleteConfirm(item) : deleteConfirm
+      )
+      if (!confirmed) return
+    }
     const id = getItemId(item)
     setActionLoadingId(id)
     try {
@@ -262,7 +313,185 @@ export function DashboardCrudPage<TItem, TPayload>({
     }
   }
 
-  const colSpan = columns.length + 1
+  async function runRowAction(
+    action: DashboardCrudRowAction<TItem>,
+    item: TItem,
+    actionLoading: boolean
+  ) {
+    if (actionLoading || isDashboardCrudActionDisabled(action, item)) return
+
+    if (action.confirm) {
+      const confirmed = await confirm(
+        typeof action.confirm === "function" ? action.confirm(item) : action.confirm
+      )
+      if (!confirmed) return
+    }
+
+    const id = getItemId(item)
+    setActionLoadingId(id)
+    try {
+      await action.run({
+        item,
+        itemId: id,
+        actionLoading: true,
+        actionLoadingId: id,
+        reload: loadData,
+        setActionLoadingId,
+      })
+    } finally {
+      setActionLoadingId(null)
+    }
+  }
+
+  async function handleSortEnd(event: DragEndEvent) {
+    if (!sort?.enabled || sort.disabled) return
+
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = result.results.findIndex(
+      (item) => String(getItemId(item)) === String(active.id)
+    )
+    const newIndex = result.results.findIndex(
+      (item) => String(getItemId(item)) === String(over.id)
+    )
+    if (oldIndex < 0 || newIndex < 0) return
+
+    const previousResults = result.results
+    const nextResults = arrayMove(result.results, oldIndex, newIndex)
+    setResult((current) => ({ ...current, results: nextResults }))
+
+    try {
+      await sort.onReorder(nextResults)
+      if (sort.successMessage) {
+        toast.success(sort.successMessage)
+      }
+    } catch (error) {
+      setResult((current) => ({ ...current, results: previousResults }))
+      toast.error(error instanceof Error ? error.message : sort.errorMessage)
+    }
+  }
+
+  const sortable = Boolean(sort?.enabled)
+  const colSpan = columns.length + 1 + (sortable ? 1 : 0)
+
+  function renderTableRow(
+    item: TItem,
+    options: { sortable?: boolean; sortDisabled?: boolean } = {}
+  ) {
+    const id = getItemId(item)
+    const actionLoading = actionLoadingId === id
+    const rowCells = (
+      <>
+        {columns.map((column) => (
+          <TableCell key={column.key} className={column.className}>
+            {column.render(item, {
+              item,
+              itemId: id,
+              actionLoading,
+              actionLoadingId,
+              reload: loadData,
+              setActionLoadingId,
+            })}
+          </TableCell>
+        ))}
+        <TableCell className="text-right">
+          <ButtonGroup className="ml-auto">
+            <Button variant="outline" size="sm" onClick={() => openEditDialog(item)}>
+              {labels.edit}
+            </Button>
+            {renderRowActions || rowActions.length > 0 || deleteItem ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={<Button variant="outline" size="icon-sm" />}
+                  aria-label={labels.moreActions(item)}
+                >
+                  <MoreHorizontalIcon />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40 min-w-40">
+                  {rowActions
+                    .filter((action) => isDashboardCrudActionVisible(action, item))
+                    .map((action) => {
+                      const icon =
+                        typeof action.icon === "function"
+                          ? action.icon(item)
+                          : action.icon
+                      const label =
+                        typeof action.label === "function"
+                          ? action.label(item)
+                          : action.label
+                      return (
+                        <DropdownMenuItem
+                          key={action.key}
+                          disabled={
+                            actionLoading ||
+                            isDashboardCrudActionDisabled(action, item)
+                          }
+                          className={
+                            action.variant === "destructive"
+                              ? "text-destructive focus:text-destructive"
+                              : undefined
+                          }
+                          onClick={() => void runRowAction(action, item, actionLoading)}
+                        >
+                          {icon}
+                          {actionLoading ? labels.processing : label}
+                        </DropdownMenuItem>
+                      )
+                    })}
+                  {renderRowActions?.({
+                    item,
+                    itemId: id,
+                    actionLoading,
+                    actionLoadingId,
+                    reload: loadData,
+                    setActionLoadingId,
+                  })}
+                  {deleteItem ? (
+                    <DropdownMenuItem
+                      onClick={() => void handleDelete(item)}
+                      disabled={canDelete ? !canDelete(item) : false}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2Icon />
+                      {actionLoading ? labels.processing : labels.delete}
+                    </DropdownMenuItem>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
+          </ButtonGroup>
+        </TableCell>
+      </>
+    )
+
+    if (options.sortable) {
+      return (
+        <DashboardCrudSortableRow
+          key={id}
+          id={String(id)}
+          disabled={loading || options.sortDisabled}
+          handleLabel={sort?.handleLabel ?? labels.actions}
+        >
+          {rowCells}
+        </DashboardCrudSortableRow>
+      )
+    }
+
+    return <TableRow key={id}>{rowCells}</TableRow>
+  }
+
+  function renderStateRow() {
+    if (!loading && result.results.length > 0) return null
+    return (
+      <DashboardTableStateRow
+        colSpan={colSpan}
+        loading={loading}
+        loadingText={labels.loading}
+        emptyText={labels.empty}
+      />
+    )
+  }
 
   return (
     <>
@@ -288,12 +517,7 @@ export function DashboardCrudPage<TItem, TPayload>({
                 <div key={filter.name} className={filter.className ?? "w-full sm:w-40"}>
                   <OptionCombobox
                     value={String(value ?? "")}
-                    onChange={(nextValue) =>
-                      setDraftFilters((current) => ({
-                        ...current,
-                        [filter.name]: nextValue,
-                      }))
-                    }
+                    onChange={(nextValue) => setDraftFilter(filter.name, nextValue)}
                     placeholder={filter.placeholder ?? filter.label}
                     options={[...(filter.options ?? [])]}
                   />
@@ -306,10 +530,7 @@ export function DashboardCrudPage<TItem, TPayload>({
                 <Input
                   value={String(value ?? "")}
                   onChange={(event) =>
-                    setDraftFilters((current) => ({
-                      ...current,
-                      [filter.name]: event.target.value,
-                    }))
+                    setDraftFilter(filter.name, event.target.value)
                   }
                   onKeyDown={handleFilterKeyDown}
                   placeholder={filter.placeholder ?? filter.label}
@@ -317,7 +538,7 @@ export function DashboardCrudPage<TItem, TPayload>({
               </div>
             )
           })}
-          <Button variant="outline" onClick={applyFilters} disabled={loading}>
+          <Button variant="outline" onClick={handleApplyFilters} disabled={loading}>
             <SearchIcon />
             {labels.query}
           </Button>
@@ -344,6 +565,7 @@ export function DashboardCrudPage<TItem, TPayload>({
           <Table>
             <TableHeader className="bg-muted/40">
               <TableRow>
+                {sortable ? <TableHead className="w-10" /> : null}
                 {columns.map((column) => (
                   <TableHead key={column.key} className={column.className}>
                     {column.label}
@@ -354,75 +576,33 @@ export function DashboardCrudPage<TItem, TPayload>({
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {result.results.map((item) => {
-                const id = getItemId(item)
-                const actionLoading = actionLoadingId === id
-                return (
-                  <TableRow key={id}>
-                    {columns.map((column) => (
-                      <TableCell key={column.key} className={column.className}>
-                        {column.render(item, {
-                          item,
-                          actionLoading,
-                          actionLoadingId,
-                          reload: loadData,
-                          setActionLoadingId,
-                        })}
-                      </TableCell>
-                    ))}
-                    <TableCell className="text-right">
-                      <ButtonGroup className="ml-auto">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openEditDialog(item)}
-                        >
-                          {labels.edit}
-                        </Button>
-                        {renderRowActions || deleteItem ? (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger
-                              render={<Button variant="outline" size="icon-sm" />}
-                              aria-label={labels.moreActions(item)}
-                            >
-                              <MoreHorizontalIcon />
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-40 min-w-40">
-                              {renderRowActions?.({
-                                item,
-                                actionLoading,
-                                actionLoadingId,
-                                reload: loadData,
-                                setActionLoadingId,
-                              })}
-                              {deleteItem ? (
-                                <DropdownMenuItem
-                                  onClick={() => void handleDelete(item)}
-                                  disabled={canDelete ? !canDelete(item) : false}
-                                  className="text-destructive focus:text-destructive"
-                                >
-                                  <Trash2Icon />
-                                  {actionLoading ? labels.processing : labels.delete}
-                                </DropdownMenuItem>
-                              ) : null}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        ) : null}
-                      </ButtonGroup>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-              {loading || result.results.length === 0 ? (
-                <DashboardTableStateRow
-                  colSpan={colSpan}
-                  loading={loading}
-                  loadingText={labels.loading}
-                  emptyText={labels.empty}
-                />
-              ) : null}
-            </TableBody>
+            {sortable ? (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={(event) => void handleSortEnd(event)}
+              >
+                <SortableContext
+                  items={result.results.map((item) => String(getItemId(item)))}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <TableBody>
+                    {result.results.map((item) =>
+                      renderTableRow(item, {
+                        sortable: true,
+                        sortDisabled: sort?.disabled,
+                      })
+                    )}
+                    {renderStateRow()}
+                  </TableBody>
+                </SortableContext>
+              </DndContext>
+            ) : (
+              <TableBody>
+                {result.results.map((item) => renderTableRow(item))}
+                {renderStateRow()}
+              </TableBody>
+            )}
           </Table>
         </DashboardTableShell>
       </DashboardPage>
@@ -450,5 +630,52 @@ export function DashboardCrudPage<TItem, TPayload>({
         })
       )}
     </>
+  )
+}
+
+function DashboardCrudSortableRow({
+  id,
+  disabled,
+  handleLabel,
+  children,
+}: {
+  id: string
+  disabled?: boolean
+  handleLabel: string
+  children: ReactNode
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id, disabled })
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+      className={isDragging ? "relative z-10 bg-muted/60" : undefined}
+    >
+      <TableCell className="w-10">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          disabled={disabled}
+          aria-label={handleLabel}
+          {...attributes}
+          {...listeners}
+        >
+          <GripVerticalIcon className="text-muted-foreground" />
+        </Button>
+      </TableCell>
+      {children}
+    </TableRow>
   )
 }

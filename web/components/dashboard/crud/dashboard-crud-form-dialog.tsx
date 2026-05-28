@@ -12,6 +12,7 @@ import {
   buildDashboardCrudFormValues,
   normalizeDashboardCrudSubmitValues,
   type DashboardCrudFormField,
+  type DashboardCrudFormOption,
 } from "./dashboard-crud-utils"
 import { DashboardCrudFieldControl } from "./dashboard-crud-field-control"
 
@@ -116,6 +117,9 @@ export function DashboardCrudFormDialog<TItem, TPayload>({
     id: number
     item: TItem
   } | null>(null)
+  const [fieldOptions, setFieldOptions] = useState<
+    Record<string, ReadonlyArray<DashboardCrudFormOption>>
+  >({})
   const form = useForm<Record<string, string>, undefined, Record<string, string>>({
     resolver,
     defaultValues: initialValues,
@@ -156,6 +160,32 @@ export function DashboardCrudFormDialog<TItem, TPayload>({
       cancelled = true
     }
   }, [fetchDetail, fields, initialValues, item, itemId, reset])
+
+  useEffect(() => {
+    if (!open) return
+
+    let cancelled = false
+    const loaders = fields
+      .filter((field) => field.type === "select" && field.loadOptions)
+      .map(async (field) => {
+        const options = await field.loadOptions!()
+        return [field.name, options] as const
+      })
+
+    if (loaders.length === 0) return
+
+    void Promise.all(loaders).then((entries) => {
+      if (cancelled) return
+      setFieldOptions((current) => ({
+        ...current,
+        ...Object.fromEntries(entries),
+      }))
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [fields, open])
 
   async function submit(values: Record<string, string>) {
     const normalizedValues = normalizeDashboardCrudSubmitValues(fields, values)
@@ -205,7 +235,10 @@ export function DashboardCrudFormDialog<TItem, TPayload>({
           {layoutFields.map((field) => (
             <DashboardCrudFieldControl
               key={field.name}
-              field={field}
+              field={{
+                ...field,
+                options: fieldOptions[field.name] ?? field.options,
+              }}
               control={control}
               register={register}
               error={errors[field.name]}
