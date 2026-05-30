@@ -1,7 +1,6 @@
 "use client"
 
 import {
-  CheckIcon,
   ChevronRightIcon,
   ChevronsUpDownIcon,
   Loader2Icon,
@@ -253,6 +252,11 @@ export function TagSelector(props: TagSelectorProps) {
                         value={tag.searchableText}
                         disabled={disabled || pendingTagId !== null}
                         onSelect={() => handleSelect(tag.id)}
+                        className={cn(
+                          props.mode === "single" &&
+                            checked &&
+                            "bg-muted text-foreground"
+                        )}
                       >
                         <div
                           className="flex min-w-0 flex-1 items-center gap-1.5"
@@ -293,12 +297,7 @@ export function TagSelector(props: TagSelectorProps) {
                               className="pointer-events-none"
                             />
                           ) : (
-                            <CheckIcon
-                              className={cn(
-                                "size-4 shrink-0",
-                                checked ? "opacity-100" : "opacity-0"
-                              )}
-                            />
+                            <span className="size-4 shrink-0" />
                           )}
                           <span className="min-w-0 flex-1 truncate">{tag.name}</span>
                         </div>
