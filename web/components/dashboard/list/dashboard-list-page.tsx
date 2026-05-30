@@ -11,8 +11,10 @@ import {
 } from "@/components/dashboard-page"
 import { ListPagination } from "@/components/list-pagination"
 import { OptionCombobox } from "@/components/option-combobox"
+import { TagSelector } from "@/components/tag-selector"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import type { TagTree } from "@/lib/api/admin"
 import {
   Table,
   TableBody,
@@ -34,10 +36,11 @@ export type DashboardListFilter = DashboardCrudQueryFilter & {
   label: string
   placeholder?: string
   defaultValue: string | number
-  type?: "text" | "select" | "segment"
+  type?: "text" | "select" | "segment" | "tag"
   className?: string
   inputClassName?: string
   options?: ReadonlyArray<{ value: string; label: string }>
+  tags?: TagTree[]
   searchPlaceholder?: string
   emptyText?: string
   icon?: ReactNode
@@ -168,6 +171,25 @@ export function DashboardListPage<TItem>({
                   searchPlaceholder={filter.searchPlaceholder}
                   emptyText={filter.emptyText}
                   options={[...(filter.options ?? [])]}
+                />
+              </div>
+            )
+          }
+          if (filter.type === "tag") {
+            return (
+              <div key={filter.name} className={filter.className ?? "w-full sm:w-48"}>
+                <TagSelector
+                  mode="single"
+                  value={Number(value ?? filter.defaultValue)}
+                  onChange={(nextValue) => list.setDraftFilter(filter.name, nextValue)}
+                  tags={filter.tags ?? []}
+                  placeholder={filter.placeholder ?? filter.label}
+                  searchPlaceholder={filter.searchPlaceholder}
+                  emptyText={filter.emptyText}
+                  rootOption={{
+                    value: Number(filter.allValue ?? filter.defaultValue),
+                    label: filter.placeholder ?? filter.label,
+                  }}
                 />
               </div>
             )

@@ -1,6 +1,5 @@
 "use client"
 
-import { CheckIcon, TagIcon } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import type { Resolver } from "react-hook-form"
@@ -11,16 +10,8 @@ import { ContentEditor } from "@/components/content-editor"
 import { OptionCombobox } from "@/components/option-combobox"
 import { ProjectDialog } from "@/components/project-dialog"
 import { isRichTextEmpty } from "@/components/safe-rich-html"
-import { Badge } from "@/components/ui/badge"
+import { TagSelector } from "@/components/tag-selector"
 import { Button } from "@/components/ui/button"
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command"
 import {
   Field,
   FieldContent,
@@ -29,7 +20,6 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   fetchAgentProfilesAll,
   fetchTagsAll,
@@ -111,97 +101,6 @@ function buildPayload(form: EditForm): CreateTicketPayload {
     currentAssigneeId,
     tagIds: form.tagIds,
   }
-}
-
-type FlatTagNode = TagTree & {
-  depth: number
-  path: string
-}
-
-function flattenTagTree(nodes: TagTree[], depth = 0, parentPath = ""): FlatTagNode[] {
-  const result: FlatTagNode[] = []
-  nodes.forEach((item) => {
-    const path = parentPath ? `${parentPath} / ${item.name}` : item.name
-    result.push({ ...item, depth, path })
-    if (item.children.length > 0) {
-      result.push(...flattenTagTree(item.children, depth + 1, path))
-    }
-  })
-  return result
-}
-
-type TicketTagSelectorProps = {
-  value?: number[]
-  onChange: (value: number[]) => void
-  availableTags: TagTree[]
-  t: TFunction
-}
-
-function TicketTagSelector({ value, onChange, availableTags, t }: TicketTagSelectorProps) {
-  const selectedValues = useMemo(() => value ?? [], [value])
-  const flatTags = useMemo(() => flattenTagTree(availableTags), [availableTags])
-  const selectedTagIDs = useMemo(() => new Set(selectedValues), [selectedValues])
-  const selectedTags = useMemo(
-    () => flatTags.filter((tag) => selectedTagIDs.has(tag.id)),
-    [flatTags, selectedTagIDs],
-  )
-
-  function handleToggle(tagID: number) {
-    if (selectedTagIDs.has(tagID)) {
-      onChange(selectedValues.filter((item) => item !== tagID))
-      return
-    }
-    onChange(selectedValues.concat(tagID))
-  }
-
-  return (
-    <div className="space-y-2">
-      <Popover>
-        <PopoverTrigger
-          render={
-            <Button type="button" variant="outline" className="w-full justify-start" />
-          }
-        >
-          <TagIcon className="size-4" />
-          {selectedTags.length > 0 ? t("ticket.selectedTags", { count: selectedTags.length }) : t("ticket.selectTags")}
-        </PopoverTrigger>
-        <PopoverContent align="start" className="w-[320px] p-0">
-          <Command>
-            <CommandInput placeholder={t("ticket.searchTags")} />
-            <CommandList>
-              <CommandEmpty>{t("ticket.emptyTags")}</CommandEmpty>
-              <CommandGroup heading={t("ticket.tags")}>
-                {flatTags.map((tag) => {
-                  const checked = selectedTagIDs.has(tag.id)
-                  return (
-                    <CommandItem
-                      key={tag.id}
-                      value={`${tag.id} ${tag.path} ${tag.remark}`}
-                      onSelect={() => handleToggle(tag.id)}
-                    >
-                      <CheckIcon className={`mr-2 size-4 ${checked ? "opacity-100" : "opacity-0"}`} />
-                      <span className="truncate" style={{ paddingLeft: `${tag.depth * 12}px` }}>
-                        {tag.name}
-                      </span>
-                    </CommandItem>
-                  )
-                })}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-      {selectedTags.length > 0 ? (
-        <div className="flex flex-wrap gap-1">
-          {selectedTags.map((tag) => (
-            <Badge key={tag.id} variant="outline">
-              {tag.path}
-            </Badge>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  )
 }
 
 export function EditDialog({
@@ -421,11 +320,15 @@ function TicketEditDialogBody({
                   control={control}
                   name="tagIds"
                   render={({ field }) => (
-                    <TicketTagSelector
+                    <TagSelector
+                      mode="multiple"
                       value={field.value}
                       onChange={field.onChange}
-                      availableTags={tags}
-                      t={t}
+                      tags={tags}
+                      placeholder={t("ticket.selectTags")}
+                      selectedCountText={(count) => t("ticket.selectedTags", { count })}
+                      searchPlaceholder={t("ticket.searchTags")}
+                      emptyText={t("ticket.emptyTags")}
                     />
                   )}
                 />

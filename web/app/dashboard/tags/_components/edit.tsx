@@ -5,8 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, Resolver, useForm } from "react-hook-form";
 import { z } from "zod/v4";
 
-import { OptionCombobox } from "@/components/option-combobox";
 import { ProjectDialog } from "@/components/project-dialog";
+import { TagSelector } from "@/components/tag-selector";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -66,39 +66,6 @@ function buildPayload(form: EditForm): CreateTagPayload {
   };
 }
 
-type TagTreeNode = TagTree & {
-  children: TagTreeNode[];
-  depth: number;
-};
-
-function withDepth(
-  nodes: TagTree[] | null | undefined,
-  depth = 0,
-): TagTreeNode[] {
-  const safeNodes = Array.isArray(nodes) ? nodes : [];
-
-  return safeNodes.map((node) => ({
-    ...node,
-    depth,
-    children: withDepth(node.children, depth + 1),
-  }));
-}
-
-function flattenTreeForSelect(
-  nodes: TagTreeNode[],
-  excludeId?: number,
-): { id: number; name: string; depth: number }[] {
-  const result: { id: number; name: string; depth: number }[] = [];
-  function traverse(node: TagTreeNode) {
-    if (node.id !== excludeId) {
-      result.push({ id: node.id, name: node.name, depth: node.depth });
-      node.children.forEach(traverse);
-    }
-  }
-  nodes.forEach(traverse);
-  return result;
-}
-
 export function EditDialog({
   open,
   saving,
@@ -140,9 +107,7 @@ function TagFormDialogBody({
   const t = useI18n();
   const formId = "tag-edit-form";
   const [loading, setLoading] = useState(false);
-  const [parentTags, setParentTags] = useState<
-    { id: number; name: string; depth: number }[]
-  >([]);
+  const [parentTags, setParentTags] = useState<TagTree[]>([]);
 
   const tagFormSchema = useMemo(
     () =>
@@ -157,17 +122,6 @@ function TagFormDialogBody({
     () => zodResolver(tagFormSchema as never) as Resolver<EditForm>,
     [tagFormSchema],
   );
-  const parentOptions = useMemo(
-    () => [
-      { value: "0", label: t("tag.rootParent") },
-      ...parentTags.map((tag) => ({
-        value: String(tag.id),
-        label: `${"  ".repeat(tag.depth)}${tag.name}`,
-      })),
-    ],
-    [parentTags, t],
-  );
-
   const form = useForm<EditForm>({
     resolver: editFormResolver,
     defaultValues: emptyForm,
@@ -184,9 +138,7 @@ function TagFormDialogBody({
     async function loadParentTags() {
       try {
         const data = await fetchTagsAll();
-        const tree = withDepth(data);
-        const flatList = flattenTreeForSelect(tree, itemId ?? undefined);
-        setParentTags(flatList);
+        setParentTags(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Failed to load parent tags:", error);
       }
@@ -258,14 +210,17 @@ function TagFormDialogBody({
                 control={control}
                 name="parentId"
                 render={({ field }) => (
-                  <OptionCombobox
-                    value={field.value}
-                    options={parentOptions}
+                  <TagSelector
+                    mode="single"
+                    value={Number(field.value)}
+                    onChange={(value) => field.onChange(String(value))}
+                    tags={parentTags}
                     placeholder={t("tag.rootParent")}
                     searchPlaceholder={t("tag.searchParent")}
                     emptyText={t("tag.emptyParent")}
                     disabled={saving}
-                    onChange={field.onChange}
+                    rootOption={{ value: 0, label: t("tag.rootParent") }}
+                    excludeIds={itemId ? [itemId] : undefined}
                   />
                 )}
               />

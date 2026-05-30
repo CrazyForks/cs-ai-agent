@@ -60,31 +60,12 @@ function getAssigneeAllOption(t: TFunction): ComboboxOption {
   return { value: "0", label: t("ticket.allAssignees") }
 }
 
-function getTagAllOption(t: TFunction): ComboboxOption {
-  return { value: "0", label: t("ticket.allTags") }
-}
-
 function getStaleHourOptions(t: TFunction): ComboboxOption[] {
   return [
     { value: "24", label: t("ticket.hours", { hours: 24 }) },
     { value: "48", label: t("ticket.hours", { hours: 48 }) },
     { value: "168", label: t("ticket.hours", { hours: 168 }) },
   ]
-}
-
-function buildTagOptions(nodes: TagTree[], parentPath = ""): ComboboxOption[] {
-  const result: ComboboxOption[] = []
-  nodes.forEach((item) => {
-    const currentPath = parentPath ? `${parentPath}/${item.name}` : item.name
-    result.push({
-      value: String(item.id),
-      label: currentPath,
-    })
-    if (item.children.length > 0) {
-      result.push(...buildTagOptions(item.children, currentPath))
-    }
-  })
-  return result
 }
 
 function sourceLabel(source: string, t: TFunction) {
@@ -117,7 +98,7 @@ export default function TicketsPage() {
   const searchParams = useSearchParams()
   const [summary, setSummary] = useState<TicketSummary>(emptySummary)
   const [assigneeOptions, setAssigneeOptions] = useState<ComboboxOption[]>([])
-  const [tagOptions, setTagOptions] = useState<ComboboxOption[]>([])
+  const [tags, setTags] = useState<TagTree[]>([])
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
@@ -125,7 +106,6 @@ export default function TicketsPage() {
   const listReloadRef = useRef<() => Promise<void>>(async () => undefined)
 
   const assigneeAllOption = useMemo(() => getAssigneeAllOption(t), [t])
-  const tagAllOption = useMemo(() => getTagAllOption(t), [t])
   const staleHourOptions = useMemo(() => getStaleHourOptions(t), [t])
 
   const quickViews = useMemo(
@@ -201,11 +181,13 @@ export default function TicketsPage() {
       {
         name: "tagId",
         label: t("ticket.allTags"),
-        type: "select",
+        type: "tag",
         defaultValue: "0",
         allValue: "0",
         valueType: "number",
-        options: tagOptions,
+        tags,
+        searchPlaceholder: t("ticket.searchTags"),
+        emptyText: t("ticket.emptyTags"),
         className: "w-full sm:w-44",
       },
       {
@@ -217,7 +199,7 @@ export default function TicketsPage() {
         className: "w-full sm:w-40",
       },
     ],
-    [assigneeOptions, quickViews, staleHourOptions, tagOptions, t],
+    [assigneeOptions, quickViews, staleHourOptions, tags, t],
   )
 
   const fetchList = useCallback(
@@ -365,7 +347,7 @@ export default function TicketsPage() {
               t("ticket.agentFallback", { id: agent.userId }),
           })),
         ])
-        setTagOptions([tagAllOption, ...buildTagOptions(Array.isArray(tags) ? tags : [])])
+        setTags(Array.isArray(tags) ? tags : [])
       })
       .catch((error) => {
         toast.error(error instanceof Error ? error.message : t("ticket.loadFiltersFailed"))
@@ -373,7 +355,7 @@ export default function TicketsPage() {
     return () => {
       active = false
     }
-  }, [assigneeAllOption, tagAllOption, t])
+  }, [assigneeAllOption, t])
 
   async function handleCreateTicket(payload: CreateTicketPayload) {
     setSavingCreate(true)

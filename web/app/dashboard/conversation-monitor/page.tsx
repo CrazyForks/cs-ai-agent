@@ -23,6 +23,7 @@ import {
   OptionCombobox,
   type ComboboxOption,
 } from "@/components/option-combobox"
+import { TagSelector } from "@/components/tag-selector"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ButtonGroup } from "@/components/ui/button-group"
@@ -112,24 +113,6 @@ function getStatusOptions(
   ]
 }
 
-function buildTagOptions(
-  nodes: TagTree[],
-  parentPath = ""
-): ComboboxOption[] {
-  const result: ComboboxOption[] = []
-  nodes.forEach((item) => {
-    const currentPath = parentPath ? `${parentPath}/${item.name}` : item.name
-    result.push({
-      value: String(item.id),
-      label: currentPath,
-    })
-    if (item.children.length > 0) {
-      result.push(...buildTagOptions(item.children, currentPath))
-    }
-  })
-  return result
-}
-
 export default function DashboardConversationsPage() {
   const t = useI18n()
   const statusOptions = useMemo(() => getStatusOptions(t), [t])
@@ -145,9 +128,7 @@ export default function DashboardConversationsPage() {
   const [agentTeamFilter, setAgentTeamFilter] = useState("0")
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(20)
-  const [tagOptions, setTagOptions] = useState<ComboboxOption[]>([
-    { value: "0", label: t("conversationMonitor.allTags") },
-  ])
+  const [tags, setTags] = useState<TagTree[]>([])
   const [assigneeOptions, setAssigneeOptions] = useState<ComboboxOption[]>([
     { value: "0", label: t("conversationMonitor.allAssignees") },
   ])
@@ -213,10 +194,7 @@ export default function DashboardConversationsPage() {
           fetchAgentTeamsAll(),
         ])
         if (!cancelled) {
-          setTagOptions([
-            { value: "0", label: t("conversationMonitor.allTags") },
-            ...buildTagOptions(tagData),
-          ])
+          setTags(Array.isArray(tagData) ? tagData : [])
           setAssigneeOptions([
             { value: "0", label: t("conversationMonitor.allAssignees") },
             ...assigneeData.map((item: AdminAgentProfile) => ({
@@ -675,13 +653,15 @@ export default function DashboardConversationsPage() {
             />
           </div>
           <div className="w-full sm:w-64">
-            <OptionCombobox
-              value={tagFilterInput}
-              options={tagOptions}
+            <TagSelector
+              mode="single"
+              value={Number(tagFilterInput)}
+              onChange={(value) => setTagFilterInput(String(value))}
+              tags={tags}
               placeholder={t("conversationMonitor.selectTag")}
               searchPlaceholder={t("conversationMonitor.searchTagPath")}
               emptyText={t("conversationMonitor.emptyTags")}
-              onChange={setTagFilterInput}
+              rootOption={{ value: 0, label: t("conversationMonitor.allTags") }}
             />
           </div>
           <div className="w-full sm:w-56">
