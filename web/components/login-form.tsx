@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { startTransition, useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -229,8 +230,15 @@ export function LoginForm({
         </CardContent>
       </Card>
       <FieldDescription className="px-6 text-center">
-        {t("auth.termsPrefix")} <a href="#">{t("auth.termsOfService")}</a>{" "}
-        {t("auth.termsJoiner")} <a href="#">{t("auth.privacyPolicy")}</a>.
+        {t("auth.termsPrefix")}{" "}
+        <Link href="/legal/terms" target="_blank" rel="noreferrer">
+          {t("auth.termsOfService")}
+        </Link>{" "}
+        {t("auth.termsJoiner")}{" "}
+        <Link href="/legal/privacy" target="_blank" rel="noreferrer">
+          {t("auth.privacyPolicy")}
+        </Link>
+        .
       </FieldDescription>
     </div>
   )

@@ -127,6 +127,82 @@
     "oidcSigningIn": "Signing in with OIDC",
     "checkingTicket": "Verifying your sign-in ticket and opening the dashboard."
   },
+  "legal": {
+    "terms": {
+      "title": "Terms of Service",
+      "description": "These terms describe the basic rules for accessing and using this system. This is general product text and may be replaced by formal legal terms from the service provider.",
+      "updatedAt": "Last updated: 2026-05-30",
+      "relatedLabel": "Also read",
+      "relatedLink": "Privacy Policy",
+      "sections": [
+        {
+          "title": "1. Service Description",
+          "body": "This system helps support teams manage conversations, tickets, knowledge bases, AI capabilities, and related operational data. You may access and use it only within your authorized business scope."
+        },
+        {
+          "title": "2. Accounts and Access",
+          "body": "You are responsible for protecting your account, password, tokens, and third-party sign-in credentials. Activity caused by shared, leaked, or misused credentials may be treated as activity by the account holder."
+        },
+        {
+          "title": "3. Acceptable Use",
+          "body": "You must not use the system for unlawful activity, rights infringement, service disruption, privilege bypassing, malicious code, unrelated data, or unauthorized sensitive information."
+        },
+        {
+          "title": "4. Data and Content Responsibility",
+          "body": "Content you create, upload, sync, or process in the system should be lawful, accurate, and aligned with internal management requirements. Necessary activity records may be retained for security, audit, operations, and compliance."
+        },
+        {
+          "title": "5. Service Changes and Availability",
+          "body": "System features may change due to product iteration, maintenance, security fixes, or third-party service changes. The service provider aims to keep the service stable but does not promise that any feature will remain unchanged or uninterrupted."
+        },
+        {
+          "title": "6. Disclaimer",
+          "body": "AI-generated content, automatic assignment, summaries, and suggestions are assistive only. Final business judgment, response content, and handling outcomes should be confirmed by authorized personnel."
+        },
+        {
+          "title": "7. Contact and Updates",
+          "body": "If you have questions about these terms, contact your system administrator or the service provider through published contact channels. The latest version displayed on this page applies after updates."
+        }
+      ]
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "description": "This policy explains the types of information this system may process when providing support administration capabilities, why it is used, and how it is protected. This is general product text and may be replaced by formal legal text from the service provider.",
+      "updatedAt": "Last updated: 2026-05-30",
+      "relatedLabel": "Also read",
+      "relatedLink": "Terms of Service",
+      "sections": [
+        {
+          "title": "1. Information We Process",
+          "body": "The system may process account profiles, roles and permissions, sign-in records, activity logs, support conversations, ticket content, customer contact information, knowledge base content, and operational diagnostics."
+        },
+        {
+          "title": "2. Purposes of Use",
+          "body": "This information is used for authentication, access control, support collaboration, issue follow-up, quality review, security audit, operations, feature improvement, and applicable compliance requirements."
+        },
+        {
+          "title": "3. Storage and Protection",
+          "body": "The system uses access control, audit logging, transport protection, and appropriate data isolation measures to protect information. You should also avoid entering sensitive personal information unless there is a clear business need."
+        },
+        {
+          "title": "4. Third-Party Services and Integrations",
+          "body": "When WeCom, OIDC, messaging channels, AI models, or other external integrations are enabled, relevant information may be sent to those services according to configuration. Processing is also governed by integration provider rules and organizational settings."
+        },
+        {
+          "title": "5. User and Administrator Rights",
+          "body": "Authorized administrators may query, correct, export, or delete relevant business data according to organizational rules. Other users can contact their system administrator for personal-information requests."
+        },
+        {
+          "title": "6. Cookies and Local Storage",
+          "body": "The system may use browser local storage to keep session state, language, theme, and interface preferences in order to maintain access, support security, and improve the user experience."
+        },
+        {
+          "title": "7. Contact and Updates",
+          "body": "If you have questions about privacy protection, contact your system administrator or the service provider through published contact channels. The latest version displayed on this page applies after updates."
+        }
+      ]
+    }
+  },
   "account": {
     "passwordRequired": "Enter a new password.",
     "confirmPasswordRequired": "Confirm your new password.",
