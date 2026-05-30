@@ -1,125 +1,127 @@
-# 贝壳 AI 客服
+# Beike AI Support
 
-开源的 AI Agent 客服系统，支持知识库问答、人工接管、工单闭环和私有化部署。
+English | [简体中文](README_ZH.md)
 
-> 面向需要同时处理在线咨询、知识库问答、人工协同和服务跟踪的团队。它不是把 LLM 接进聊天框，而是一套围绕客服场景设计的 AI Helpdesk 基础系统。
+An open-source AI Agent customer support system with knowledge-based answers, human handoff, ticket workflows, and self-hosted deployment.
 
-## 产品预览
+> Built for teams that need online support, knowledge-base Q&A, human collaboration, and service tracking in one system. It is not just an LLM inside a chat box; it is an AI Helpdesk foundation designed around real support operations.
 
-客户侧在线咨询、客服工作台、知识库、模型配置和 AI Agent 编排都在同一套系统中完成。
+## Product Preview
 
-### 客户侧在线咨询
+Customer chat, agent workspace, knowledge base, model configuration, and AI Agent orchestration are managed in one system.
 
-![客户侧在线咨询](screenshots/1.png)
+### Customer Chat
 
-客户可以在 Web 聊天页中直接发起咨询。AI Agent 会先接待，基于知识库回答问题；当用户明确要求人工介入时，会触发转人工确认流程。
+![Customer Chat](screenshots/1.png)
 
-### 客服工作台
+Customers can start a conversation from the web chat page. The AI Agent responds first with knowledge-grounded answers. When the user explicitly asks for a human, the system can start a handoff confirmation flow.
 
-![客服工作台](screenshots/2.png)
+### Agent Workspace
 
-客服工作台支持会话列表、消息处理、AI 转人工、客服回复、会话标签、关联客户和工单信息查看，适合客服日常接待使用。
+![Agent Workspace](screenshots/2.png)
 
-### 知识库与 AI 配置
+The support workspace includes conversation lists, message handling, AI-to-human handoff, agent replies, conversation tags, linked customers, and ticket context for daily support work.
 
-| 知识库 FAQ | AI Agent 配置 |
+### Knowledge Base and AI Agent Configuration
+
+| Knowledge Base FAQ | AI Agent Configuration |
 | --- | --- |
-| ![知识库 FAQ](screenshots/4.png) | ![AI Agent 配置](screenshots/5.png) |
+| ![Knowledge Base FAQ](screenshots/4.png) | ![AI Agent Configuration](screenshots/5.png) |
 
-知识库用于沉淀 FAQ、文档和可检索内容；AI Agent 可以绑定模型配置、知识库、Skills 和工具能力，形成面向具体客服场景的智能客服实例。
+The knowledge base stores FAQs, documents, and retrievable content. AI Agents can be bound to model configurations, knowledge bases, Skills, and tools to create support agents for specific scenarios.
 
-### 模型配置
+### Model Configuration
 
-![模型配置](screenshots/3.png)
+![Model Configuration](screenshots/3.png)
 
-模型配置支持 OpenAI-compatible 接入方式，可分别配置大语言模型、向量模型和重排模型，并管理上下文、输出、超时、重试和启用状态。
+Model configuration supports OpenAI-compatible providers. You can configure LLMs, embedding models, rerank models, context limits, output settings, timeout, retry behavior, and enablement state.
 
-## 为什么选择它
+## Why Use It
 
-- **AI 先接待**：让 AI Agent 优先处理常见问题、标准流程和知识库问答。
-- **知识约束回答**：通过 RAG 和 Answerability Gate 判断知识片段是否足以回答，减少超出知识库范围的乱答。
-- **自然转人工**：当知识库不足、用户明确要求或流程需要人工确认时，进入人工接管。
-- **会话到工单闭环**：在线会话、客服接待、工单创建、状态流转和处理记录在同一套系统里完成。
-- **适合二次开发**：后端使用 Go，前端使用 Next.js，支持 Skills、MCP 和 OpenAI-compatible 模型接入。
-- **可私有化部署**：支持 SQLite / MySQL 和 Qdrant，适合本地体验、内网部署和企业自托管。
+- **AI-first support**: Let AI Agents handle common questions, standard procedures, and knowledge-base answers first.
+- **Knowledge-constrained replies**: Use RAG and the Answerability Gate to decide whether retrieved knowledge is strong enough to answer, reducing unsupported responses.
+- **Natural human handoff**: Move to human agents when knowledge is insufficient, the user asks for help, or a workflow requires human confirmation.
+- **Conversation-to-ticket loop**: Online chat, support handling, ticket creation, status flow, and progress records stay in one system.
+- **Built for extension**: The backend uses Go, the frontend uses Next.js, and the runtime supports Skills, MCP, and OpenAI-compatible model access.
+- **Self-host friendly**: Supports SQLite / MySQL and Qdrant for local trials, intranet deployment, and enterprise self-hosting.
 
-## 核心能力
+## Core Capabilities
 
-- **AI Agent 客服**：AI 优先回复，支持兜底、确认、工具调用和人工协同。
-- **在线会话系统**：支持访客会话、消息收发、未读状态、会话分配、转接和关闭。
-- **客服工作台**：客服可接管会话、回复用户、转接同事、关联客户和创建工单。
-- **知识库 RAG**：支持知识库、文档、FAQ、切片、向量检索、检索日志和质量分析。
-- **Answerability Gate**：判断检索内容是否足以支撑回答，不足时返回兜底提示并建议联系人工。
-- **工单系统**：支持从会话创建工单、分类、指派、状态流转、进展记录和闭环处理。
-- **客服组织管理**：支持客服档案、客服组、排班和自动分配能力。
-- **AI 扩展能力**：支持 Skills、MCP 调试和外部工具接入。
-- **多入口接入**：提供管理后台、客服工作台、客户侧 Web 页面和嵌入式 SDK。
+- **AI Agent support**: AI replies first, with fallback, confirmation, tool calling, and human collaboration.
+- **Online conversation system**: Visitor sessions, message send/receive, unread status, assignment, transfer, and close flows.
+- **Agent workspace**: Agents can take over conversations, reply to users, transfer teammates, link customers, and create tickets.
+- **Knowledge-base RAG**: Knowledge bases, documents, FAQs, chunking, vector retrieval, retrieval logs, and quality analysis.
+- **Answerability Gate**: Checks whether retrieved content can support an answer; otherwise returns a fallback and recommends human support.
+- **Ticket system**: Create tickets from conversations, categorize, assign, move through status flows, record progress, and close the loop.
+- **Support organization management**: Agent profiles, teams, schedules, and automatic assignment.
+- **AI extensibility**: Skills, MCP debugging, and external tool integration.
+- **Multiple entry points**: Admin dashboard, agent workspace, customer-facing web pages, and embeddable SDK.
 
-## 适用场景
+## Use Cases
 
-- 官网在线客服
-- SaaS 产品支持
-- AI + 人工混合接待
-- 企业内部服务台
-- 售后、报障、投诉和运营支持
-- 需要知识库问答与人工协同的客服团队
+- Website live support
+- SaaS product support
+- AI + human hybrid support
+- Internal enterprise service desk
+- After-sales service, incident reporting, complaints, and operations support
+- Support teams that need knowledge-base Q&A with human collaboration
 
-## 快速开始
+## Quick Start
 
-推荐先用 Docker Compose 体验完整服务：
+The fastest way to try the full stack is Docker Compose:
 
 ```bash
 docker compose up -d --build
 ```
 
-Compose 默认会启动：
+Compose starts:
 
-- `cs-ai-agent`：应用服务，端口 `8083`
-- `mysql`：MySQL 8.4，数据卷 `mysql-data`
-- `qdrant`：向量数据库，数据卷 `qdrant-data`，端口 `6333` / `6334`
+- `cs-ai-agent`: application service on port `8083`
+- `mysql`: MySQL 8.4 with the `mysql-data` volume
+- `qdrant`: vector database with the `qdrant-data` volume, ports `6333` / `6334`
 
-启动后访问：
+After startup, open:
 
-- 管理后台：`http://localhost:8083/dashboard`
-- 客服工作台：`http://localhost:8083/dashboard/conversations`
-- 客户侧 Web 接入示例：`http://localhost:8083/support/demo`
-- 客户侧聊天页：`http://localhost:8083/support/chat`
+- Admin dashboard: `http://localhost:8083/dashboard`
+- Agent workspace: `http://localhost:8083/dashboard/conversations`
+- Customer web integration demo: `http://localhost:8083/support/demo`
+- Customer chat page: `http://localhost:8083/support/chat`
 
-默认管理员账号：
+Default administrator account:
 
-- 用户名：`admin`
-- 密码：`ChangeMe123!`
+- Username: `admin`
+- Password: `ChangeMe123!`
 
-> 首次用于公网或团队环境前，请务必修改默认管理员密码，并配置独立的鉴权、会话和模型密钥。
+> Before exposing the system to the public internet or a team environment, change the default administrator password and configure independent authentication, session, and model secrets.
 
-## 本地开发
+## Local Development
 
-### 环境要求
+### Requirements
 
 - Go `1.26+`
 - Node.js `20+`
 - `pnpm`
 - Qdrant
 
-### 准备配置
+### Prepare Configuration
 
 ```bash
 cp config/config.example.yaml config/config.yaml
 ```
 
-默认配置使用：
+The default configuration uses:
 
-- SQLite：`data/app.db`
-- Backend：`http://127.0.0.1:8083`
-- Qdrant gRPC：`127.0.0.1:6334`
+- SQLite: `data/app.db`
+- Backend: `http://127.0.0.1:8083`
+- Qdrant gRPC: `127.0.0.1:6334`
 
-如果本地还没有 Qdrant，可以用 Docker 启动：
+If Qdrant is not running locally, start it with Docker:
 
 ```bash
 docker run -p 6333:6333 -p 6334:6334 qdrant/qdrant
 ```
 
-安装前端依赖：
+Install frontend dependencies:
 
 ```bash
 cd web
@@ -127,139 +129,139 @@ pnpm install
 cd ..
 ```
 
-同时启动后端和前端开发服务：
+Start backend and frontend development servers together:
 
 ```bash
 make dev
 ```
 
-或分别启动：
+Or start them separately:
 
 ```bash
 make run-go
 make web-dev
 ```
 
-开发环境默认入口：
+Default development URLs:
 
-- 管理后台：`http://localhost:3000/dashboard`
-- 客服工作台：`http://localhost:3000/dashboard/conversations`
-- 客户侧 Web 接入示例：`http://localhost:3000/support/demo`
-- 客户侧聊天页：`http://localhost:3000/support/chat`
+- Admin dashboard: `http://localhost:3000/dashboard`
+- Agent workspace: `http://localhost:3000/dashboard/conversations`
+- Customer web integration demo: `http://localhost:3000/support/demo`
+- Customer chat page: `http://localhost:3000/support/chat`
 
-## 技术栈
+## Tech Stack
 
-- Backend：Golang + Gin + GORM + `github.com/mlogclub/simple`
-- Frontend：Next.js 16 + React 19 + shadcn/ui + Tailwind CSS
-- Database：SQLite / MySQL
-- Vector DB：Qdrant
-- AI：OpenAI-compatible LLM / Embedding + RAG + Skills + MCP
+- Backend: Golang + Gin + GORM + `github.com/mlogclub/simple`
+- Frontend: Next.js 16 + React 19 + shadcn/ui + Tailwind CSS
+- Database: SQLite / MySQL
+- Vector DB: Qdrant
+- AI: OpenAI-compatible LLM / Embedding + RAG + Skills + MCP
 
-## 项目结构
+## Project Structure
 
 ```text
 .
 ├── cmd/                    # server / migration / generator / testdata
 ├── internal/
-│   ├── bootstrap/          # 启动、路由、数据库和迁移初始化
-│   ├── builders/           # model / 聚合结果到 response DTO 的映射
+│   ├── bootstrap/          # startup, routes, database, and migration initialization
+│   ├── builders/           # model / aggregate result to response DTO mapping
 │   ├── handlers/           # dashboard / api / third HTTP handlers
 │   ├── middleware/         # Gin middleware
-│   ├── migration/          # 幂等数据迁移
+│   ├── migration/          # idempotent data migrations
 │   ├── models/             # GORM models
-│   ├── repositories/       # 数据访问层
-│   ├── services/           # 业务编排和事务边界
+│   ├── repositories/       # data access layer
+│   ├── services/           # business orchestration and transaction boundaries
 │   ├── ai/                 # LLM / RAG / Runtime / Skills / MCP
-│   └── pkg/                # config / dto / enums / httpx / utils 等基础包
-├── web/                    # Next.js 前端工程
-│   ├── app/dashboard/      # 管理后台与客服工作台
-│   ├── app/support/        # 客户侧接入和聊天页面
-│   ├── components/         # React 组件
-│   ├── lib/                # API client、SDK 源码和工具函数
-│   └── public/sdk/         # 构建后的嵌入式 SDK
-├── config/                 # 配置文件
-├── docker/                 # Docker 配置
-└── docs/                   # 项目文档
+│   └── pkg/                # config / dto / enums / httpx / utils and shared packages
+├── web/                    # Next.js frontend project
+│   ├── app/dashboard/      # admin dashboard and agent workspace
+│   ├── app/support/        # customer integration and chat pages
+│   ├── components/         # React components
+│   ├── lib/                # API client, SDK source, and utilities
+│   └── public/sdk/         # built embeddable SDK
+├── config/                 # configuration files
+├── docker/                 # Docker configuration
+└── docs/                   # documentation site
 ```
 
-## 常用命令
+## Common Commands
 
 ```bash
-make dev            # 同时启动后端和前端开发服务
-make run            # 构建前端 SPA 后启动后端
-make run-go         # 启动后端，自动确保 SPA 已构建
-make web-dev        # 启动前端开发服务
-make build          # 构建前端 SPA 和当前平台 Go 二进制
-make build-linux    # 构建 linux/amd64 二进制
-make release        # 构建常用平台二进制
-make web-build-spa  # 构建 web 静态 SPA 和嵌入式 SDK
-make test           # 运行 Go 测试，自动确保 SPA 已构建
-make check          # 运行 Go 测试、前端 typecheck 和 lint
-make generator      # 执行代码生成
-make enums          # 生成前端枚举
-make migration      # 执行 migration
-make testdata       # 初始化演示/测试数据
+make dev            # start backend and frontend development servers
+make run            # build the frontend SPA, then start the backend
+make run-go         # start the backend and ensure the SPA has been built
+make web-dev        # start the frontend development server
+make build          # build the frontend SPA and current-platform Go binary
+make build-linux    # build the linux/amd64 binary
+make release        # build common release binaries
+make web-build-spa  # build the web static SPA and embeddable SDK
+make test           # run Go tests after ensuring the SPA is built
+make check          # run Go tests, frontend typecheck, and lint
+make generator      # run code generation
+make enums          # generate frontend enums
+make migration      # run migrations
+make testdata       # initialize demo/test data
 ```
 
-## AI Agent 工作流
+## AI Agent Workflow
 
 ```mermaid
 flowchart TD
-    A[用户发起咨询<br/>Web 客服入口 / Open API] --> B[创建或匹配会话]
-    B --> C[客户发送消息]
-    C --> D[触发 AI Reply Runtime]
-    D --> E[加载会话历史 / AI 配置]
-    E --> F[按绑定知识库执行检索]
-    F --> G{知识片段是否足以回答?}
-    G -- 否 --> Z[返回知识库兜底提示<br/>并建议联系人工客服]
-    G -- 是 --> H[准备 Skills / MCP Tools]
-    H --> I[将可信知识上下文交给 Agent]
-    I --> J{直接回复?}
-    J -- 是 --> K[LLM 基于知识生成回复并返回用户]
-    J -- 否 --> N{是否调用 Graph / MCP Tool?}
-    N -- 是 --> O[执行 Skill / Graph / MCP Tool]
-    O --> P{需要用户确认?}
-    P -- 否 --> I
-    P -- 是 --> Q[向用户发起确认]
-    Q --> R{用户确认结果}
-    R -- 确认转人工 --> S[会话转人工并进入待接入池]
-    S --> T[自动分配或人工分配]
-    T --> U[客服工作台接管]
-    U --> V{是否需要工单跟踪?}
-    V -- 是 --> W[创建或关联工单]
-    V -- 否 --> X[人工继续处理]
+    A[User starts a support request<br/>Web support entry / Open API] --> B[Create or match a conversation]
+    B --> C[Customer sends a message]
+    C --> D[Trigger AI Reply Runtime]
+    D --> E[Load conversation history / AI configuration]
+    E --> F[Retrieve from bound knowledge bases]
+    F --> G{Are retrieved chunks enough to answer?}
+    G -- No --> Z[Return knowledge fallback<br/>and recommend human support]
+    G -- Yes --> H[Prepare Skills / MCP Tools]
+    H --> I[Pass trusted knowledge context to the Agent]
+    I --> J{Direct reply?}
+    J -- Yes --> K[LLM generates a knowledge-grounded reply]
+    J -- No --> N{Call Graph / MCP Tool?}
+    N -- Yes --> O[Run Skill / Graph / MCP Tool]
+    O --> P{Need user confirmation?}
+    P -- No --> I
+    P -- Yes --> Q[Ask the user to confirm]
+    Q --> R{Confirmation result}
+    R -- Confirm handoff --> S[Move conversation to human handoff pool]
+    S --> T[Automatic or manual assignment]
+    T --> U[Agent workspace takeover]
+    U --> V{Need ticket tracking?}
+    V -- Yes --> W[Create or link a ticket]
+    V -- No --> X[Human agent continues handling]
     W --> X
-    X --> Y[问题解决并关闭]
-    R -- 确认建单 --> AA[从当前会话创建工单]
+    X --> Y[Resolve and close]
+    R -- Confirm ticket --> AA[Create a ticket from the current conversation]
     AA --> I
-    R -- 取消 --> K
-    N -- 否 --> K
+    R -- Cancel --> K
+    N -- No --> K
 ```
 
-## 业务闭环
+## Support Loop
 
 ```mermaid
 flowchart LR
-    A[客户咨询] --> B[AI Agent 接待]
-    B --> C{知识库可回答?}
-    C -- 是 --> D[AI 基于可信知识回复]
-    C -- 否 --> E[兜底提示 / 建议人工]
-    D --> F{是否需要人工?}
-    E --> G[人工接管]
-    F -- 否 --> H[会话结束或沉淀数据]
-    F -- 是 --> G
-    G --> I[客服工作台处理]
-    I --> J{是否需要跟踪?}
-    J -- 是 --> K[创建 / 关联工单]
-    J -- 否 --> L[直接解决]
-    K --> M[工单流转与进展记录]
-    M --> N[处理完成]
+    A[Customer request] --> B[AI Agent handles first]
+    B --> C{Can the knowledge base answer?}
+    C -- Yes --> D[AI replies with trusted knowledge]
+    C -- No --> E[Fallback / recommend human support]
+    D --> F{Need a human?}
+    E --> G[Human takeover]
+    F -- No --> H[Conversation ends or data is retained]
+    F -- Yes --> G
+    G --> I[Agent workspace handles the case]
+    I --> J{Need follow-up tracking?}
+    J -- Yes --> K[Create / link a ticket]
+    J -- No --> L[Resolve directly]
+    K --> M[Ticket status flow and progress records]
+    M --> N[Complete]
     L --> N
 ```
 
-## Docker 镜像
+## Docker Image
 
-如果只需要构建应用镜像，可以自行准备 MySQL 和 Qdrant，并挂载配置文件：
+If you only need to build the application image, prepare MySQL and Qdrant yourself and mount a configuration file:
 
 ```bash
 docker build -t cs-ai-agent .
@@ -269,15 +271,15 @@ docker run --rm -p 8083:8083 \
   cs-ai-agent
 ```
 
-Compose 使用 [docker/cs-ai-agent.yaml](docker/cs-ai-agent.yaml) 作为容器内配置，应用会通过 Docker 内部服务名访问 `mysql` 和 `qdrant`。
+Compose uses [docker/cs-ai-agent.yaml](docker/cs-ai-agent.yaml) as the in-container configuration. The application reaches `mysql` and `qdrant` through Docker service names.
 
-## 开源定位
+## Open-source Positioning
 
-`贝壳 AI 客服`适合作为以下方向的开源基础项目：
+`Beike AI Support` is useful as an open-source foundation for:
 
-- AI 客服系统
-- AI Helpdesk / AI Support Platform
-- RAG 可回答性判定 + Human Handoff 的落地样板
-- 面向企业场景的 AI Agent 应用框架
+- AI customer support systems
+- AI Helpdesk / AI Support Platform projects
+- RAG answerability + human handoff implementation references
+- Enterprise AI Agent application frameworks
 
-如果你在寻找一个以 AI Agent 为中心，而不是仅仅把 LLM 嵌进聊天框的客服系统，这个项目就是为此设计的。
+If you are looking for a customer support system centered on AI Agents rather than a simple LLM chat box, this project is designed for that purpose.
