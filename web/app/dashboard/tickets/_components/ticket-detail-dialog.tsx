@@ -1,12 +1,22 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { MessageSquareTextIcon, PencilIcon, PlusIcon, RefreshCcwIcon, SendIcon, UserRoundIcon } from "lucide-react"
+import {
+  CheckIcon,
+  ChevronDownIcon,
+  MessageSquareTextIcon,
+  PencilIcon,
+  PlusIcon,
+  RefreshCcwIcon,
+  SendIcon,
+  UserRoundIcon,
+} from "lucide-react"
 import { toast } from "sonner"
 
 import { type CustomerFormSavePayload } from "@/components/customer-form"
 import { CustomerFormDialog } from "@/components/customer-form-dialog"
 import { CustomerLinkOrCreateDialog } from "@/components/customer-link-or-create-dialog"
+import { useConfirm } from "@/components/confirm-provider"
 import { ContentEditor } from "@/components/content-editor"
 import { ProjectDialog } from "@/components/project-dialog"
 import { isRichTextEmpty, SafeRichHTML } from "@/components/safe-rich-html"
@@ -19,6 +29,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Separator } from "@/components/ui/separator"
 import { saveCustomerProfile } from "@/lib/api/customer"
 import {
@@ -35,7 +51,7 @@ import { useI18n } from "@/i18n/provider"
 import { cn, formatDateTime } from "@/lib/utils"
 import { EditDialog } from "./edit"
 import { TicketAssignDialog } from "./ticket-assign-dialog"
-import { TicketStatusBadge } from "./ticket-status-badge"
+import { getTicketStatusMeta, TicketStatusBadge } from "./ticket-status-badge"
 
 type TicketDetailDialogProps = {
   ticketId: number | null
@@ -52,6 +68,10 @@ function getStatusOptions(t: TFunction): Array<{ value: TicketStatus; label: str
     { value: "in_progress", label: t("ticket.statusInProgress") },
     { value: "done", label: t("ticket.statusDone") },
   ]
+}
+
+function getStatusLabel(status: TicketStatus, t: TFunction) {
+  return getStatusOptions(t).find((option) => option.value === status)?.label ?? status
 }
 
 function sourceLabel(source: string, t: TFunction) {
@@ -83,6 +103,7 @@ export function TicketDetailDialog({
   onChanged,
 }: TicketDetailDialogProps) {
   const t = useI18n()
+  const confirm = useConfirm()
   const [detail, setDetail] = useState<TicketDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [statusSaving, setStatusSaving] = useState<TicketStatus | null>(null)
@@ -156,6 +177,17 @@ export function TicketDetailDialog({
 
   async function handleStatusChange(status: TicketStatus) {
     if (!detail || detail.ticket.status === status) {
+      return
+    }
+    const confirmed = await confirm({
+      title: t("ticket.statusChangeConfirmTitle"),
+      description: t("ticket.statusChangeConfirmDescription", {
+        from: getStatusLabel(detail.ticket.status, t),
+        to: getStatusLabel(status, t),
+      }),
+      confirmText: t("ticket.statusChangeConfirm"),
+    })
+    if (!confirmed) {
       return
     }
     const activeTicketId = detail.ticket.id
@@ -363,20 +395,42 @@ export function TicketDetailDialog({
 
               <section className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
                 <div className="space-y-2">
-                  <div className="text-sm font-medium text-muted-foreground">{t("ticket.columnStatus")}</div>
-                  <div className="flex flex-wrap gap-2">
-                    {statusOptions.map((option) => (
-                      <Button
-                        key={option.value}
-                        type="button"
-                        size="sm"
-                        variant={ticket.status === option.value ? "default" : "outline"}
-                        disabled={!!statusSaving}
-                        onClick={() => void handleStatusChange(option.value)}
+                  <div className="text-sm font-medium text-muted-foreground">{t("ticket.currentStatus")}</div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={!!statusSaving}
+                            className={cn(
+                              "h-9 min-w-36 justify-between gap-2 border px-3 font-medium",
+                              getTicketStatusMeta(ticket.status)?.className,
+                            )}
+                          />
+                        }
                       >
-                        {statusSaving === option.value ? t("ticket.updating") : option.label}
-                      </Button>
-                    ))}
+                        <span>{statusSaving ? t("ticket.updating") : getStatusLabel(ticket.status, t)}</span>
+                        <ChevronDownIcon className="size-4 opacity-70" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-44 min-w-44">
+                        {statusOptions.map((option) => {
+                          const selected = ticket.status === option.value
+                          return (
+                            <DropdownMenuItem
+                              key={option.value}
+                              disabled={!!statusSaving || selected}
+                              onClick={() => void handleStatusChange(option.value)}
+                              className="justify-between"
+                            >
+                              <span>{option.label}</span>
+                              {selected ? <CheckIcon className="size-4 text-primary" /> : null}
+                            </DropdownMenuItem>
+                          )
+                        })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
                 <div className="space-y-2">

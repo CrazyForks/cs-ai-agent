@@ -14,9 +14,13 @@ export function ticketStatusLabel(status: string) {
   return status
 }
 
+export function getTicketStatusMeta(status: string) {
+  return statusMap[status as TicketStatus]
+}
+
 export function TicketStatusBadge({ status }: { status: string }) {
   const t = useI18n()
-  const option = statusMap[status as TicketStatus]
+  const option = getTicketStatusMeta(status)
 
   return (
     <Badge variant="outline" className={option?.className ?? "border-border bg-muted text-muted-foreground"}>
