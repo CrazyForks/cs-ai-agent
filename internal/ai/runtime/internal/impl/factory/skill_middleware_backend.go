@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"strings"
 
-	runtimeinstruction "cs-ai-agent/internal/ai/runtime/instruction"
-	runtimetooling "cs-ai-agent/internal/ai/runtime/tooling"
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/enums"
-	"cs-ai-agent/internal/pkg/utils"
-	"cs-ai-agent/internal/services"
+	runtimeinstruction "agent-desk/internal/ai/runtime/instruction"
+	runtimetooling "agent-desk/internal/ai/runtime/tooling"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/enums"
+	"agent-desk/internal/pkg/utils"
+	"agent-desk/internal/services"
 
 	einoskill "github.com/cloudwego/eino/adk/middlewares/skill"
 )

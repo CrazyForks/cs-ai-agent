@@ -1,7 +1,7 @@
 package config
 
 import (
-	"cs-ai-agent/internal/pkg/enums"
+	"agent-desk/internal/pkg/enums"
 	"fmt"
 	"os"
 

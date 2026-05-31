@@ -1,9 +1,9 @@
 package bootstrap
 
 import (
-	"cs-ai-agent/internal/handlers/api"
-	"cs-ai-agent/internal/handlers/dashboard"
-	"cs-ai-agent/internal/handlers/third"
+	"agent-desk/internal/handlers/api"
+	"agent-desk/internal/handlers/dashboard"
+	"agent-desk/internal/handlers/third"
 
 	"github.com/gin-gonic/gin"
 )

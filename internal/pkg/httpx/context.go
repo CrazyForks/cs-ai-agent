@@ -1,9 +1,9 @@
 package httpx
 
 import (
-	"cs-ai-agent/internal/pkg/httpx/params"
-	"cs-ai-agent/internal/pkg/openidentity"
-	"cs-ai-agent/internal/pkg/tracex"
+	"agent-desk/internal/pkg/httpx/params"
+	"agent-desk/internal/pkg/openidentity"
+	"agent-desk/internal/pkg/tracex"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/common/strs"

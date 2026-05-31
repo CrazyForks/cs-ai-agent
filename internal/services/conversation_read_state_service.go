@@ -1,16 +1,17 @@
 package services
 
 import (
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/dto"
-	"cs-ai-agent/internal/pkg/enums"
-	"cs-ai-agent/internal/pkg/errorsx"
-	"cs-ai-agent/internal/pkg/openidentity"
-	"cs-ai-agent/internal/repositories"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/dto"
+	"agent-desk/internal/pkg/enums"
+	"agent-desk/internal/pkg/errorsx"
+	"agent-desk/internal/pkg/openidentity"
+	"agent-desk/internal/repositories"
 	"strings"
 	"time"
 
-	"cs-ai-agent/internal/pkg/httpx/params"
+	"agent-desk/internal/pkg/httpx/params"
+
 	"github.com/mlogclub/simple/common/strs"
 	"github.com/mlogclub/simple/sqls"
 	"gorm.io/gorm"

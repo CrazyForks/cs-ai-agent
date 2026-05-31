@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/config"
-	"cs-ai-agent/internal/pkg/enums"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/config"
+	"agent-desk/internal/pkg/enums"
 )
 
 func TestOIDCLoginAutoCreatesSystemUser(t *testing.T) {

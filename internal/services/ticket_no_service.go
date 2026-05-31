@@ -1,8 +1,8 @@
 package services
 
 import (
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/repositories"
+	"agent-desk/internal/models"
+	"agent-desk/internal/repositories"
 	"fmt"
 	"strings"
 	"sync"

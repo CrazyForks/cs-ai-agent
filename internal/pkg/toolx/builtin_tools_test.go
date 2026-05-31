@@ -3,7 +3,7 @@ package toolx
 import (
 	"testing"
 
-	"cs-ai-agent/internal/pkg/i18nx"
+	"agent-desk/internal/pkg/i18nx"
 )
 
 func TestResolveToolMetadata(t *testing.T) {

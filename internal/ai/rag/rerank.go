@@ -10,8 +10,8 @@ import (
 	"sort"
 	"time"
 
-	"cs-ai-agent/internal/ai"
-	"cs-ai-agent/internal/pkg/enums"
+	"agent-desk/internal/ai"
+	"agent-desk/internal/pkg/enums"
 )
 
 type rerank struct{}

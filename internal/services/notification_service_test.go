@@ -3,9 +3,9 @@ package services_test
 import (
 	"testing"
 
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/dto/request"
-	"cs-ai-agent/internal/services"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/dto/request"
+	"agent-desk/internal/services"
 
 	"github.com/glebarez/sqlite"
 	"github.com/mlogclub/simple/sqls"

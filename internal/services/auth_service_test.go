@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/config"
-	"cs-ai-agent/internal/pkg/dto/request"
-	"cs-ai-agent/internal/pkg/enums"
-	"cs-ai-agent/internal/pkg/errorsx"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/config"
+	"agent-desk/internal/pkg/dto/request"
+	"agent-desk/internal/pkg/enums"
+	"agent-desk/internal/pkg/errorsx"
 
 	"github.com/glebarez/sqlite"
 	"github.com/mlogclub/simple/sqls"

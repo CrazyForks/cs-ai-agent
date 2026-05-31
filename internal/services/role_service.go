@@ -1,18 +1,19 @@
 package services
 
 import (
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/dto"
-	"cs-ai-agent/internal/pkg/dto/request"
-	"cs-ai-agent/internal/pkg/enums"
-	"cs-ai-agent/internal/pkg/errorsx"
-	"cs-ai-agent/internal/pkg/utils"
-	"cs-ai-agent/internal/repositories"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/dto"
+	"agent-desk/internal/pkg/dto/request"
+	"agent-desk/internal/pkg/enums"
+	"agent-desk/internal/pkg/errorsx"
+	"agent-desk/internal/pkg/utils"
+	"agent-desk/internal/repositories"
 	"slices"
 	"strings"
 	"time"
 
-	"cs-ai-agent/internal/pkg/httpx/params"
+	"agent-desk/internal/pkg/httpx/params"
+
 	"github.com/mlogclub/simple/sqls"
 )
 

@@ -1,6 +1,6 @@
 package dto
 
-import "cs-ai-agent/internal/pkg/enums"
+import "agent-desk/internal/pkg/enums"
 
 type AuthPrincipal struct {
 	UserID      int64

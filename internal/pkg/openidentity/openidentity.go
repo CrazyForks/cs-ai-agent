@@ -1,13 +1,14 @@
 package openidentity
 
 import (
-	"cs-ai-agent/internal/pkg/enums"
-	"cs-ai-agent/internal/pkg/errorsx"
+	"agent-desk/internal/pkg/enums"
+	"agent-desk/internal/pkg/errorsx"
 	"errors"
 	"net/url"
 	"strings"
 
-	"cs-ai-agent/internal/pkg/httpx/params"
+	"agent-desk/internal/pkg/httpx/params"
+
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/mlogclub/simple/common/strs"

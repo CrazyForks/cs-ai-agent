@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
-	applicationruntime "cs-ai-agent/internal/ai/application/runtime"
-	"cs-ai-agent/internal/models"
-	svc "cs-ai-agent/internal/services"
+	applicationruntime "agent-desk/internal/ai/application/runtime"
+	"agent-desk/internal/models"
+	svc "agent-desk/internal/services"
 )
 
 type interruptMessagePreview struct {

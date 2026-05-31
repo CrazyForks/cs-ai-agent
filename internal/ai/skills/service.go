@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"cs-ai-agent/internal/models"
+	"agent-desk/internal/models"
 )
 
 var RuntimeService = newService()

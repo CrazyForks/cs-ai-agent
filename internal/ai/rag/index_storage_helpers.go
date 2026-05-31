@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 
-	"cs-ai-agent/internal/ai/rag/vectordb"
-	"cs-ai-agent/internal/models"
+	"agent-desk/internal/ai/rag/vectordb"
+	"agent-desk/internal/models"
 
 	"github.com/mlogclub/simple/sqls"
 )

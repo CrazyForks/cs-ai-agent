@@ -1,8 +1,8 @@
 package builders
 
 import (
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/dto/response"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/dto/response"
 )
 
 func BuildQuickReplyResponse(item *models.QuickReply) *response.QuickReplyResponse {

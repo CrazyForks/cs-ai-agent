@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"cs-ai-agent/internal/ai"
-	"cs-ai-agent/internal/ai/rag/vectordb"
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/repositories"
+	"agent-desk/internal/ai"
+	"agent-desk/internal/ai/rag/vectordb"
+	"agent-desk/internal/models"
+	"agent-desk/internal/repositories"
 
 	"github.com/mlogclub/simple/common/strs"
 	"github.com/mlogclub/simple/sqls"

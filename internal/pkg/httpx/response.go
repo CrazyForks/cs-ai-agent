@@ -1,7 +1,7 @@
 package httpx
 
 import (
-	"cs-ai-agent/internal/pkg/i18nx"
+	"agent-desk/internal/pkg/i18nx"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

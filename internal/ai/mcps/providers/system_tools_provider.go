@@ -1,8 +1,8 @@
 package providers
 
 import (
+	"agent-desk/internal/pkg/config"
 	"context"
-	"cs-ai-agent/internal/pkg/config"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -46,12 +46,12 @@ func (p *systemToolProvider) Register(server *mcp.Server) error {
 		server,
 		&mcp.Tool{
 			Name:        "service_info",
-			Description: "查看当前 cs-ai-agent 服务的基础运行信息。",
+			Description: "查看当前 agent-desk 服务的基础运行信息。",
 		},
 		func(ctx context.Context, req *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, map[string]any, error) {
 			cfg := config.Current()
 			return nil, map[string]any{
-				"name":        "cs-ai-agent",
+				"name":        "agent-desk",
 				"version":     "v1",
 				"mcpPath":     "/api/mcp",
 				"port":        cfg.Server.Port,

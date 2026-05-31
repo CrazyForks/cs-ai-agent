@@ -1,6 +1,6 @@
 package response
 
-import "cs-ai-agent/internal/pkg/enums"
+import "agent-desk/internal/pkg/enums"
 
 type QuickReplyResponse struct {
 	ID        int64        `json:"id"`

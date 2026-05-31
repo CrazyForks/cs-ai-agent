@@ -3,8 +3,8 @@ package graphs
 import (
 	"testing"
 
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/enums"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/enums"
 )
 
 func TestTriageServiceRequestResult_PrepareTicket(t *testing.T) {

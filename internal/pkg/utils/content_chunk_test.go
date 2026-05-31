@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"cs-ai-agent/internal/pkg/enums"
+	"agent-desk/internal/pkg/enums"
 	"reflect"
 	"testing"
 )

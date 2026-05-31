@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/dto"
-	"cs-ai-agent/internal/pkg/enums"
-	"cs-ai-agent/internal/repositories"
-	svc "cs-ai-agent/internal/services"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/dto"
+	"agent-desk/internal/pkg/enums"
+	"agent-desk/internal/repositories"
+	svc "agent-desk/internal/services"
 
 	"github.com/mlogclub/simple/sqls"
 )

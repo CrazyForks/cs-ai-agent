@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/enums"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/enums"
 
 	openai "github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/components/model"

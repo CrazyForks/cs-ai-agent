@@ -3,7 +3,7 @@ package runtime
 import (
 	"context"
 
-	applicationruntime "cs-ai-agent/internal/ai/application/runtime"
+	applicationruntime "agent-desk/internal/ai/application/runtime"
 )
 
 var Service = newService()

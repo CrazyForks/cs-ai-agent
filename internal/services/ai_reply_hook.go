@@ -1,5 +1,5 @@
 package services
 
-import "cs-ai-agent/internal/models"
+import "agent-desk/internal/models"
 
 var TriggerAIReplyAsyncHook func(conversation models.Conversation, message models.Message)

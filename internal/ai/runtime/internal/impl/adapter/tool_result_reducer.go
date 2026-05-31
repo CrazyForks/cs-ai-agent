@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"cs-ai-agent/internal/ai/mcps"
+	"agent-desk/internal/ai/mcps"
 )
 
 const (

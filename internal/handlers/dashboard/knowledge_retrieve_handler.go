@@ -1,15 +1,15 @@
 package dashboard
 
 import (
+	"agent-desk/internal/pkg/httpx"
 	"context"
-	"cs-ai-agent/internal/pkg/httpx"
 
-	"cs-ai-agent/internal/ai/rag"
-	"cs-ai-agent/internal/pkg/constants"
-	"cs-ai-agent/internal/pkg/dto/request"
-	"cs-ai-agent/internal/services"
+	"agent-desk/internal/ai/rag"
+	"agent-desk/internal/pkg/constants"
+	"agent-desk/internal/pkg/dto/request"
+	"agent-desk/internal/services"
 
-	"cs-ai-agent/internal/pkg/httpx/params"
+	"agent-desk/internal/pkg/httpx/params"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/web"

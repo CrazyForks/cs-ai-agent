@@ -1,8 +1,8 @@
 package third
 
 import (
-	"cs-ai-agent/internal/pkg/httpx/params"
-	"cs-ai-agent/internal/wxwork"
+	"agent-desk/internal/pkg/httpx/params"
+	"agent-desk/internal/wxwork"
 	"io"
 	"net/http"
 

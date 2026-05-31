@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"cs-ai-agent/internal/models"
+	"agent-desk/internal/models"
 )
 
 func newRetrieveTrace() *RetrieveTrace {

@@ -1,8 +1,8 @@
 package rag
 
 import (
-	"cs-ai-agent/internal/ai/rag/vectordb"
-	"cs-ai-agent/internal/pkg/enums"
+	"agent-desk/internal/ai/rag/vectordb"
+	"agent-desk/internal/pkg/enums"
 	"testing"
 )
 

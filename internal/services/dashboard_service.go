@@ -1,11 +1,11 @@
 package services
 
 import (
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/dto/response"
-	"cs-ai-agent/internal/pkg/enums"
-	"cs-ai-agent/internal/pkg/i18nx"
-	"cs-ai-agent/internal/repositories"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/dto/response"
+	"agent-desk/internal/pkg/enums"
+	"agent-desk/internal/pkg/i18nx"
+	"agent-desk/internal/repositories"
 	"fmt"
 	"sort"
 	"strings"

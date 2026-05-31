@@ -3,8 +3,8 @@ package toolx
 import (
 	"strings"
 
-	"cs-ai-agent/internal/pkg/enums"
-	"cs-ai-agent/internal/pkg/i18nx"
+	"agent-desk/internal/pkg/enums"
+	"agent-desk/internal/pkg/i18nx"
 )
 
 type ToolSpec struct {

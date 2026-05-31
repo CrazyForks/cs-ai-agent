@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"strings"
 
-	"cs-ai-agent/internal/ai/runtime/tooling"
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/tracex"
-	"cs-ai-agent/internal/services"
+	"agent-desk/internal/ai/runtime/tooling"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/tracex"
+	"agent-desk/internal/services"
 
 	componenttool "github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"

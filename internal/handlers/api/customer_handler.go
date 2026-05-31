@@ -1,9 +1,9 @@
 package api
 
 import (
-	"cs-ai-agent/internal/pkg/httpx"
-	"cs-ai-agent/internal/pkg/openidentity"
-	"cs-ai-agent/internal/services"
+	"agent-desk/internal/pkg/httpx"
+	"agent-desk/internal/pkg/openidentity"
+	"agent-desk/internal/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/web"

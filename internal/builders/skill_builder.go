@@ -3,9 +3,9 @@ package builders
 import (
 	"encoding/json"
 
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/dto/response"
-	"cs-ai-agent/internal/pkg/enums"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/dto/response"
+	"agent-desk/internal/pkg/enums"
 )
 
 func BuildSkillDefinitionResponse(item *models.SkillDefinition) response.SkillDefinitionResponse {

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"cs-ai-agent/internal/models"
+	"agent-desk/internal/models"
 )
 
 func TestBuildFAQChunkContent(t *testing.T) {

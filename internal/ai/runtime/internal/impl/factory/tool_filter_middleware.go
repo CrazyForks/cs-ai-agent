@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	einocallbacks "cs-ai-agent/internal/ai/runtime/internal/impl/callbacks"
-	"cs-ai-agent/internal/pkg/toolx"
+	einocallbacks "agent-desk/internal/ai/runtime/internal/impl/callbacks"
+	"agent-desk/internal/pkg/toolx"
 
 	"github.com/cloudwego/eino/adk"
 	"github.com/cloudwego/eino/components/model"

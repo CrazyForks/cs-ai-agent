@@ -3,9 +3,9 @@ package executor
 import (
 	"strings"
 
-	"cs-ai-agent/internal/ai/runtime/internal/impl/retrievers"
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/enums"
+	"agent-desk/internal/ai/runtime/internal/impl/retrievers"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/enums"
 
 	"github.com/cloudwego/eino/schema"
 	"github.com/mlogclub/simple/common/strs"

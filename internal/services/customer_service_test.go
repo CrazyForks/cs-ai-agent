@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/enums"
-	"cs-ai-agent/internal/pkg/openidentity"
-	"cs-ai-agent/internal/services"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/enums"
+	"agent-desk/internal/pkg/openidentity"
+	"agent-desk/internal/services"
 
 	"github.com/glebarez/sqlite"
 	"github.com/mlogclub/simple/sqls"

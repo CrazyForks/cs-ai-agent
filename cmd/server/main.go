@@ -4,8 +4,8 @@ import (
 	"flag"
 	"log/slog"
 
-	"cs-ai-agent/internal/bootstrap"
-	"cs-ai-agent/internal/pkg/config"
+	"agent-desk/internal/bootstrap"
+	"agent-desk/internal/pkg/config"
 )
 
 func main() {

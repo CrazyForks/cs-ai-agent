@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	applicationruntime "cs-ai-agent/internal/ai/application/runtime"
-	"cs-ai-agent/internal/pkg/toolx"
+	applicationruntime "agent-desk/internal/ai/application/runtime"
+	"agent-desk/internal/pkg/toolx"
 )
 
 func TestSummaryPrimaryToolCodePrefersToolSearchTarget(t *testing.T) {

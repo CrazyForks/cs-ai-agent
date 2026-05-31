@@ -4,13 +4,13 @@ import (
 	"strings"
 	"time"
 
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/dto/request"
-	"cs-ai-agent/internal/pkg/dto/response"
-	"cs-ai-agent/internal/pkg/enums"
-	"cs-ai-agent/internal/pkg/errorsx"
-	"cs-ai-agent/internal/pkg/utils"
-	"cs-ai-agent/internal/repositories"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/dto/request"
+	"agent-desk/internal/pkg/dto/response"
+	"agent-desk/internal/pkg/enums"
+	"agent-desk/internal/pkg/errorsx"
+	"agent-desk/internal/pkg/utils"
+	"agent-desk/internal/repositories"
 
 	"github.com/mlogclub/simple/sqls"
 )

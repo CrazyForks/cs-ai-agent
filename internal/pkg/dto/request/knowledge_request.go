@@ -1,6 +1,6 @@
 package request
 
-import "cs-ai-agent/internal/pkg/enums"
+import "agent-desk/internal/pkg/enums"
 
 type CreateKnowledgeBaseRequest struct {
 	Name                  string  `json:"name"`

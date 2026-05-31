@@ -3,8 +3,8 @@ package runtime
 import (
 	"strings"
 
-	applicationruntime "cs-ai-agent/internal/ai/application/runtime"
-	svc "cs-ai-agent/internal/services"
+	applicationruntime "agent-desk/internal/ai/application/runtime"
+	svc "agent-desk/internal/services"
 )
 
 var AIReplyService = newAIReplyService()

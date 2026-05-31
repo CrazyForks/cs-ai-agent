@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	runtimetooling "cs-ai-agent/internal/ai/runtime/tooling"
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/toolx"
+	runtimetooling "agent-desk/internal/ai/runtime/tooling"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/toolx"
 )
 
 func BuildSelectedSkillActivationInstruction(skill *models.SkillDefinition) string {

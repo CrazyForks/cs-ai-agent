@@ -6,10 +6,10 @@ import (
 	"log/slog"
 	"strings"
 
-	"cs-ai-agent/internal/events"
-	"cs-ai-agent/internal/pkg/dto/request"
-	"cs-ai-agent/internal/pkg/eventbus"
-	"cs-ai-agent/internal/services"
+	"agent-desk/internal/events"
+	"agent-desk/internal/pkg/dto/request"
+	"agent-desk/internal/pkg/eventbus"
+	"agent-desk/internal/services"
 
 	"github.com/mlogclub/simple/common/strs"
 )

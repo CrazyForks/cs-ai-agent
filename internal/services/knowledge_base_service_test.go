@@ -3,7 +3,7 @@ package services
 import (
 	"testing"
 
-	"cs-ai-agent/internal/pkg/dto/request"
+	"agent-desk/internal/pkg/dto/request"
 )
 
 func TestBuildKnowledgeBaseModelUsesLowerDefaultScoreThreshold(t *testing.T) {

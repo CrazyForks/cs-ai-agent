@@ -3,10 +3,10 @@ package tools
 import (
 	"context"
 
-	"cs-ai-agent/internal/ai/runtime/graphs"
-	"cs-ai-agent/internal/ai/runtime/registry"
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/toolx"
+	"agent-desk/internal/ai/runtime/graphs"
+	"agent-desk/internal/ai/runtime/registry"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/toolx"
 
 	einotool "github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"

@@ -28,7 +28,7 @@ services:
       - "6333:6333"
       - "6334:6334"
 
-  cs-ai-agent:
+  agent-desk:
     build:
       context: .
       dockerfile: Dockerfile
@@ -42,12 +42,12 @@ services:
     ports:
       - "8083:8083"
     volumes:
-      - cs-ai-agent-data:/app/data
-      - ./docker/cs-ai-agent.yaml:/app/config/config.yaml:ro
+      - agent-desk-data:/app/data
+      - ./docker/agent-desk.yaml:/app/config/config.yaml:ro
     environment:
       TZ: Asia/Shanghai
 
 volumes:
   mysql-data:
   qdrant-data:
-  cs-ai-agent-data:
+  agent-desk-data:

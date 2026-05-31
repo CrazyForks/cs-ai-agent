@@ -1,6 +1,6 @@
 package chunk
 
-import "cs-ai-agent/internal/pkg/enums"
+import "agent-desk/internal/pkg/enums"
 
 type ChunkRequest struct {
 	KnowledgeBaseID int64

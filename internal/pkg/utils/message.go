@@ -1,11 +1,11 @@
 package utils
 
 import (
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/enums"
+	"agent-desk/internal/repositories"
+	"agent-desk/internal/services/storage"
 	"bytes"
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/enums"
-	"cs-ai-agent/internal/repositories"
-	"cs-ai-agent/internal/services/storage"
 	"encoding/json"
 	"fmt"
 	"strings"

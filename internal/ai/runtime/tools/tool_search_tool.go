@@ -7,10 +7,10 @@ import (
 	"slices"
 	"strings"
 
-	"cs-ai-agent/internal/ai/mcps"
-	impladapter "cs-ai-agent/internal/ai/runtime/internal/impl/adapter"
-	"cs-ai-agent/internal/ai/runtime/registry"
-	"cs-ai-agent/internal/pkg/toolx"
+	"agent-desk/internal/ai/mcps"
+	impladapter "agent-desk/internal/ai/runtime/internal/impl/adapter"
+	"agent-desk/internal/ai/runtime/registry"
+	"agent-desk/internal/pkg/toolx"
 
 	einotool "github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"

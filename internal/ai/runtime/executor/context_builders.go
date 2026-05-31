@@ -4,9 +4,9 @@ import (
 	"context"
 	"strings"
 
-	"cs-ai-agent/internal/ai/runtime/internal/impl/adapter"
-	"cs-ai-agent/internal/ai/runtime/internal/impl/callbacks"
-	"cs-ai-agent/internal/pkg/utils"
+	"agent-desk/internal/ai/runtime/internal/impl/adapter"
+	"agent-desk/internal/ai/runtime/internal/impl/callbacks"
+	"agent-desk/internal/pkg/utils"
 
 	"github.com/cloudwego/eino/schema"
 )

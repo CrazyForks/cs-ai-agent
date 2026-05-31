@@ -1,8 +1,8 @@
 package executor
 
 import (
-	"cs-ai-agent/internal/ai/runtime/registry"
-	"cs-ai-agent/internal/models"
+	"agent-desk/internal/ai/runtime/registry"
+	"agent-desk/internal/models"
 )
 
 type RunInput struct {

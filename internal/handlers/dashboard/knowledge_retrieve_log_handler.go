@@ -1,13 +1,13 @@
 package dashboard
 
 import (
-	"cs-ai-agent/internal/builders"
-	"cs-ai-agent/internal/pkg/constants"
-	"cs-ai-agent/internal/pkg/dto/response"
-	"cs-ai-agent/internal/pkg/httpx"
-	"cs-ai-agent/internal/services"
+	"agent-desk/internal/builders"
+	"agent-desk/internal/pkg/constants"
+	"agent-desk/internal/pkg/dto/response"
+	"agent-desk/internal/pkg/httpx"
+	"agent-desk/internal/services"
 
-	"cs-ai-agent/internal/pkg/httpx/params"
+	"agent-desk/internal/pkg/httpx/params"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/web"

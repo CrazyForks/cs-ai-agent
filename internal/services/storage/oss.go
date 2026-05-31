@@ -1,9 +1,9 @@
 package storage
 
 import (
-	"cs-ai-agent/internal/pkg/config"
-	"cs-ai-agent/internal/pkg/enums"
-	"cs-ai-agent/internal/pkg/errorsx"
+	"agent-desk/internal/pkg/config"
+	"agent-desk/internal/pkg/enums"
+	"agent-desk/internal/pkg/errorsx"
 	"fmt"
 	"io"
 	"net/url"

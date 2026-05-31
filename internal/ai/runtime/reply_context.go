@@ -1,8 +1,8 @@
 package runtime
 
 import (
-	applicationruntime "cs-ai-agent/internal/ai/application/runtime"
-	"cs-ai-agent/internal/models"
+	applicationruntime "agent-desk/internal/ai/application/runtime"
+	"agent-desk/internal/models"
 )
 
 type aiReplyContext struct {

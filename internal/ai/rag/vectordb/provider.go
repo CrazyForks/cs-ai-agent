@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"cs-ai-agent/internal/pkg/config"
-	"cs-ai-agent/internal/pkg/enums"
+	"agent-desk/internal/pkg/config"
+	"agent-desk/internal/pkg/enums"
 )
 
 var defaultProvider Provider

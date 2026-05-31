@@ -1,6 +1,6 @@
 package skills
 
-import "cs-ai-agent/internal/models"
+import "agent-desk/internal/models"
 
 // RuntimeContext 表示一次 Skill 运行的输入上下文。
 type RuntimeContext struct {

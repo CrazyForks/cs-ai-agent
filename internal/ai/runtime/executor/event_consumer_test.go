@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"cs-ai-agent/internal/ai/runtime/tooling"
-	"cs-ai-agent/internal/pkg/toolx"
+	"agent-desk/internal/ai/runtime/tooling"
+	"agent-desk/internal/pkg/toolx"
 
 	"github.com/cloudwego/eino/adk"
 	"github.com/cloudwego/eino/schema"

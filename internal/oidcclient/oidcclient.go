@@ -1,13 +1,13 @@
 package oidcclient
 
 import (
+	"agent-desk/internal/pkg/config"
+	"agent-desk/internal/pkg/dto/response"
+	"agent-desk/internal/pkg/errorsx"
 	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
-	"cs-ai-agent/internal/pkg/config"
-	"cs-ai-agent/internal/pkg/dto/response"
-	"cs-ai-agent/internal/pkg/errorsx"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"

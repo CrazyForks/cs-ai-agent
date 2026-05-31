@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/enums"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/enums"
 
 	"github.com/glebarez/sqlite"
 	"github.com/mlogclub/simple/sqls"

@@ -1,7 +1,7 @@
 package rag
 
 import (
-	"cs-ai-agent/internal/pkg/enums"
+	"agent-desk/internal/pkg/enums"
 	"strings"
 
 	"github.com/yuin/goldmark"

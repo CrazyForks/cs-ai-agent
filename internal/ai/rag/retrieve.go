@@ -6,10 +6,10 @@ import (
 	"log/slog"
 	"strings"
 
-	"cs-ai-agent/internal/ai/rag/vectordb"
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/enums"
-	"cs-ai-agent/internal/repositories"
+	"agent-desk/internal/ai/rag/vectordb"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/enums"
+	"agent-desk/internal/repositories"
 
 	"github.com/mlogclub/simple/sqls"
 )

@@ -1,6 +1,6 @@
 package adapter
 
-import "cs-ai-agent/internal/models"
+import "agent-desk/internal/models"
 
 type AIConfigSnapshot struct {
 	ID              int64

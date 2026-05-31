@@ -1,12 +1,12 @@
 package api
 
 import (
-	"cs-ai-agent/internal/pkg/config"
-	"cs-ai-agent/internal/pkg/dto/request"
-	"cs-ai-agent/internal/pkg/dto/response"
-	"cs-ai-agent/internal/pkg/httpx"
-	"cs-ai-agent/internal/pkg/httpx/params"
-	"cs-ai-agent/internal/services"
+	"agent-desk/internal/pkg/config"
+	"agent-desk/internal/pkg/dto/request"
+	"agent-desk/internal/pkg/dto/response"
+	"agent-desk/internal/pkg/httpx"
+	"agent-desk/internal/pkg/httpx/params"
+	"agent-desk/internal/services"
 	"net/http"
 	"net/url"
 	"strings"

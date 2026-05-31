@@ -1,7 +1,7 @@
 package migration
 
 import (
-	"cs-ai-agent/internal/models"
+	"agent-desk/internal/models"
 
 	"github.com/mlogclub/simple/sqls"
 )

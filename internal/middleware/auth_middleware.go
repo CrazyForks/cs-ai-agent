@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"cs-ai-agent/internal/pkg/i18nx"
-	"cs-ai-agent/internal/services"
+	"agent-desk/internal/pkg/i18nx"
+	"agent-desk/internal/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/web"

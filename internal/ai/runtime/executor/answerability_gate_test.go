@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	"cs-ai-agent/internal/ai/rag"
-	"cs-ai-agent/internal/ai/runtime/internal/impl/callbacks"
-	"cs-ai-agent/internal/ai/runtime/internal/impl/retrievers"
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/enums"
+	"agent-desk/internal/ai/rag"
+	"agent-desk/internal/ai/runtime/internal/impl/callbacks"
+	"agent-desk/internal/ai/runtime/internal/impl/retrievers"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/enums"
 
 	"github.com/cloudwego/eino/schema"
 )

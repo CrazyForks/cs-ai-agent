@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/enums"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/enums"
 )
 
 func TestBuildRunLogMatchedPlan(t *testing.T) {

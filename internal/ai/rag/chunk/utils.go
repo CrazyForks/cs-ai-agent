@@ -1,8 +1,8 @@
 package chunk
 
 import (
+	"agent-desk/internal/pkg/enums"
 	"crypto/sha256"
-	"cs-ai-agent/internal/pkg/enums"
 	"encoding/hex"
 	"strings"
 	"unicode"

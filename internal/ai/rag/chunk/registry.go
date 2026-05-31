@@ -1,8 +1,8 @@
 package chunk
 
 import (
+	"agent-desk/internal/pkg/enums"
 	"context"
-	"cs-ai-agent/internal/pkg/enums"
 	"fmt"
 )
 

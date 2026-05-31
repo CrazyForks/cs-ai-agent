@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"strings"
 
-	"cs-ai-agent/internal/ai/runtime/registry"
-	runtimetooling "cs-ai-agent/internal/ai/runtime/tooling"
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/toolx"
+	"agent-desk/internal/ai/runtime/registry"
+	runtimetooling "agent-desk/internal/ai/runtime/tooling"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/toolx"
 
 	einotool "github.com/cloudwego/eino/components/tool"
 )

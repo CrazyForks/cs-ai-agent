@@ -1,10 +1,10 @@
 package builders
 
 import (
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/dto/response"
-	"cs-ai-agent/internal/pkg/utils"
-	"cs-ai-agent/internal/services"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/dto/response"
+	"agent-desk/internal/pkg/utils"
+	"agent-desk/internal/services"
 	"time"
 )
 

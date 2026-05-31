@@ -1,10 +1,11 @@
 package repositories
 
 import (
-	"cs-ai-agent/internal/models"
+	"agent-desk/internal/models"
 	"strings"
 
-	"cs-ai-agent/internal/pkg/httpx/params"
+	"agent-desk/internal/pkg/httpx/params"
+
 	"github.com/mlogclub/simple/sqls"
 	"gorm.io/gorm"
 )

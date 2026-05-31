@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"cs-ai-agent/internal/models"
+	"agent-desk/internal/models"
 
 	"github.com/mlogclub/simple/sqls"
 	"gorm.io/gorm"

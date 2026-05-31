@@ -1,6 +1,6 @@
 package skills
 
-import "cs-ai-agent/internal/models"
+import "agent-desk/internal/models"
 
 // BuildRunLog 根据执行计划与运行结果构建 Skill 运行日志。
 func BuildRunLog(ctx RuntimeContext, plan *ExecutionPlan, trace *ExecutionTrace, err error) *models.SkillRunLog {

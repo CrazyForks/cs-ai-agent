@@ -1,7 +1,7 @@
 package runtime
 
 import (
-	"cs-ai-agent/internal/ai/runtime/executor"
+	"agent-desk/internal/ai/runtime/executor"
 	"strings"
 )
 

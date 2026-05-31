@@ -1,11 +1,11 @@
 package dashboard
 
 import (
-	"cs-ai-agent/internal/pkg/httpx"
-	"cs-ai-agent/internal/services"
+	"agent-desk/internal/pkg/httpx"
+	"agent-desk/internal/services"
 
-	"cs-ai-agent/internal/pkg/httpx/params"
-	"cs-ai-agent/internal/pkg/i18nx"
+	"agent-desk/internal/pkg/httpx/params"
+	"agent-desk/internal/pkg/i18nx"
 
 	"github.com/gin-gonic/gin"
 )

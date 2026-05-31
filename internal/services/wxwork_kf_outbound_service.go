@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/enums"
-	"cs-ai-agent/internal/pkg/utils"
-	"cs-ai-agent/internal/repositories"
-	"cs-ai-agent/internal/wxwork"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/enums"
+	"agent-desk/internal/pkg/utils"
+	"agent-desk/internal/repositories"
+	"agent-desk/internal/wxwork"
 
 	"github.com/mlogclub/simple/common/strs"
 	"github.com/mlogclub/simple/sqls"

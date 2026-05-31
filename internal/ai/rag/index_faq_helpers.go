@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"cs-ai-agent/internal/ai"
-	"cs-ai-agent/internal/ai/rag/vectordb"
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/enums"
+	"agent-desk/internal/ai"
+	"agent-desk/internal/ai/rag/vectordb"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/enums"
 )
 
 func buildFAQChunkModel(knowledgeBase models.KnowledgeBase, faq models.KnowledgeFAQ, content string) (models.KnowledgeChunk, string) {

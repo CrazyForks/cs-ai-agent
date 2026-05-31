@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"cs-ai-agent/internal/models"
-	"cs-ai-agent/internal/pkg/enums"
-	"cs-ai-agent/internal/pkg/toolx"
+	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/enums"
+	"agent-desk/internal/pkg/toolx"
 
-	applicationruntime "cs-ai-agent/internal/ai/application/runtime"
+	applicationruntime "agent-desk/internal/ai/application/runtime"
 )
 
 func TestReplyEligibilityCanReply(t *testing.T) {

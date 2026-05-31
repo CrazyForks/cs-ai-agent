@@ -1,11 +1,11 @@
 package wxwork
 
 import (
+	"agent-desk/internal/pkg/dto/response"
+	"agent-desk/internal/pkg/errorsx"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
-	"cs-ai-agent/internal/pkg/dto/response"
-	"cs-ai-agent/internal/pkg/errorsx"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
