@@ -1,33 +1,33 @@
-# 使用的时候，将文件复制到 cmd/testdata/aiconfig/ 目录下，并重命名为 ai_config.yaml
+# To use this file, copy it to cmd/testdata/aiconfig/ and rename it to ai_config.yaml.
 #
-# 配置规则说明：
-# 1. name: 配置的唯一标识，系统通过此字段进行去重和更新
-# 2. provider: 模型提供商，固定写：openai，系统目前ai接口调用都走的openai协议
-# 3. baseUrl: API 服务地址
-# 4. apiKey: API 密钥
-# 5. modelType: 模型类型，必须为以下之一：
-#    - llm: 大语言模型，用于对话和推理
-#    - embedding: 文本向量化模型，用于生成文本嵌入向量
-#    - rerank: 排序模型，用于重排序搜索结果
-# 6. modelName: 具体的模型名称，由提供商指定
-# 7. dimension: 向量维度
-#    - llm 和 rerank: 通常设为 0
-#    - embedding: 向量维度数，如 OpenAI text-embedding-3-small 为 1536
-# 8. maxContextTokens: 最大上下文令牌数，0 表示无限制
-#    - llm 和 embedding: 分别表示模型支持的最大输入令牌数
-#    - rerank: 通常设为 0
-# 9. maxOutputTokens: 最大输出令牌数
-#    - llm: 模型支持的最大输出令牌数
-#    - embedding 和 rerank: 通常设为 0
-# 10. timeoutMs: 请求超时时间（毫秒）
-# 11. maxRetryCount: 失败重试次数
-# 12. rpmLimit: 每分钟请求限制，0 表示无限制
-# 13. tpmLimit: 每分钟令牌限制，0 表示无限制
-# 15. sortNo: 排序号，用于同类型模型的优先级排序（数字越小优先级越高）
-# 16. remark: 备注信息，用于描述此配置的用途或特殊说明
+# Configuration guide:
+# 1. name: Unique identifier for the configuration. The system uses this field for deduplication and updates.
+# 2. provider: Model provider. Always set this to openai because the current AI API calls use the OpenAI-compatible protocol.
+# 3. baseUrl: API service endpoint.
+# 4. apiKey: API key.
+# 5. modelType: Model type. Must be one of the following:
+#    - llm: Large language model for chat and reasoning.
+#    - embedding: Text embedding model for generating vector representations of text.
+#    - rerank: Ranking model for reordering search results.
+# 6. modelName: Specific model name, as defined by the provider.
+# 7. dimension: Vector dimension.
+#    - llm and rerank: Usually set to 0.
+#    - embedding: Number of vector dimensions. For example, OpenAI text-embedding-3-small uses 1536.
+# 8. maxContextTokens: Maximum context tokens. Use 0 for no limit.
+#    - llm and embedding: The maximum number of input tokens supported by the model.
+#    - rerank: Usually set to 0.
+# 9. maxOutputTokens: Maximum output tokens.
+#    - llm: The maximum number of output tokens supported by the model.
+#    - embedding and rerank: Usually set to 0.
+# 10. timeoutMs: Request timeout in milliseconds.
+# 11. maxRetryCount: Number of retry attempts after a failed request.
+# 12. rpmLimit: Requests per minute limit. Use 0 for no limit.
+# 13. tpmLimit: Tokens per minute limit. Use 0 for no limit.
+# 15. sortNo: Sort order for prioritizing models of the same type. Lower numbers have higher priority.
+# 16. remark: Notes describing the purpose of this configuration or any special considerations.
 #
 items:
-  - name: LLM模型
+  - name: LLM
     provider: openai
     baseUrl: https://dashscope.aliyuncs.com/compatible-mode/v1
     apiKey: <REPLACE_WITH_REAL_KEY>
@@ -41,9 +41,9 @@ items:
     rpmLimit: 0
     tpmLimit: 0
     sortNo: 10
-    remark: LLM模型
+    remark: LLM
 
-  - name: 向量模型
+  - name: embedding
     provider: openai
     baseUrl: https://dashscope.aliyuncs.com/compatible-mode/v1
     apiKey: <REPLACE_WITH_REAL_KEY>
@@ -57,9 +57,9 @@ items:
     rpmLimit: 0
     tpmLimit: 0
     sortNo: 20
-    remark: 向量模型
+    remark: embedding
 
-  - name: 重排模型
+  - name: rerank
     provider: openai
     baseUrl: https://api.cohere.com/v1
     apiKey: <REPLACE_WITH_REAL_KEY>
@@ -73,4 +73,4 @@ items:
     rpmLimit: 0
     tpmLimit: 0
     sortNo: 30
-    remark: 重排模型
+    remark: rerank
