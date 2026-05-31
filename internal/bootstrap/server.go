@@ -6,21 +6,21 @@ import (
 	"strings"
 	"time"
 
-	"cs-ai-agent/internal/ai/mcps"
-	_ "cs-ai-agent/internal/ai/runtime"
-	"cs-ai-agent/internal/middleware"
-	"cs-ai-agent/internal/pkg/config"
-	"cs-ai-agent/internal/pkg/ginx"
-	"cs-ai-agent/internal/pkg/httpx"
-	"cs-ai-agent/internal/pkg/i18nx"
-	"cs-ai-agent/internal/pkg/tracex"
-	"cs-ai-agent/internal/services"
-	webspa "cs-ai-agent/web"
+	"agent-desk/internal/ai/mcps"
+	_ "agent-desk/internal/ai/runtime"
+	"agent-desk/internal/middleware"
+	"agent-desk/internal/pkg/config"
+	"agent-desk/internal/pkg/ginx"
+	"agent-desk/internal/pkg/httpx"
+	"agent-desk/internal/pkg/i18nx"
+	"agent-desk/internal/pkg/tracex"
+	"agent-desk/internal/services"
+	webspa "agent-desk/web"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/web"
 
-	_ "cs-ai-agent/internal/services/wx_callback_handlers"
+	_ "agent-desk/internal/services/wx_callback_handlers"
 )
 
 func NewServer() (*gin.Engine, error) {
