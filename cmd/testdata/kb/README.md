@@ -1,4 +1,3 @@
-# 将四大名著初始化为知识库数据
+# 初始化 FAQ 知识库测试数据
 
-内容来源于：<https://github.com/hunterhug/china-literary>
-
+`kb.Init()` 会初始化“贝壳客服平台 FAQ”知识库，用于本地 AI Agent 和知识检索调试。
