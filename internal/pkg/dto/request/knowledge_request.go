@@ -1,6 +1,10 @@
 package request
 
-import "agent-desk/internal/pkg/enums"
+import (
+	"io"
+
+	"agent-desk/internal/pkg/enums"
+)
 
 type CreateKnowledgeBaseRequest struct {
 	Name                  string  `json:"name"`
@@ -45,6 +49,20 @@ type CreateKnowledgeFAQRequest struct {
 type UpdateKnowledgeFAQRequest struct {
 	ID int64 `json:"id"`
 	CreateKnowledgeFAQRequest
+}
+
+type KnowledgeFAQImportMode string
+
+const (
+	KnowledgeFAQImportModeAppend    KnowledgeFAQImportMode = "append"
+	KnowledgeFAQImportModeOverwrite KnowledgeFAQImportMode = "overwrite"
+)
+
+type ImportKnowledgeFAQRequest struct {
+	KnowledgeBaseID int64
+	Mode            KnowledgeFAQImportMode
+	Filename        string
+	Reader          io.Reader
 }
 
 type KnowledgeSearchRequest struct {

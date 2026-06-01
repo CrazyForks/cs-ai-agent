@@ -262,9 +262,12 @@ func registerDashboardKnowledgeDocumentRoutes(group *gin.RouterGroup) {
 }
 
 func registerDashboardKnowledgeFAQRoutes(group *gin.RouterGroup) {
+	group.GET("/import_template", dashboard.KnowledgeFAQGetImport_template)
+	group.GET("/export", dashboard.KnowledgeFAQGetExport)
 	group.GET("/:id", dashboard.KnowledgeFAQGetBy)
 	group.POST("/create", dashboard.KnowledgeFAQPostCreate)
 	group.POST("/delete", dashboard.KnowledgeFAQPostDelete)
+	group.POST("/import", dashboard.KnowledgeFAQPostImport)
 	group.Any("/list", dashboard.KnowledgeFAQAnyList)
 	group.POST("/update", dashboard.KnowledgeFAQPostUpdate)
 }

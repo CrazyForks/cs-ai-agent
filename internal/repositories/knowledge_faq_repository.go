@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"agent-desk/internal/models"
+	"agent-desk/internal/pkg/enums"
 
 	"agent-desk/internal/pkg/httpx/params"
 
@@ -62,6 +63,19 @@ func (r *knowledgeFAQRepository) FindByIDs(db *gorm.DB, ids []int64) (list []mod
 		return nil
 	}
 	db.Where("id IN ?", ids).Find(&list)
+	return
+}
+
+func (r *knowledgeFAQRepository) FindAllByKnowledgeBaseID(db *gorm.DB, knowledgeBaseID int64) (list []models.KnowledgeFAQ) {
+	db.Where("knowledge_base_id = ? AND status <> ?", knowledgeBaseID, enums.StatusDeleted).Order("id DESC").Find(&list)
+	return
+}
+
+func (r *knowledgeFAQRepository) FindByKnowledgeBaseIDAndQuestions(db *gorm.DB, knowledgeBaseID int64, questions []string) (list []models.KnowledgeFAQ) {
+	if len(questions) == 0 {
+		return nil
+	}
+	db.Where("knowledge_base_id = ? AND question IN ?", knowledgeBaseID, questions).Find(&list)
 	return
 }
 

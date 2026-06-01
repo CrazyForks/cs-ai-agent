@@ -1,5 +1,5 @@
 import { readSession } from "@/lib/auth"
-import { request } from "@/lib/api/client"
+import { request, requestBlob } from "@/lib/api/client"
 import { createWebSocketBaseUrl } from "@/lib/api/websocket"
 import { translateCurrentMessage } from "@/i18n/messages"
 
@@ -1524,6 +1524,22 @@ export type UpdateKnowledgeFAQPayload = CreateKnowledgeFAQPayload & {
   id: number
 }
 
+export type KnowledgeFAQImportMode = "append" | "overwrite"
+
+export type KnowledgeFAQImportError = {
+  row: number
+  message: string
+}
+
+export type KnowledgeFAQImportResult = {
+  total: number
+  created: number
+  updated: number
+  skipped: number
+  failed: number
+  errors: KnowledgeFAQImportError[]
+}
+
 export function fetchKnowledgeBases(
   query?: Record<string, string | number | undefined>
 ) {
@@ -1649,6 +1665,42 @@ export function deleteKnowledgeFAQ(id: number) {
   return request<void>("/api/dashboard/knowledge-faq/delete", {
     method: "POST",
     body: JSON.stringify({ id }),
+  })
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+export async function downloadKnowledgeFAQImportTemplate() {
+  const result = await requestBlob("/api/dashboard/knowledge-faq/import_template")
+  downloadBlob(result.blob, result.filename || "knowledge-faq-import-template.xlsx")
+}
+
+export async function exportKnowledgeFAQs(knowledgeBaseId: number) {
+  const result = await requestBlob(
+    `/api/dashboard/knowledge-faq/export${toQueryString({ knowledgeBaseId })}`
+  )
+  downloadBlob(result.blob, result.filename || `knowledge-faq-${knowledgeBaseId}.xlsx`)
+}
+
+export function importKnowledgeFAQs(payload: {
+  knowledgeBaseId: number
+  mode: KnowledgeFAQImportMode
+  file: File
+}) {
+  const formData = new FormData()
+  formData.set("knowledgeBaseId", String(payload.knowledgeBaseId))
+  formData.set("mode", payload.mode)
+  formData.set("file", payload.file)
+  return request<KnowledgeFAQImportResult>("/api/dashboard/knowledge-faq/import", {
+    method: "POST",
+    body: formData,
   })
 }
 

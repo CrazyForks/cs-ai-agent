@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { KnowledgeBase } from "@/lib/api/admin"
+import { exportKnowledgeFAQs } from "@/lib/api/admin"
 import { useI18n } from "@/i18n/provider"
 import {
   Bug,
@@ -18,9 +19,11 @@ import {
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
   PlusIcon,
-  RefreshCwIcon
+  RefreshCwIcon,
+  UploadIcon,
 } from "lucide-react"
 import { useState } from "react"
+import { toast } from "sonner"
 import { DebugPanel } from "./_components/debug-panel"
 import { DocumentList, type DocumentListActionState } from "./_components/document-list"
 import { FAQList, type FAQListActionState } from "./_components/faq-list"
@@ -35,7 +38,23 @@ export default function DashboardKnowledgeDocumentsPage() {
   const [activeTab, setActiveTab] = useState("documents")
   const [documentActionState, setDocumentActionState] = useState<DocumentListActionState | null>(null)
   const [faqActionState, setFAQActionState] = useState<FAQListActionState | null>(null)
+  const [exportingFAQ, setExportingFAQ] = useState(false)
   const isFAQKnowledgeBase = selectedKnowledgeBase?.knowledgeType === "faq"
+
+  async function handleExportFAQ() {
+    if (!selectedKnowledgeBase || exportingFAQ) {
+      return
+    }
+    setExportingFAQ(true)
+    try {
+      await exportKnowledgeFAQs(selectedKnowledgeBase.id)
+      toast.success(t("knowledge.exportFAQSuccess"))
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("knowledge.exportFAQFailed"))
+    } finally {
+      setExportingFAQ(false)
+    }
+  }
 
   return (
     <div className="flex h-[calc(100vh-4rem)]">
@@ -142,7 +161,17 @@ export default function DashboardKnowledgeDocumentsPage() {
                     disabled={faqActionState.importing}
                     aria-label={t("knowledge.importFAQ")}
                   >
-                    <DownloadIcon className="size-4" />
+                    <UploadIcon className="size-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-7"
+                    onClick={() => void handleExportFAQ()}
+                    disabled={exportingFAQ}
+                    aria-label={t("knowledge.exportFAQ")}
+                  >
+                    <DownloadIcon className={exportingFAQ ? "size-4 animate-pulse" : "size-4"} />
                   </Button>
                   <Button
                     variant="ghost"

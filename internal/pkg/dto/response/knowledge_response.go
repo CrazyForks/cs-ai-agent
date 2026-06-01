@@ -90,6 +90,26 @@ type KnowledgeFAQResponse struct {
 	UpdateUserName    string                             `json:"updateUserName"`
 }
 
+type KnowledgeFAQExportedFile struct {
+	Filename    string
+	ContentType string
+	Data        []byte
+}
+
+type KnowledgeFAQImportError struct {
+	Row     int    `json:"row"`
+	Message string `json:"message"`
+}
+
+type KnowledgeFAQImportResult struct {
+	Total   int                       `json:"total"`
+	Created int                       `json:"created"`
+	Updated int                       `json:"updated"`
+	Skipped int                       `json:"skipped"`
+	Failed  int                       `json:"failed"`
+	Errors  []KnowledgeFAQImportError `json:"errors"`
+}
+
 type KnowledgeSearchResult struct {
 	KnowledgeBaseID int64   `json:"knowledgeBaseId"`
 	ChunkID         int64   `json:"chunkId"`
