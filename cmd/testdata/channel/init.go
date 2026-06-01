@@ -2,14 +2,13 @@ package channel
 
 import (
 	"agent-desk/cmd/testdata/seedlang"
+	"agent-desk/cmd/testdata/seeds"
 	"agent-desk/internal/models"
-	"agent-desk/internal/pkg/dto"
 	"agent-desk/internal/pkg/enums"
 	"agent-desk/internal/repositories"
 	"fmt"
 	"time"
 
-	"github.com/mlogclub/simple/common/jsons"
 	"github.com/mlogclub/simple/common/strs"
 	"github.com/mlogclub/simple/sqls"
 )
@@ -32,7 +31,7 @@ func Init(lang seedlang.Language) (*InitResult, error) {
 		return result, fmt.Errorf("no default ai agent found, please init ai agent first")
 	}
 
-	seedItems := buildSeedItems(lang, aiAgentID)
+	seedItems := buildModels(lang, aiAgentID)
 	for _, item := range seedItems {
 		itemCopy := item
 		if err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
@@ -57,50 +56,19 @@ func Init(lang seedlang.Language) (*InitResult, error) {
 	return result, nil
 }
 
-func buildSeedItems(lang seedlang.Language, aiAgentID int64) []models.Channel {
+func buildModels(lang seedlang.Language, aiAgentID int64) []models.Channel {
 	now := time.Now()
-	if lang == seedlang.English {
-		return []models.Channel{
-			{
-				Name:        "Website Support",
-				ChannelType: enums.ChannelTypeWeb,
-				ChannelID:   strs.UUID(),
-				AIAgentID:   aiAgentID,
-				ConfigJSON: jsons.ToJsonStr(dto.WebChannelConfig{
-					Title:      "Online Support",
-					Subtitle:   "Powered by AgentDesk",
-					ThemeColor: "#2563eb",
-					Position:   "right",
-					Width:      "780px",
-				}),
-				Status: enums.StatusOk,
-				Remark: "Local testdata seed",
-				AuditFields: models.AuditFields{
-					CreatedAt:      now,
-					CreateUserID:   0,
-					CreateUserName: "System",
-					UpdatedAt:      now,
-					UpdateUserID:   0,
-					UpdateUserName: "System",
-				},
-			},
-		}
-	}
-	return []models.Channel{
-		{
-			Name:        "官网客服",
-			ChannelType: enums.ChannelTypeWeb,
+	seedItems := seeds.ChannelSeeds(lang)
+	items := make([]models.Channel, 0, len(seedItems))
+	for _, seed := range seedItems {
+		items = append(items, models.Channel{
+			Name:        seed.Name,
+			ChannelType: seed.ChannelType,
 			ChannelID:   strs.UUID(),
 			AIAgentID:   aiAgentID,
-			ConfigJSON: jsons.ToJsonStr(dto.WebChannelConfig{
-				Title:      "在线客服",
-				Subtitle:   "AgentDesk 提供技术支持",
-				ThemeColor: "#2563eb",
-				Position:   "right",
-				Width:      "780px",
-			}),
-			Status: enums.StatusOk,
-			Remark: "Local testdata seed",
+			ConfigJSON:  seed.ConfigJSON,
+			Status:      enums.StatusOk,
+			Remark:      seed.Remark,
 			AuditFields: models.AuditFields{
 				CreatedAt:      now,
 				CreateUserID:   0,
@@ -109,8 +77,9 @@ func buildSeedItems(lang seedlang.Language, aiAgentID int64) []models.Channel {
 				UpdateUserID:   0,
 				UpdateUserName: "System",
 			},
-		},
+		})
 	}
+	return items
 }
 
 func getDefaultAIAgentID() (int64, error) {

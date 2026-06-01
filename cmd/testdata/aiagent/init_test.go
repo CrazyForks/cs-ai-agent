@@ -2,6 +2,7 @@ package aiagent
 
 import (
 	"agent-desk/cmd/testdata/seedlang"
+	"agent-desk/cmd/testdata/seeds"
 	"regexp"
 	"testing"
 )
@@ -9,7 +10,7 @@ import (
 var hanTextPattern = regexp.MustCompile(`\p{Han}`)
 
 func TestEnglishAIAgentSeedDoesNotContainChineseText(t *testing.T) {
-	for _, item := range buildSeedItems(seedlang.English, 1, []int64{2}, "3", "4") {
+	for _, item := range seeds.AIAgentSeeds(seedlang.English) {
 		values := []string{item.Name, item.Description, item.SystemPrompt, item.WelcomeMessage, item.FallbackMessage}
 		for _, value := range values {
 			if hanTextPattern.MatchString(value) {

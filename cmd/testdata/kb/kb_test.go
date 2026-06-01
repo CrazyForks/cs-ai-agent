@@ -2,6 +2,7 @@ package kb
 
 import (
 	"agent-desk/cmd/testdata/seedlang"
+	"agent-desk/cmd/testdata/seeds"
 	"regexp"
 	"testing"
 )
@@ -9,8 +10,8 @@ import (
 var hanTextPattern = regexp.MustCompile(`\p{Han}`)
 
 func TestEnglishKnowledgeBaseTextDoesNotContainChineseText(t *testing.T) {
-	name, description, remark := faqKnowledgeBaseText(seedlang.English)
-	for _, value := range []string{name, description, remark} {
+	seed := seeds.FAQKnowledgeBaseSeed(seedlang.English)
+	for _, value := range []string{seed.Name, seed.Description, seed.Remark} {
 		if hanTextPattern.MatchString(value) {
 			t.Fatalf("english knowledge base text contains Chinese text: %q", value)
 		}
@@ -18,11 +19,11 @@ func TestEnglishKnowledgeBaseTextDoesNotContainChineseText(t *testing.T) {
 }
 
 func TestEnglishKnowledgeFAQSeedsDoNotContainChineseText(t *testing.T) {
-	seeds := knowledgeFAQSeeds(seedlang.English)
-	if len(seeds) == 0 {
+	seedItems := seeds.KnowledgeFAQSeeds(seedlang.English)
+	if len(seedItems) == 0 {
 		t.Fatal("english FAQ seeds are empty")
 	}
-	for _, seed := range seeds {
+	for _, seed := range seedItems {
 		values := []string{seed.Question, seed.Answer, seed.Remark}
 		values = append(values, seed.SimilarQuestions...)
 		for _, value := range values {

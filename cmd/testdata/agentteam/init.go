@@ -2,6 +2,7 @@ package agentteam
 
 import (
 	"agent-desk/cmd/testdata/seedlang"
+	"agent-desk/cmd/testdata/seeds"
 	"agent-desk/internal/models"
 	"agent-desk/internal/pkg/constants"
 	"agent-desk/internal/pkg/enums"
@@ -50,7 +51,7 @@ func Init(lang seedlang.Language) (*InitResult, error) {
 }
 
 func initTeamAndUsers(ctx *sqls.TxContext, leaderUser *models.User, result *InitResult, lang seedlang.Language) error {
-	teamName := localizedTeamName(lang)
+	teamName := seeds.AgentTeamName(lang)
 	now := time.Now()
 
 	team := repositories.AgentTeamRepository.Take(ctx.Tx, "name = ?", teamName)
@@ -84,9 +85,9 @@ func initTeamAndUsers(ctx *sqls.TxContext, leaderUser *models.User, result *Init
 		result.TeamCreated = true
 	}
 
-	agentUsers := localizedAgentUsers(lang, leaderUser.Username)
+	agentUsers := seeds.AgentUsers(lang, leaderUser.Username)
 	for _, agentUser := range agentUsers {
-		userID, userCreated, err := createOrGetUser(ctx, agentUser.username, agentUser.nickname)
+		userID, userCreated, err := createOrGetUser(ctx, agentUser.Username, agentUser.Nickname)
 		if err != nil {
 			return err
 		}
@@ -95,7 +96,7 @@ func initTeamAndUsers(ctx *sqls.TxContext, leaderUser *models.User, result *Init
 		}
 
 		// 创建或更新客服档案
-		profileCreated, err := createOrUpdateProfile(ctx, userID, team.ID, agentUser.code, agentUser.nickname)
+		profileCreated, err := createOrUpdateProfile(ctx, userID, team.ID, agentUser.Code, agentUser.Nickname)
 		if err != nil {
 			return err
 		}
@@ -107,58 +108,6 @@ func initTeamAndUsers(ctx *sqls.TxContext, leaderUser *models.User, result *Init
 	}
 
 	return nil
-}
-
-type agentUserSeed struct {
-	username string
-	nickname string
-	code     string
-}
-
-func localizedTeamName(lang seedlang.Language) string {
-	if lang == seedlang.English {
-		return "Default Support Team"
-	}
-	return "默认客服组"
-}
-
-func localizedAgentUsers(lang seedlang.Language, leaderUsername string) []agentUserSeed {
-	if lang == seedlang.English {
-		return []agentUserSeed{
-			{
-				username: leaderUsername,
-				nickname: "Support Lead",
-				code:     "AGENT_LEADER_A",
-			},
-			{
-				username: "agent_a",
-				nickname: "Agent A",
-				code:     "AGENT_A",
-			},
-			{
-				username: "agent_b",
-				nickname: "Agent B",
-				code:     "AGENT_B",
-			},
-		}
-	}
-	return []agentUserSeed{
-		{
-			username: leaderUsername,
-			nickname: "客服组长",
-			code:     "AGENT_LEADER_A",
-		},
-		{
-			username: "agent_a",
-			nickname: "客服A",
-			code:     "AGENT_A",
-		},
-		{
-			username: "agent_b",
-			nickname: "客服B",
-			code:     "AGENT_B",
-		},
-	}
 }
 
 func createOrGetUser(ctx *sqls.TxContext, username, nickname string) (int64, bool, error) {

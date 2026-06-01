@@ -2,6 +2,7 @@ package aiagent
 
 import (
 	"agent-desk/cmd/testdata/seedlang"
+	"agent-desk/cmd/testdata/seeds"
 	"agent-desk/cmd/testdata/skill"
 	"agent-desk/internal/models"
 	"agent-desk/internal/pkg/enums"
@@ -42,7 +43,7 @@ func Init(lang seedlang.Language) (*InitResult, error) {
 		return result, fmt.Errorf("get default skill ids failed: %w", err)
 	}
 
-	seedItems := buildSeedItems(lang, aiConfigID, knowledgeIDs, defaultTeamIDs, defaultSkillIDs)
+	seedItems := buildModels(lang, aiConfigID, knowledgeIDs, defaultTeamIDs, defaultSkillIDs)
 	for _, item := range seedItems {
 		itemCopy := item
 		if err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
@@ -69,64 +70,27 @@ func Init(lang seedlang.Language) (*InitResult, error) {
 	return result, nil
 }
 
-func buildSeedItems(lang seedlang.Language, aiConfigID int64, knowledgeIDs []int64, defaultTeamIDs string, defaultSkillIDs string) []models.AIAgent {
+func buildModels(lang seedlang.Language, aiConfigID int64, knowledgeIDs []int64, defaultTeamIDs string, defaultSkillIDs string) []models.AIAgent {
 	now := time.Now()
-	if lang == seedlang.English {
-		return []models.AIAgent{
-			{
-				Name:        "Test AI Support Agent",
-				Description: "Local test AI support agent",
-				Status:      enums.StatusOk,
-				AIConfigID:  aiConfigID,
-				ServiceMode: enums.IMConversationServiceModeAIFirst,
-				SystemPrompt: `You are working in a customer support system with explicit engineering constraints.
-During execution, strictly follow the injected Agent rules and skill rules.
-If tool allowlist restrictions exist, call only the currently allowed tools. Ask follow-up questions when information is insufficient; do not fabricate facts or skip required confirmations.
-Do not promise processing times, completion times, callbacks, or contact times unless they have been confirmed by system context, tool results, human confirmation, or knowledge base facts.
-Do not make commitments on behalf of the human team, technical team, or after-sales team unless the current context contains explicit tool results, human confirmation, or knowledge base facts.
-When the user only says that they have sent materials, an email, screenshots, or attachments, only acknowledge the current message or suggest waiting for human confirmation. Do not invent internal handling processes, SLAs, or follow-up arrangements.`,
-				WelcomeMessage:      "Hello, how can I help you?",
-				ReplyTimeoutSeconds: 180,
-				TeamIDs:             defaultTeamIDs,
-				HandoffMode:         enums.AIAgentHandoffModeWaitPool,
-				FallbackMode:        enums.AIAgentFallbackModeSuggestRetry,
-				FallbackMessage:     "I could not find enough accurate information yet. Please add more details and I will keep checking.",
-				KnowledgeIDs:        utils.JoinInt64s(knowledgeIDs),
-				SkillIDs:            defaultSkillIDs,
-				SortNo:              10,
-				AuditFields: models.AuditFields{
-					CreatedAt:      now,
-					CreateUserID:   0,
-					CreateUserName: "System",
-					UpdatedAt:      now,
-					UpdateUserID:   0,
-					UpdateUserName: "System",
-				},
-			},
-		}
-	}
-	return []models.AIAgent{
-		{
-			Name:        "测试AI客服",
-			Description: "本地测试 AI 客服 Agent",
-			Status:      enums.StatusOk,
-			AIConfigID:  aiConfigID,
-			ServiceMode: enums.IMConversationServiceModeAIFirst,
-			SystemPrompt: `你正在一个有明确工程约束的客服系统中工作。
-执行时必须严格遵守当前注入的 Agent 规则和技能规则。
-如果存在工具白名单限制，只能调用当前允许的工具；信息不足时优先追问，不要伪造事实或跳过必要确认。
-禁止承诺未经系统确认的处理时效、完成时间、回访时间或联系时间。
-禁止代表人工团队、技术团队、售后团队承诺后续动作，除非当前上下文已有明确的工具结果、人工确认或知识库事实支持。
-当用户只表示已发送资料、邮件、截图或附件时，只能确认已收到当前消息或建议等待人工确认，不能自行补充内部处理流程、SLA 或跟进安排。`,
-			WelcomeMessage:      "您好，有什么可以帮助您的？",
-			ReplyTimeoutSeconds: 180,
+	seedItems := seeds.AIAgentSeeds(lang)
+	items := make([]models.AIAgent, 0, len(seedItems))
+	for _, seed := range seedItems {
+		items = append(items, models.AIAgent{
+			Name:                seed.Name,
+			Description:         seed.Description,
+			Status:              enums.StatusOk,
+			AIConfigID:          aiConfigID,
+			ServiceMode:         seed.ServiceMode,
+			SystemPrompt:        seed.SystemPrompt,
+			WelcomeMessage:      seed.WelcomeMessage,
+			ReplyTimeoutSeconds: seed.ReplyTimeoutSeconds,
 			TeamIDs:             defaultTeamIDs,
-			HandoffMode:         enums.AIAgentHandoffModeWaitPool,
-			FallbackMode:        enums.AIAgentFallbackModeSuggestRetry,
-			FallbackMessage:     "我暂时没有找到足够准确的信息。你可以补充具体的问题，我再继续帮你查。",
+			HandoffMode:         seed.HandoffMode,
+			FallbackMode:        seed.FallbackMode,
+			FallbackMessage:     seed.FallbackMessage,
 			KnowledgeIDs:        utils.JoinInt64s(knowledgeIDs),
 			SkillIDs:            defaultSkillIDs,
-			SortNo:              10,
+			SortNo:              seed.SortNo,
 			AuditFields: models.AuditFields{
 				CreatedAt:      now,
 				CreateUserID:   0,
@@ -135,8 +99,9 @@ When the user only says that they have sent materials, an email, screenshots, or
 				UpdateUserID:   0,
 				UpdateUserName: "System",
 			},
-		},
+		})
 	}
+	return items
 }
 
 func getDefaultAIConfigID() (int64, error) {
