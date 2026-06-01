@@ -8,11 +8,20 @@ server:
       - http://localhost:8083
 
 db:
+  # Database driver. Supported values: sqlite, mysql.
   type: sqlite
+  # Database connection string.
+  # SQLite example: file:./data/app.db?_busy_timeout=5000
+  # MySQL example: user:password@tcp(127.0.0.1:3306)/cs_ai_agent_db?charset=utf8mb4&parseTime=True&multiStatements=true&loc=Local
+  # For MySQL, keep parseTime=True so datetime fields are scanned into Go time values correctly.
   dsn: file:./data/app.db?_busy_timeout=5000
+  # Maximum number of idle connections kept in the pool. Values <= 0 use the database/sql default.
   maxIdleConns: 5
+  # Maximum number of open connections. Values <= 0 mean no explicit limit.
   maxOpenConns: 20
+  # Maximum time an idle connection may stay in the pool, in seconds. Values <= 0 leave it unset.
   connMaxIdleTimeSeconds: 300
+  # Maximum lifetime of a connection, in seconds. Values <= 0 leave it unset.
   connMaxLifetimeSeconds: 1800
 
 logger:
@@ -21,8 +30,14 @@ logger:
   addSource: false
 
 auth:
+  # Login access token lifetime, in hours. Values <= 0 fall back to 12 hours.
+  # Applies to password login, OIDC login, and WeCom login sessions.
   tokenTTLHours: 12
+  # Maximum failed password attempts allowed within the lock window.
+  # Values <= 0 disable credential lockout.
   maxFailedAttempts: 5
+  # Failed-login lock window, in minutes. When maxFailedAttempts is reached within this window, login is temporarily blocked.
+  # Values <= 0 fall back to 15 minutes when lockout is enabled.
   credentialLockMinute: 15
 
 customerSession:
@@ -69,12 +84,19 @@ vectorDB:
   useTls: false
 
 mcp:
+  # Global switch for MCP tool integration.
+  # When false, MCP tool catalog, debug endpoints, and runtime tool calls are disabled.
   enabled: true
+  # MCP server registry. Each map key is the serverCode used by toolCode values like "system/tool_name".
   servers:
     system:
+      # Whether this MCP server is available for catalog listing, debug calls, and agent runtime calls.
       enabled: true
+      # Streamable HTTP MCP endpoint. The built-in system server is exposed by this backend at /api/mcp.
       endpoint: "http://127.0.0.1:8083/api/mcp"
+      # Connection and request timeout in milliseconds. Values <= 0 fall back to 15000.
       timeoutMs: 15000
+      # Extra HTTP headers sent to this MCP server on every request, for example Authorization or tenant headers.
       headers: {}
 
 oidc:
