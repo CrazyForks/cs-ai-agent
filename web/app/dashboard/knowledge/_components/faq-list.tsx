@@ -1,15 +1,18 @@
 "use client";
 
 import {
+  FolderInputIcon,
   MoreHorizontalIcon,
   PencilIcon,
   SearchIcon,
   Trash2Icon,
   WrenchIcon,
+  XIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/confirm-provider";
 import {
   useDashboardPagedList,
   type DashboardPagedListFilter,
@@ -18,6 +21,7 @@ import { ListPagination } from "@/components/list-pagination";
 import { OptionCombobox } from "@/components/option-combobox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -39,6 +43,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  batchDeleteKnowledgeFAQs,
+  batchMoveKnowledgeFAQs,
   buildKnowledgeFAQIndex,
   createKnowledgeFAQ,
   deleteKnowledgeFAQ,
@@ -52,6 +58,7 @@ import { useI18n } from "@/i18n/provider";
 import { formatDateTime } from "@/lib/utils";
 import { FAQEditDialog } from "./faq-edit";
 import { FAQImportDialog } from "./faq-import-dialog";
+import { KnowledgeBulkMoveDialog } from "./knowledge-bulk-move-dialog";
 import { KnowledgeDirectoryPanel } from "./knowledge-directory-panel";
 
 type FAQListProps = {
@@ -129,7 +136,11 @@ export function FAQList({
   onActionStateChange,
 }: FAQListProps) {
   const t = useI18n();
+  const confirm = useConfirm();
   const [saving, setSaving] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const [bulkMoveOpen, setBulkMoveOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [importing, setImporting] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [selectedDirectoryId, setSelectedDirectoryId] = useState<number | null>(null);
@@ -140,6 +151,7 @@ export function FAQList({
 
   useEffect(() => {
     setSelectedDirectoryId(null);
+    setSelectedIds([]);
   }, [knowledgeBaseId]);
 
   const filters = useMemo<DashboardPagedListFilter[]>(() => [
@@ -184,6 +196,21 @@ export function FAQList({
     loadFailed: t("knowledge.loadFAQFailed"),
   });
 
+  const currentPageIds = useMemo(
+    () => faqs.results.map((item) => item.id),
+    [faqs.results],
+  );
+  const currentPageSelectedCount = useMemo(
+    () => currentPageIds.filter((id) => selectedIds.includes(id)).length,
+    [currentPageIds, selectedIds],
+  );
+  const allCurrentPageSelected =
+    currentPageIds.length > 0 && currentPageSelectedCount === currentPageIds.length;
+
+  useEffect(() => {
+    setSelectedIds((prev) => prev.filter((id) => currentPageIds.includes(id)));
+  }, [currentPageIds]);
+
   const openCreateDialog = useCallback(() => {
     setEditingItem(null);
     setDialogOpen(true);
@@ -209,6 +236,19 @@ export function FAQList({
     }
     event.preventDefault();
     applyFilters();
+  }
+
+  function toggleSelected(id: number, checked: boolean) {
+    setSelectedIds((prev) => {
+      if (checked) {
+        return prev.includes(id) ? prev : [...prev, id];
+      }
+      return prev.filter((currentId) => currentId !== id);
+    });
+  }
+
+  function toggleCurrentPage(checked: boolean) {
+    setSelectedIds(checked ? currentPageIds : []);
   }
 
   function openEditDialog(item: KnowledgeFAQ) {
@@ -259,6 +299,54 @@ export function FAQList({
       toast.error(error instanceof Error ? error.message : t("knowledge.faqDeleteFailed"));
     } finally {
       setActionLoadingMap((prev) => ({ ...prev, [item.id]: { ...prev[item.id], delete: false } }));
+    }
+  }
+
+  async function handleBatchDelete() {
+    if (selectedIds.length === 0) {
+      return;
+    }
+    const confirmed = await confirm({
+      title: t("knowledge.batchDelete"),
+      description: t("knowledge.batchDeleteConfirm", { count: selectedIds.length }),
+      confirmText: t("knowledge.delete"),
+      variant: "destructive",
+    });
+    if (!confirmed) {
+      return;
+    }
+    setSaving(true);
+    try {
+      await batchDeleteKnowledgeFAQs(selectedIds);
+      toast.success(t("knowledge.batchDeleted", { count: selectedIds.length }));
+      setSelectedIds([]);
+      await loadData();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("knowledge.batchDeleteFailed"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleBatchMove(directoryId: number) {
+    if (!knowledgeBaseId || selectedIds.length === 0) {
+      return;
+    }
+    setMoving(true);
+    try {
+      await batchMoveKnowledgeFAQs({
+        knowledgeBaseId,
+        directoryId,
+        ids: selectedIds,
+      });
+      toast.success(t("knowledge.batchMoved", { count: selectedIds.length }));
+      setBulkMoveOpen(false);
+      setSelectedIds([]);
+      await loadData();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("knowledge.batchMoveFailed"));
+    } finally {
+      setMoving(false);
     }
   }
 
@@ -327,13 +415,29 @@ export function FAQList({
               </Button>
             </div>
           </div>
-          <div className="min-h-0 flex-1">
+          <div className="relative min-h-0 flex-1">
             <ScrollArea className="h-full">
               <div className="p-2 space-y-0.5">
+                {faqs.results.length > 0 ? (
+                  <label className="mb-1 flex h-8 w-fit cursor-pointer items-center gap-2 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent">
+                    <Checkbox
+                      checked={allCurrentPageSelected}
+                      onCheckedChange={(checked) => toggleCurrentPage(Boolean(checked))}
+                      aria-label={t("knowledge.selectCurrentPage")}
+                    />
+                    <span>{t("knowledge.selectCurrentPage")}</span>
+                  </label>
+                ) : null}
                 {faqs.results.map((item) => (
                   <ContextMenu key={item.id}>
                     <ContextMenuTrigger className="w-full">
                       <div className="flex items-center gap-3 bg-background p-2 transition-colors hover:bg-accent w-full">
+                        <Checkbox
+                          checked={selectedIds.includes(item.id)}
+                          onClick={(event) => event.stopPropagation()}
+                          onCheckedChange={(checked) => toggleSelected(item.id, Boolean(checked))}
+                          aria-label={t("knowledge.selectItem", { name: item.question })}
+                        />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <div className="truncate text-sm font-medium">{item.question}</div>
@@ -400,6 +504,48 @@ export function FAQList({
                 ) : null}
               </div>
             </ScrollArea>
+            {selectedIds.length > 0 ? (
+              <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center px-4">
+                <div className="pointer-events-auto flex items-center gap-2 rounded-md border bg-popover px-3 py-2 text-xs shadow-lg">
+                  <span className="text-muted-foreground">
+                    {t("knowledge.selectedCount", { count: selectedIds.length })}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7"
+                    onClick={() => setBulkMoveOpen(true)}
+                    disabled={saving || moving}
+                  >
+                    <FolderInputIcon className="size-3.5" />
+                    {t("knowledge.move")}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-destructive hover:text-destructive"
+                    onClick={() => void handleBatchDelete()}
+                    disabled={saving || moving}
+                  >
+                    <Trash2Icon className="size-3.5" />
+                    {t("knowledge.delete")}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-7"
+                    onClick={() => setSelectedIds([])}
+                    disabled={saving || moving}
+                    aria-label={t("knowledge.clearSelection")}
+                  >
+                    <XIcon className="size-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </div>
           <div className="border-t px-6 py-3">
             <ListPagination
@@ -433,6 +579,14 @@ export function FAQList({
         onImported={async () => {
           await loadData();
         }}
+      />
+      <KnowledgeBulkMoveDialog
+        open={bulkMoveOpen}
+        knowledgeBaseId={knowledgeBaseId}
+        moving={moving}
+        selectedCount={selectedIds.length}
+        onOpenChange={setBulkMoveOpen}
+        onSubmit={(directoryId) => void handleBatchMove(directoryId)}
       />
     </>
   );

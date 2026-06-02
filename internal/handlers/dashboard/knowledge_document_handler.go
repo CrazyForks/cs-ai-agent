@@ -144,3 +144,38 @@ func KnowledgeDocumentPostDelete(ctx *gin.Context) {
 	}
 	httpx.WriteJSON(ctx, nil)
 }
+
+func KnowledgeDocumentPostBatch_move(ctx *gin.Context) {
+	operator, err := services.AuthService.RequirePermission(ctx, constants.PermissionKnowledgeDocumentUpdate)
+	if err != nil {
+		httpx.WriteJSON(ctx, err)
+		return
+	}
+	req := request.BatchMoveKnowledgeDocumentRequest{}
+	if err := params.ReadJSON(ctx, &req); err != nil {
+		httpx.WriteJSON(ctx, err)
+		return
+	}
+	if err := services.KnowledgeDocumentService.BatchMoveKnowledgeDocuments(req, operator); err != nil {
+		httpx.WriteJSON(ctx, err)
+		return
+	}
+	httpx.WriteJSON(ctx, nil)
+}
+
+func KnowledgeDocumentPostBatch_delete(ctx *gin.Context) {
+	if _, err := services.AuthService.RequirePermission(ctx, constants.PermissionKnowledgeDocumentDelete); err != nil {
+		httpx.WriteJSON(ctx, err)
+		return
+	}
+	req := request.BatchDeleteKnowledgeDocumentRequest{}
+	if err := params.ReadJSON(ctx, &req); err != nil {
+		httpx.WriteJSON(ctx, err)
+		return
+	}
+	if err := services.KnowledgeDocumentService.BatchDeleteKnowledgeDocuments(req); err != nil {
+		httpx.WriteJSON(ctx, err)
+		return
+	}
+	httpx.WriteJSON(ctx, nil)
+}

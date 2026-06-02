@@ -1532,6 +1532,12 @@ export type UpdateKnowledgeFAQPayload = CreateKnowledgeFAQPayload & {
   id: number
 }
 
+export type BatchMoveKnowledgeContentPayload = {
+  knowledgeBaseId: number
+  directoryId: number
+  ids: number[]
+}
+
 export type KnowledgeDirectory = {
   id: number
   knowledgeBaseId: number
@@ -1690,6 +1696,20 @@ export function deleteKnowledgeDocument(id: number) {
   })
 }
 
+export function batchMoveKnowledgeDocuments(payload: BatchMoveKnowledgeContentPayload) {
+  return request<void>("/api/dashboard/knowledge-document/batch_move", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+export function batchDeleteKnowledgeDocuments(ids: number[]) {
+  return request<void>("/api/dashboard/knowledge-document/batch_delete", {
+    method: "POST",
+    body: JSON.stringify({ ids }),
+  })
+}
+
 export function buildKnowledgeDocumentIndex(documentId: number) {
   return request<void>("/api/dashboard/knowledge-retrieve/build", {
     method: "POST",
@@ -1727,6 +1747,20 @@ export function deleteKnowledgeFAQ(id: number) {
   return request<void>("/api/dashboard/knowledge-faq/delete", {
     method: "POST",
     body: JSON.stringify({ id }),
+  })
+}
+
+export function batchMoveKnowledgeFAQs(payload: BatchMoveKnowledgeContentPayload) {
+  return request<void>("/api/dashboard/knowledge-faq/batch_move", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+export function batchDeleteKnowledgeFAQs(ids: number[]) {
+  return request<void>("/api/dashboard/knowledge-faq/batch_delete", {
+    method: "POST",
+    body: JSON.stringify({ ids }),
   })
 }
 

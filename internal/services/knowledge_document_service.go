@@ -183,6 +183,73 @@ func (s *knowledgeDocumentService) DeleteKnowledgeDocument(id int64) error {
 	return rag.Index.RemoveDocumentIndex(context.Background(), id)
 }
 
+func (s *knowledgeDocumentService) BatchMoveKnowledgeDocuments(req request.BatchMoveKnowledgeDocumentRequest, operator *dto.AuthPrincipal) error {
+	if operator == nil {
+		return errorsx.Unauthorized("未登录或登录已过期")
+	}
+	ids := uniquePositiveIDs(req.IDs)
+	if len(ids) == 0 {
+		return errorsx.InvalidParam("请选择要移动的文档")
+	}
+	kb := KnowledgeBaseService.Get(req.KnowledgeBaseID)
+	if kb == nil {
+		return errorsx.InvalidParam("知识库不存在")
+	}
+	if kb.KnowledgeType == string(enums.KnowledgeBaseTypeFAQ) {
+		return errorsx.InvalidParam("FAQ知识库不支持文档")
+	}
+	if _, err := KnowledgeDirectoryService.RequireUsableDirectory(req.KnowledgeBaseID, req.DirectoryID); err != nil {
+		return err
+	}
+	for _, id := range ids {
+		current := s.Get(id)
+		if current == nil || current.Status == enums.StatusDeleted {
+			return errorsx.InvalidParam("文档不存在")
+		}
+		if current.KnowledgeBaseID != req.KnowledgeBaseID {
+			return errorsx.InvalidParam("只能移动当前知识库下的文档")
+		}
+	}
+	now := time.Now()
+	if err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
+		for _, id := range ids {
+			if err := repositories.KnowledgeDocumentRepository.Updates(ctx.Tx, id, map[string]any{
+				"directory_id":     req.DirectoryID,
+				"index_status":     enums.KnowledgeDocumentIndexStatusPending,
+				"indexed_at":       nil,
+				"index_error":      "",
+				"update_user_id":   operator.UserID,
+				"update_user_name": operator.Username,
+				"updated_at":       now,
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	for _, id := range ids {
+		if err := rag.Index.IndexDocumentByID(context.Background(), id); err != nil {
+			slog.Error("failed to reindex moved knowledge document", "document_id", id, "error", err)
+		}
+	}
+	return nil
+}
+
+func (s *knowledgeDocumentService) BatchDeleteKnowledgeDocuments(req request.BatchDeleteKnowledgeDocumentRequest) error {
+	ids := uniquePositiveIDs(req.IDs)
+	if len(ids) == 0 {
+		return errorsx.InvalidParam("请选择要删除的文档")
+	}
+	for _, id := range ids {
+		if err := s.DeleteKnowledgeDocument(id); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *knowledgeDocumentService) buildKnowledgeDocumentModel(req request.CreateKnowledgeDocumentRequest) (*models.KnowledgeDocument, error) {
 	if strs.IsBlank(string(req.ContentType)) {
 		req.ContentType = enums.KnowledgeDocumentContentTypeHTML
@@ -204,4 +271,20 @@ func (s *knowledgeDocumentService) buildKnowledgeDocumentModel(req request.Creat
 		item.ContentHash = hex.EncodeToString(hash[:])
 	}
 	return item, nil
+}
+
+func uniquePositiveIDs(ids []int64) []int64 {
+	result := make([]int64, 0, len(ids))
+	seen := make(map[int64]struct{}, len(ids))
+	for _, id := range ids {
+		if id <= 0 {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		result = append(result, id)
+	}
+	return result
 }

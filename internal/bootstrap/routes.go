@@ -263,6 +263,8 @@ func registerDashboardKnowledgeDirectoryRoutes(group *gin.RouterGroup) {
 
 func registerDashboardKnowledgeDocumentRoutes(group *gin.RouterGroup) {
 	group.GET("/:id", dashboard.KnowledgeDocumentGetBy)
+	group.POST("/batch_delete", dashboard.KnowledgeDocumentPostBatch_delete)
+	group.POST("/batch_move", dashboard.KnowledgeDocumentPostBatch_move)
 	group.POST("/create", dashboard.KnowledgeDocumentPostCreate)
 	group.POST("/delete", dashboard.KnowledgeDocumentPostDelete)
 	group.Any("/list", dashboard.KnowledgeDocumentAnyList)
@@ -273,6 +275,8 @@ func registerDashboardKnowledgeFAQRoutes(group *gin.RouterGroup) {
 	group.GET("/import_template", dashboard.KnowledgeFAQGetImport_template)
 	group.GET("/export", dashboard.KnowledgeFAQGetExport)
 	group.GET("/:id", dashboard.KnowledgeFAQGetBy)
+	group.POST("/batch_delete", dashboard.KnowledgeFAQPostBatch_delete)
+	group.POST("/batch_move", dashboard.KnowledgeFAQPostBatch_move)
 	group.POST("/create", dashboard.KnowledgeFAQPostCreate)
 	group.POST("/delete", dashboard.KnowledgeFAQPostDelete)
 	group.POST("/import", dashboard.KnowledgeFAQPostImport)

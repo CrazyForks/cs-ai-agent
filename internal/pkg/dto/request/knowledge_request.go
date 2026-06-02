@@ -55,6 +55,16 @@ type UpdateKnowledgeDocumentRequest struct {
 	CreateKnowledgeDocumentRequest
 }
 
+type BatchMoveKnowledgeDocumentRequest struct {
+	KnowledgeBaseID int64   `json:"knowledgeBaseId"`
+	DirectoryID     int64   `json:"directoryId"`
+	IDs             []int64 `json:"ids"`
+}
+
+type BatchDeleteKnowledgeDocumentRequest struct {
+	IDs []int64 `json:"ids"`
+}
+
 type CreateKnowledgeFAQRequest struct {
 	KnowledgeBaseID  int64    `json:"knowledgeBaseId"`
 	DirectoryID      int64    `json:"directoryId"`
@@ -67,6 +77,16 @@ type CreateKnowledgeFAQRequest struct {
 type UpdateKnowledgeFAQRequest struct {
 	ID int64 `json:"id"`
 	CreateKnowledgeFAQRequest
+}
+
+type BatchMoveKnowledgeFAQRequest struct {
+	KnowledgeBaseID int64   `json:"knowledgeBaseId"`
+	DirectoryID     int64   `json:"directoryId"`
+	IDs             []int64 `json:"ids"`
+}
+
+type BatchDeleteKnowledgeFAQRequest struct {
+	IDs []int64 `json:"ids"`
 }
 
 type KnowledgeFAQImportMode string

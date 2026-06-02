@@ -2,15 +2,18 @@
 
 import {
   FileTextIcon,
+  FolderInputIcon,
   MoreHorizontalIcon,
   PencilIcon,
   SearchIcon,
   Trash2Icon,
   WrenchIcon,
+  XIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { toast } from "sonner";
 
+import { useConfirm } from "@/components/confirm-provider";
 import {
   useDashboardPagedList,
   type DashboardPagedListFilter,
@@ -18,6 +21,7 @@ import {
 import { ListPagination } from "@/components/list-pagination";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -40,6 +44,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  batchDeleteKnowledgeDocuments,
+  batchMoveKnowledgeDocuments,
   buildKnowledgeDocumentIndex,
   createKnowledgeDocument,
   deleteKnowledgeDocument,
@@ -55,6 +61,7 @@ import {
 } from "@/lib/generated/enums";
 import { cn, formatDateTime } from "@/lib/utils";
 import { DocumentEditDialog } from "./document-edit";
+import { KnowledgeBulkMoveDialog } from "./knowledge-bulk-move-dialog";
 import { KnowledgeDirectoryPanel } from "./knowledge-directory-panel";
 
 type DocumentListProps = {
@@ -140,7 +147,11 @@ const VIEW_MODE_STORAGE_KEY = "knowledge-document-view-mode";
 
 export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentListProps) {
   const t = useI18n();
+  const confirm = useConfirm();
   const [saving, setSaving] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const [bulkMoveOpen, setBulkMoveOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [selectedDirectoryId, setSelectedDirectoryId] = useState<number | null>(null);
   const [actionLoadingMap, setActionLoadingMap] = useState<Record<number, { rebuildIndex: boolean; delete: boolean }>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -157,6 +168,7 @@ export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentL
 
   useEffect(() => {
     setSelectedDirectoryId(null);
+    setSelectedIds([]);
   }, [knowledgeBaseId]);
 
   const filters = useMemo<DashboardPagedListFilter[]>(() => [
@@ -207,6 +219,21 @@ export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentL
     loadFailed: t("knowledge.loadDocumentsFailed"),
   });
 
+  const currentPageIds = useMemo(
+    () => documents.results.map((item) => item.id),
+    [documents.results],
+  );
+  const currentPageSelectedCount = useMemo(
+    () => currentPageIds.filter((id) => selectedIds.includes(id)).length,
+    [currentPageIds, selectedIds],
+  );
+  const allCurrentPageSelected =
+    currentPageIds.length > 0 && currentPageSelectedCount === currentPageIds.length;
+
+  useEffect(() => {
+    setSelectedIds((prev) => prev.filter((id) => currentPageIds.includes(id)));
+  }, [currentPageIds]);
+
   useEffect(() => {
     localStorage.setItem(VIEW_MODE_STORAGE_KEY, viewMode);
   }, [viewMode]);
@@ -229,6 +256,19 @@ export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentL
     }
     event.preventDefault();
     applyFilters();
+  }
+
+  function toggleSelected(id: number, checked: boolean) {
+    setSelectedIds((prev) => {
+      if (checked) {
+        return prev.includes(id) ? prev : [...prev, id];
+      }
+      return prev.filter((currentId) => currentId !== id);
+    });
+  }
+
+  function toggleCurrentPage(checked: boolean) {
+    setSelectedIds(checked ? currentPageIds : []);
   }
 
   const openCreateDialog = useCallback(() => {
@@ -302,6 +342,54 @@ export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentL
       toast.error(error instanceof Error ? error.message : t("knowledge.documentDeleteFailed"));
     } finally {
       setActionLoadingMap((prev) => ({ ...prev, [item.id]: { ...prev[item.id], delete: false } }));
+    }
+  }
+
+  async function handleBatchDelete() {
+    if (selectedIds.length === 0) {
+      return;
+    }
+    const confirmed = await confirm({
+      title: t("knowledge.batchDelete"),
+      description: t("knowledge.batchDeleteConfirm", { count: selectedIds.length }),
+      confirmText: t("knowledge.delete"),
+      variant: "destructive",
+    });
+    if (!confirmed) {
+      return;
+    }
+    setSaving(true);
+    try {
+      await batchDeleteKnowledgeDocuments(selectedIds);
+      toast.success(t("knowledge.batchDeleted", { count: selectedIds.length }));
+      setSelectedIds([]);
+      await loadData();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("knowledge.batchDeleteFailed"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleBatchMove(directoryId: number) {
+    if (!knowledgeBaseId || selectedIds.length === 0) {
+      return;
+    }
+    setMoving(true);
+    try {
+      await batchMoveKnowledgeDocuments({
+        knowledgeBaseId,
+        directoryId,
+        ids: selectedIds,
+      });
+      toast.success(t("knowledge.batchMoved", { count: selectedIds.length }));
+      setBulkMoveOpen(false);
+      setSelectedIds([]);
+      await loadData();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("knowledge.batchMoveFailed"));
+    } finally {
+      setMoving(false);
     }
   }
 
@@ -381,9 +469,19 @@ export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentL
             </Button>
           </div>
         </div>
-        <div className="min-h-0 flex-1">
+        <div className="relative min-h-0 flex-1">
           <ScrollArea className="h-full">
             <div className={viewMode === "grid" ? "p-2 space-y-1" : "p-2 space-y-0.5"}>
+            {documents.results.length > 0 ? (
+              <label className="mb-1 flex h-8 w-fit cursor-pointer items-center gap-2 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent">
+                <Checkbox
+                  checked={allCurrentPageSelected}
+                  onCheckedChange={(checked) => toggleCurrentPage(Boolean(checked))}
+                  aria-label={t("knowledge.selectCurrentPage")}
+                />
+                <span>{t("knowledge.selectCurrentPage")}</span>
+              </label>
+            ) : null}
             {documents.results.map((item) => (
               viewMode === "grid" ? (
                 <ContextMenu key={item.id}>
@@ -393,6 +491,13 @@ export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentL
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex min-w-0 flex-1 items-start gap-2">
+                          <Checkbox
+                            checked={selectedIds.includes(item.id)}
+                            onClick={(event) => event.stopPropagation()}
+                            onCheckedChange={(checked) => toggleSelected(item.id, Boolean(checked))}
+                            aria-label={t("knowledge.selectItem", { name: item.title })}
+                            className="mt-0.5"
+                          />
                           {/* <FileTextIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" /> */}
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
@@ -469,6 +574,12 @@ export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentL
                     <div
                       className="flex items-center gap-3 bg-background p-2 transition-colors hover:bg-accent w-full"
                     >
+                      <Checkbox
+                        checked={selectedIds.includes(item.id)}
+                        onClick={(event) => event.stopPropagation()}
+                        onCheckedChange={(checked) => toggleSelected(item.id, Boolean(checked))}
+                        aria-label={t("knowledge.selectItem", { name: item.title })}
+                      />
                       {/* <FileTextIcon className="size-4 shrink-0 text-muted-foreground" /> */}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
@@ -545,6 +656,48 @@ export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentL
             ) : null}
             </div>
           </ScrollArea>
+          {selectedIds.length > 0 ? (
+            <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center px-4">
+              <div className="pointer-events-auto flex items-center gap-2 rounded-md border bg-popover px-3 py-2 text-xs shadow-lg">
+                <span className="text-muted-foreground">
+                  {t("knowledge.selectedCount", { count: selectedIds.length })}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7"
+                  onClick={() => setBulkMoveOpen(true)}
+                  disabled={saving || moving}
+                >
+                  <FolderInputIcon className="size-3.5" />
+                  {t("knowledge.move")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-destructive hover:text-destructive"
+                  onClick={() => void handleBatchDelete()}
+                  disabled={saving || moving}
+                >
+                  <Trash2Icon className="size-3.5" />
+                  {t("knowledge.delete")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  onClick={() => setSelectedIds([])}
+                  disabled={saving || moving}
+                  aria-label={t("knowledge.clearSelection")}
+                >
+                  <XIcon className="size-3.5" />
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </div>
         <div className="border-t px-6 py-3">
           <ListPagination
@@ -566,6 +719,14 @@ export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentL
         initialDirectoryId={selectedDirectoryId ?? 0}
         onOpenChange={handleDialogOpenChange}
         onSubmit={handleSubmit}
+      />
+      <KnowledgeBulkMoveDialog
+        open={bulkMoveOpen}
+        knowledgeBaseId={knowledgeBaseId}
+        moving={moving}
+        selectedCount={selectedIds.length}
+        onOpenChange={setBulkMoveOpen}
+        onSubmit={(directoryId) => void handleBatchMove(directoryId)}
       />
     </>
   );
