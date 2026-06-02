@@ -169,7 +169,7 @@ func (s *channelService) ParseWxWorkKFChannelConfig(raw string) (*dto.WxWorkKFCh
 
 func (s *channelService) ListWxWorkKFAccounts() ([]response.WxWorkKFAccountResponse, error) {
 	if !wxwork.Enabled() || wxwork.GetWorkCli() == nil {
-		return nil, errorsx.BusinessError(1, "企业微信未启用或配置不完整")
+		return nil, errorsx.BusinessErrorI18n(1, "error.wxwork.configIncomplete")
 	}
 	cli, err := wxwork.GetWorkCli().GetKF()
 	if err != nil {

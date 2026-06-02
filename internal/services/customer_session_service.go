@@ -90,7 +90,7 @@ func (s *customerSessionService) Sign(channel *models.Channel, customer *models.
 	cfg := config.Current().CustomerSession
 	secret := strings.TrimSpace(cfg.Secret)
 	if secret == "" {
-		return "", time.Time{}, errorsx.BusinessError(1, "客服会话密钥未配置")
+		return "", time.Time{}, errorsx.BusinessErrorI18n(1, "error.customerSession.secretMissing")
 	}
 	if channel == nil || customer == nil {
 		return "", time.Time{}, errorsx.InvalidParamI18n("error.e0158")
@@ -168,7 +168,7 @@ func (s *customerSessionService) verifyToken(rawToken string) (*customerSessionC
 	cfg := config.Current().CustomerSession
 	secret := strings.TrimSpace(cfg.Secret)
 	if secret == "" {
-		return nil, errorsx.BusinessError(1, "客服会话密钥未配置")
+		return nil, errorsx.BusinessErrorI18n(1, "error.customerSession.secretMissing")
 	}
 	claims := &customerSessionClaims{}
 	token, err := jwt.ParseWithClaims(rawToken, claims, func(token *jwt.Token) (any, error) {

@@ -25,7 +25,7 @@ var Embedding = &embedding{}
 func (s *embedding) GetModel(ctx context.Context) (*models.AIConfig, error) {
 	config, err := GetEnabledAIConfig(enums.AIModelTypeEmbedding)
 	if err != nil {
-		return nil, errorsx.BusinessError(2001, "未配置可用的 Embedding 模型")
+		return nil, errorsx.BusinessErrorI18n(2001, "error.embeddingModel.noneEnabled")
 	}
 	return config, nil
 }

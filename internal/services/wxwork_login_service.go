@@ -24,7 +24,7 @@ type wxWorkLoginService struct {
 
 func (s *wxWorkLoginService) BuildWxWorkLoginURL(next string) (string, error) {
 	if !wxwork.Enabled() {
-		return "", errorsx.BusinessError(1, "企业微信登录未启用")
+		return "", errorsx.BusinessErrorI18n(1, "error.wxwork.loginDisabled")
 	}
 	state, err := wxwork.CreateState(next)
 	if err != nil {
@@ -35,7 +35,7 @@ func (s *wxWorkLoginService) BuildWxWorkLoginURL(next string) (string, error) {
 
 func (s *wxWorkLoginService) BuildWxWorkQRCodeLoginURL(next string) (string, error) {
 	if !wxwork.Enabled() {
-		return "", errorsx.BusinessError(1, "企业微信登录未启用")
+		return "", errorsx.BusinessErrorI18n(1, "error.wxwork.loginDisabled")
 	}
 	state, err := wxwork.CreateState(next)
 	if err != nil {
@@ -70,7 +70,7 @@ func (s *wxWorkLoginService) ExchangeWxWorkLoginTicket(ticket string) (*response
 
 func (s *wxWorkLoginService) loginWithWxWorkProfile(profile *wxwork.LoginUser, authCfg config.AuthConfig, clientIP, userAgent string) (*response.LoginResponse, error) {
 	if profile == nil || strings.TrimSpace(profile.UserID) == "" {
-		return nil, errorsx.BusinessError(2, "企业微信用户信息不存在")
+		return nil, errorsx.BusinessErrorI18n(2, "error.wxwork.profileMissing")
 	}
 
 	var ret *response.LoginResponse
@@ -87,11 +87,11 @@ func (s *wxWorkLoginService) loginWithWxWorkProfile(profile *wxwork.LoginUser, a
 			}
 		} else {
 			if identity.Status != enums.StatusOk {
-				return errorsx.BusinessError(3, "当前企业微信绑定已停用")
+				return errorsx.BusinessErrorI18n(3, "error.wxwork.bindingDisabled")
 			}
 			user = repositories.UserRepository.Get(ctx.Tx, identity.UserID)
 			if user == nil {
-				return errorsx.BusinessError(4, "企业微信账号绑定的系统用户不存在")
+				return errorsx.BusinessErrorI18n(4, "error.wxwork.boundUserMissing")
 			}
 		}
 
@@ -218,19 +218,19 @@ func (s *wxWorkLoginService) resolveWxWorkAvatar(current string, profile *wxwork
 
 func (s *wxWorkLoginService) checkWxWorkProfile(tx *gorm.DB, username, mobile string, email string) error {
 	if strs.IsBlank(username) {
-		return errorsx.BusinessError(5, "企业微信用户ID获取失败")
+		return errorsx.BusinessErrorI18n(5, "error.wxwork.userIDMissing")
 	}
 	if existing := repositories.UserRepository.GetByUsername(tx, username); existing != nil {
-		return errorsx.BusinessError(5, "企业微信用户ID已被系统用户名占用")
+		return errorsx.BusinessErrorI18n(5, "error.wxwork.userIDTaken")
 	}
 	if strs.IsNotBlank(mobile) {
 		if repositories.UserRepository.GetByMobile(tx, mobile) != nil {
-			return errorsx.BusinessError(6, "企业微信手机号已被系统用户占用")
+			return errorsx.BusinessErrorI18n(6, "error.wxwork.mobileTaken")
 		}
 	}
 	if strs.IsNotBlank(email) {
 		if repositories.UserRepository.GetByEmail(tx, email) != nil {
-			return errorsx.BusinessError(7, "企业微信邮箱已被系统用户占用")
+			return errorsx.BusinessErrorI18n(7, "error.wxwork.emailTaken")
 		}
 	}
 	return nil

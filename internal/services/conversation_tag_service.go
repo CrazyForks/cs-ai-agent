@@ -5,9 +5,9 @@ import (
 	"agent-desk/internal/pkg/dto"
 	"agent-desk/internal/pkg/dto/request"
 	"agent-desk/internal/pkg/enums"
+	"agent-desk/internal/pkg/errorsx"
 	"agent-desk/internal/pkg/utils"
 	"agent-desk/internal/repositories"
-	"errors"
 
 	"agent-desk/internal/pkg/httpx/params"
 
@@ -78,7 +78,7 @@ func (s *conversationTagService) IsExists(conversationID int64, tagID int64) boo
 func (s *conversationTagService) AddTag(req request.AddConversationTagRequest, operator *dto.AuthPrincipal) error {
 	tag := TagService.Get(req.TagID)
 	if tag == nil || tag.Status != enums.StatusOk {
-		return errors.New("标签不存在")
+		return errorsx.InvalidParamI18n("error.conversation.tagNotFound")
 	}
 	if s.IsExists(req.ConversationID, req.TagID) {
 		return nil

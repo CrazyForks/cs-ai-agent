@@ -92,11 +92,11 @@ func (s *agentTeamScheduleService) Count(cnd *sqls.Cnd) int64 {
 }
 
 func (s *agentTeamScheduleService) FindCalendarSchedules(req request.AgentTeamScheduleCalendarRequest) ([]models.AgentTeamSchedule, error) {
-	startAtValue, err := parseRequiredDateTime(req.StartAt, "开始时间格式错误")
+	startAtValue, err := parseRequiredDateTime(req.StartAt, "error.agentTeamSchedule.startAtInvalid", "error.agentTeamSchedule.startAtInvalidWithFormat")
 	if err != nil {
 		return nil, err
 	}
-	endAtValue, err := parseRequiredDateTime(req.EndAt, "结束时间格式错误")
+	endAtValue, err := parseRequiredDateTime(req.EndAt, "error.agentTeamSchedule.endAtInvalid", "error.agentTeamSchedule.endAtInvalidWithFormat")
 	if err != nil {
 		return nil, err
 	}
@@ -256,11 +256,11 @@ func (s *agentTeamScheduleService) buildScheduleModel(id, teamID int64, startAt,
 	if !slices.Contains(enums.StatusValues, team.Status) {
 		return nil, errorsx.InvalidParamI18n("error.e0174")
 	}
-	startAtValue, err := parseRequiredDateTime(startAt, "开始时间格式错误")
+	startAtValue, err := parseRequiredDateTime(startAt, "error.agentTeamSchedule.startAtInvalid", "error.agentTeamSchedule.startAtInvalidWithFormat")
 	if err != nil {
 		return nil, err
 	}
-	endAtValue, err := parseRequiredDateTime(endAt, "结束时间格式错误")
+	endAtValue, err := parseRequiredDateTime(endAt, "error.agentTeamSchedule.endAtInvalid", "error.agentTeamSchedule.endAtInvalidWithFormat")
 	if err != nil {
 		return nil, err
 	}
@@ -296,11 +296,11 @@ func (s *agentTeamScheduleService) buildBatchScheduleCandidates(req request.Agen
 	if err != nil {
 		return nil, err
 	}
-	startDate, err := parseRequiredDate(req.StartDate, "开始日期格式错误")
+	startDate, err := parseRequiredDate(req.StartDate, "error.agentTeamSchedule.startDateInvalid", "error.agentTeamSchedule.startDateInvalidWithFormat")
 	if err != nil {
 		return nil, err
 	}
-	endDate, err := parseRequiredDate(req.EndDate, "结束日期格式错误")
+	endDate, err := parseRequiredDate(req.EndDate, "error.agentTeamSchedule.endDateInvalid", "error.agentTeamSchedule.endDateInvalidWithFormat")
 	if err != nil {
 		return nil, err
 	}
@@ -310,11 +310,11 @@ func (s *agentTeamScheduleService) buildBatchScheduleCandidates(req request.Agen
 	if startDate.Before(startOfLocalDay(time.Now())) {
 		return nil, errorsx.InvalidParamI18n("error.e0085")
 	}
-	startClock, err := parseRequiredClock(req.StartTime, "开始时间格式错误")
+	startClock, err := parseRequiredClock(req.StartTime, "error.agentTeamSchedule.startTimeInvalid", "error.agentTeamSchedule.startTimeInvalidWithFormat")
 	if err != nil {
 		return nil, err
 	}
-	endClock, err := parseRequiredClock(req.EndTime, "结束时间格式错误")
+	endClock, err := parseRequiredClock(req.EndTime, "error.agentTeamSchedule.endTimeInvalid", "error.agentTeamSchedule.endTimeInvalidWithFormat")
 	if err != nil {
 		return nil, err
 	}
@@ -370,22 +370,22 @@ func (s *agentTeamScheduleService) buildBatchScheduleCandidates(req request.Agen
 	return candidates, nil
 }
 
-func parseRequiredDate(value, message string) (time.Time, error) {
+func parseRequiredDate(value, emptyKey, formatKey string) (time.Time, error) {
 	value = strings.TrimSpace(value)
 	if value == "" {
-		return time.Time{}, errorsx.InvalidParam(message)
+		return time.Time{}, errorsx.InvalidParamI18n(emptyKey)
 	}
 	ret, err := time.ParseInLocation(time.DateOnly, value, time.Local)
 	if err != nil {
-		return time.Time{}, errorsx.InvalidParam(message + "，请使用 yyyy-MM-dd")
+		return time.Time{}, errorsx.InvalidParamI18n(formatKey)
 	}
 	return startOfLocalDay(ret), nil
 }
 
-func parseRequiredClock(value, message string) (time.Time, error) {
+func parseRequiredClock(value, emptyKey, formatKey string) (time.Time, error) {
 	value = strings.TrimSpace(value)
 	if value == "" {
-		return time.Time{}, errorsx.InvalidParam(message)
+		return time.Time{}, errorsx.InvalidParamI18n(emptyKey)
 	}
 	layouts := []string{"15:04", "15:04:05"}
 	for _, layout := range layouts {
@@ -393,7 +393,7 @@ func parseRequiredClock(value, message string) (time.Time, error) {
 			return ret, nil
 		}
 	}
-	return time.Time{}, errorsx.InvalidParam(message + "，请使用 HH:mm 或 HH:mm:ss")
+	return time.Time{}, errorsx.InvalidParamI18n(formatKey)
 }
 
 func combineDateAndClock(date, clock time.Time) time.Time {
@@ -508,14 +508,14 @@ func uniquePositiveInt64s(values []int64) []int64 {
 	return ret
 }
 
-func parseRequiredDateTime(value, message string) (time.Time, error) {
+func parseRequiredDateTime(value, emptyKey, formatKey string) (time.Time, error) {
 	value = strings.TrimSpace(value)
 	if value == "" {
-		return time.Time{}, errorsx.InvalidParam(message)
+		return time.Time{}, errorsx.InvalidParamI18n(emptyKey)
 	}
 	ret, err := parseDateTimeValue(value)
 	if err != nil {
-		return time.Time{}, errorsx.InvalidParam(message + "，请使用 yyyy-MM-dd HH:mm:ss 或 RFC3339")
+		return time.Time{}, errorsx.InvalidParamI18n(formatKey)
 	}
 	return ret, nil
 }

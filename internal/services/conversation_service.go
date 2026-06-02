@@ -159,7 +159,7 @@ func (s *conversationService) Create(externalUser openidentity.ExternalUser, cha
 		return nil, err
 	}
 	if conversation == nil {
-		return nil, errorsx.BusinessError(1, "创建会话失败")
+		return nil, errorsx.BusinessErrorI18n(1, "error.conversation.createFailed")
 	}
 	if !created {
 		return conversation, nil

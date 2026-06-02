@@ -82,7 +82,7 @@ func BuildQRCodeLoginURL(state string) (string, error) {
 func CreateState(next string) (string, error) {
 	secret := strings.TrimSpace(StateSecret())
 	if secret == "" {
-		return "", errorsx.BusinessError(1, "企业微信登录密钥未配置")
+		return "", errorsx.BusinessErrorI18n(1, "error.wxwork.loginSecretMissing")
 	}
 	payload := statePayload{
 		Next:      sanitizeNextPath(next),

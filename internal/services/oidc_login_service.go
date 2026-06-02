@@ -61,7 +61,7 @@ func (s *oidcLoginService) ExchangeOIDCLoginTicket(ticket string) (*response.Log
 
 func (s *oidcLoginService) loginWithOIDCProfile(profile *oidcLoginProfile, authCfg config.AuthConfig, clientIP, userAgent string) (*response.LoginResponse, error) {
 	if profile == nil || strings.TrimSpace(profile.Subject) == "" {
-		return nil, errorsx.BusinessError(2, "OIDC 用户信息不存在")
+		return nil, errorsx.BusinessErrorI18n(2, "error.oidc.profileMissing")
 	}
 
 	var ret *response.LoginResponse
@@ -78,11 +78,11 @@ func (s *oidcLoginService) loginWithOIDCProfile(profile *oidcLoginProfile, authC
 			}
 		} else {
 			if identity.Status != enums.StatusOk {
-				return errorsx.BusinessError(3, "当前 OIDC 绑定已停用")
+				return errorsx.BusinessErrorI18n(3, "error.oidc.bindingDisabled")
 			}
 			user = repositories.UserRepository.Get(ctx.Tx, identity.UserID)
 			if user == nil {
-				return errorsx.BusinessError(4, "OIDC 账号绑定的系统用户不存在")
+				return errorsx.BusinessErrorI18n(4, "error.oidc.boundUserMissing")
 			}
 		}
 

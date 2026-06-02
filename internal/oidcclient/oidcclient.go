@@ -104,7 +104,7 @@ func Enabled() bool {
 
 func BuildAuthCodeURL(next string) (string, error) {
 	if !Enabled() {
-		return "", errorsx.BusinessError(1, "OIDC 登录未启用")
+		return "", errorsx.BusinessErrorI18n(1, "error.oidc.loginDisabled")
 	}
 	state, err := CreateState(next)
 	if err != nil {
@@ -115,7 +115,7 @@ func BuildAuthCodeURL(next string) (string, error) {
 
 func ExchangeCode(ctx context.Context, code string) (*Profile, error) {
 	if !Enabled() {
-		return nil, errorsx.BusinessError(1, "OIDC 登录未启用")
+		return nil, errorsx.BusinessErrorI18n(1, "error.oidc.loginDisabled")
 	}
 	code = strings.TrimSpace(code)
 	if code == "" {
@@ -149,7 +149,7 @@ func ExchangeCode(ctx context.Context, code string) (*Profile, error) {
 func CreateState(next string) (string, error) {
 	secret := stateSecret()
 	if secret == "" {
-		return "", errorsx.BusinessError(2, "OIDC 登录密钥未配置")
+		return "", errorsx.BusinessErrorI18n(2, "error.oidc.stateSecretMissing")
 	}
 	nonce, err := randomToken("os_")
 	if err != nil {

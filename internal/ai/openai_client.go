@@ -31,7 +31,7 @@ func newOpenAIClient(config models.AIConfig) openai.Client {
 func GetEnabledAIConfig(modelType enums.AIModelType) (*models.AIConfig, error) {
 	item := repositories.AIConfigRepository.GetEnabled(sqls.DB(), modelType)
 	if item == nil {
-		return nil, errorsx.BusinessError(2005, "未配置可用的 AI 配置")
+		return nil, errorsx.BusinessErrorI18n(2005, "error.aiConfig.noneEnabled")
 	}
 	return item, nil
 }

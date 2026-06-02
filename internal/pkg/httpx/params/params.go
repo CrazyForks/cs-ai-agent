@@ -1,6 +1,7 @@
 package params
 
 import (
+	"agent-desk/internal/pkg/errorsx"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -182,7 +183,7 @@ func FormValue(ctx *gin.Context, name string) string {
 func FormValueRequired(ctx *gin.Context, name string) (string, error) {
 	str := FormValue(ctx, name)
 	if len(str) == 0 {
-		return "", errors.New("参数：" + name + "不能为空")
+		return "", errorsx.InvalidParamI18n("error.param.required", name)
 	}
 	return str, nil
 }
