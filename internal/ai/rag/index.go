@@ -151,7 +151,8 @@ func (s *index) RemoveFAQIndex(ctx context.Context, faqID int64) error {
 	return nil
 }
 
-func (s *index) RemoveKnowledgeBaseIndexByChunkModels(ctx context.Context, knowledgeBaseID int64, chunks []models.KnowledgeChunk) error {
+func (s *index) RemoveKnowledgeBaseIndex(ctx context.Context, knowledgeBaseID int64) error {
+	chunks := repositories.KnowledgeChunkRepository.FindByKnowledgeBaseID(sqls.DB(), knowledgeBaseID)
 	if len(chunks) == 0 {
 		return nil
 	}

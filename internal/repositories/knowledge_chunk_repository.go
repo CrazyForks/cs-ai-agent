@@ -118,6 +118,11 @@ func (r *knowledgeChunkRepository) FindByFaqID(db *gorm.DB, faqID int64) (list [
 	return
 }
 
+func (r *knowledgeChunkRepository) FindByKnowledgeBaseID(db *gorm.DB, knowledgeBaseID int64) (list []models.KnowledgeChunk) {
+	db.Where("knowledge_base_id = ?", knowledgeBaseID).Order("id asc").Find(&list)
+	return
+}
+
 func (r *knowledgeChunkRepository) FindByVectorIDs(db *gorm.DB, vectorIDs []string) (list []models.KnowledgeChunk) {
 	if len(vectorIDs) == 0 {
 		return nil
