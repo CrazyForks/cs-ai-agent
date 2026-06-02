@@ -7,6 +7,7 @@ import (
 	"agent-desk/internal/pkg/dto/request"
 	"agent-desk/internal/pkg/dto/response"
 	"agent-desk/internal/pkg/httpx"
+	"agent-desk/internal/pkg/i18nx"
 	"agent-desk/internal/services"
 
 	"agent-desk/internal/pkg/httpx/params"
@@ -66,6 +67,7 @@ func AgentTeamSchedulePostBatch_preview(ctx *gin.Context) {
 		httpx.WriteJSON(ctx, err)
 		return
 	}
+	req.Locale = i18nx.Locale(ctx)
 	ret, err := services.AgentTeamScheduleService.BatchPreview(req, operator)
 	if err != nil {
 		httpx.WriteJSON(ctx, err)
@@ -85,6 +87,7 @@ func AgentTeamSchedulePostBatch_generate(ctx *gin.Context) {
 		httpx.WriteJSON(ctx, err)
 		return
 	}
+	req.Locale = i18nx.Locale(ctx)
 	ret, err := services.AgentTeamScheduleService.BatchGenerate(req, operator)
 	if err != nil {
 		httpx.WriteJSON(ctx, err)
@@ -104,7 +107,7 @@ func AgentTeamScheduleGetBy(ctx *gin.Context) {
 	}
 	item := services.AgentTeamScheduleService.Get(id)
 	if item == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("客服组排班不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0172"))
 		return
 	}
 	httpx.WriteJSON(ctx, buildAgentTeamScheduleResponse(item))

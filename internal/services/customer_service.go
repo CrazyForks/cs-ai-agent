@@ -116,12 +116,12 @@ func (s *customerService) CountByCompanyIDs(companyIDs []int64) map[int64]int64 
 
 func (s *customerService) EnsureExternalCustomer(ctx *sqls.TxContext, externalUser openidentity.ExternalUser) (int64, error) {
 	if ctx == nil || ctx.Tx == nil {
-		return 0, errorsx.InvalidParam("事务上下文不能为空")
+		return 0, errorsx.InvalidParamI18n("error.e0086")
 	}
 	externalSource := externalUser.ExternalSource
 	externalID := strings.TrimSpace(externalUser.ExternalID)
 	if strings.TrimSpace(string(externalSource)) == "" || externalID == "" {
-		return 0, errorsx.Unauthorized("外部用户标识不能为空")
+		return 0, errorsx.UnauthorizedI18n("error.e0149")
 	}
 	now := time.Now()
 	if identity := repositories.CustomerIdentityRepository.GetBy(ctx.Tx, externalSource, externalID); identity != nil {
@@ -189,17 +189,17 @@ func hashUUID(uuid string) string {
 
 func (s *customerService) CreateCustomer(req request.CreateCustomerRequest, operator *dto.AuthPrincipal) (*models.Customer, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
-		return nil, errorsx.InvalidParam("客户名称不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0156")
 	}
 
 	if req.CompanyID > 0 {
 		company := CompanyService.Get(req.CompanyID)
 		if company == nil {
-			return nil, errorsx.InvalidParam("所属公司不存在")
+			return nil, errorsx.InvalidParamI18n("error.e0204")
 		}
 	}
 
@@ -222,21 +222,21 @@ func (s *customerService) CreateCustomer(req request.CreateCustomerRequest, oper
 
 func (s *customerService) UpdateCustomer(req request.UpdateCustomerRequest, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	item := s.Get(req.ID)
 	if item == nil {
-		return errorsx.InvalidParam("客户不存在")
+		return errorsx.InvalidParamI18n("error.e0155")
 	}
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
-		return errorsx.InvalidParam("客户名称不能为空")
+		return errorsx.InvalidParamI18n("error.e0156")
 	}
 
 	if req.CompanyID > 0 {
 		company := CompanyService.Get(req.CompanyID)
 		if company == nil {
-			return errorsx.InvalidParam("所属公司不存在")
+			return errorsx.InvalidParamI18n("error.e0204")
 		}
 	}
 
@@ -262,7 +262,7 @@ func (s *customerService) UpdateCustomer(req request.UpdateCustomerRequest, oper
 func (s *customerService) DeleteCustomer(id int64, operator dto.AuthPrincipal) error {
 	item := s.Get(id)
 	if item == nil {
-		return errorsx.InvalidParam("客户不存在")
+		return errorsx.InvalidParamI18n("error.e0155")
 	}
 	return repositories.CustomerRepository.Updates(sqls.DB(), id, map[string]any{
 		"status":           enums.StatusDeleted,
@@ -289,14 +289,14 @@ func (s *customerService) syncConversationCustomerName(db *gorm.DB, customerID i
 
 func (s *customerService) UpdateStatus(id int64, status int, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	item := s.Get(id)
 	if item == nil {
-		return errorsx.InvalidParam("客户不存在")
+		return errorsx.InvalidParamI18n("error.e0155")
 	}
 	if status != int(enums.StatusOk) && status != int(enums.StatusDisabled) {
-		return errorsx.InvalidParam("状态值不合法")
+		return errorsx.InvalidParamI18n("error.e0254")
 	}
 	return repositories.CustomerRepository.Updates(sqls.DB(), id, map[string]any{
 		"status":           status,
@@ -309,15 +309,15 @@ func (s *customerService) UpdateStatus(id int64, status int, operator *dto.AuthP
 // SaveCustomerProfile 单事务保存客户主信息与联系方式全量（新建或更新）。
 func (s *customerService) SaveCustomerProfile(req request.SaveCustomerProfileRequest, operator *dto.AuthPrincipal) (*models.Customer, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
-		return nil, errorsx.InvalidParam("客户名称不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0156")
 	}
 	if req.CompanyID > 0 {
 		if CompanyService.Get(req.CompanyID) == nil {
-			return nil, errorsx.InvalidParam("所属公司不存在")
+			return nil, errorsx.InvalidParamI18n("error.e0204")
 		}
 	}
 	createMode := req.ID == nil || *req.ID <= 0
@@ -345,7 +345,7 @@ func (s *customerService) SaveCustomerProfile(req request.SaveCustomerProfileReq
 			customerID = *req.ID
 			cur := repositories.CustomerRepository.Get(ctx.Tx, customerID)
 			if cur == nil {
-				return errorsx.InvalidParam("客户不存在")
+				return errorsx.InvalidParamI18n("error.e0155")
 			}
 			now := time.Now()
 			if err := repositories.CustomerRepository.Updates(ctx.Tx, customerID, map[string]any{

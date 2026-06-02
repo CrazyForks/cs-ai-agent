@@ -85,14 +85,14 @@ func (s *knowledgeDocumentService) Delete(id int64) {
 
 func (s *knowledgeDocumentService) CreateKnowledgeDocument(req request.CreateKnowledgeDocumentRequest, operator *dto.AuthPrincipal) (*models.KnowledgeDocument, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	kb := KnowledgeBaseService.Get(req.KnowledgeBaseID)
 	if kb == nil {
-		return nil, errorsx.InvalidParam("知识库不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0283")
 	}
 	if kb.KnowledgeType == string(enums.KnowledgeBaseTypeFAQ) {
-		return nil, errorsx.InvalidParam("FAQ知识库不支持文档")
+		return nil, errorsx.InvalidParamI18n("error.e0026")
 	}
 	if _, err := KnowledgeDirectoryService.RequireUsableDirectory(req.KnowledgeBaseID, req.DirectoryID); err != nil {
 		return nil, err
@@ -123,18 +123,18 @@ func (s *knowledgeDocumentService) CreateKnowledgeDocument(req request.CreateKno
 
 func (s *knowledgeDocumentService) UpdateKnowledgeDocument(req request.UpdateKnowledgeDocumentRequest, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	current := s.Get(req.ID)
 	if current == nil {
-		return errorsx.InvalidParam("文档不存在")
+		return errorsx.InvalidParamI18n("error.e0218")
 	}
 	kb := KnowledgeBaseService.Get(req.KnowledgeBaseID)
 	if kb == nil {
-		return errorsx.InvalidParam("知识库不存在")
+		return errorsx.InvalidParamI18n("error.e0283")
 	}
 	if kb.KnowledgeType == string(enums.KnowledgeBaseTypeFAQ) {
-		return errorsx.InvalidParam("FAQ知识库不支持文档")
+		return errorsx.InvalidParamI18n("error.e0026")
 	}
 	if _, err := KnowledgeDirectoryService.RequireUsableDirectory(req.KnowledgeBaseID, req.DirectoryID); err != nil {
 		return err
@@ -185,18 +185,18 @@ func (s *knowledgeDocumentService) DeleteKnowledgeDocument(id int64) error {
 
 func (s *knowledgeDocumentService) BatchMoveKnowledgeDocuments(req request.BatchMoveKnowledgeDocumentRequest, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	ids := uniquePositiveIDs(req.IDs)
 	if len(ids) == 0 {
-		return errorsx.InvalidParam("请选择要移动的文档")
+		return errorsx.InvalidParamI18n("error.e0333")
 	}
 	kb := KnowledgeBaseService.Get(req.KnowledgeBaseID)
 	if kb == nil {
-		return errorsx.InvalidParam("知识库不存在")
+		return errorsx.InvalidParamI18n("error.e0283")
 	}
 	if kb.KnowledgeType == string(enums.KnowledgeBaseTypeFAQ) {
-		return errorsx.InvalidParam("FAQ知识库不支持文档")
+		return errorsx.InvalidParamI18n("error.e0026")
 	}
 	if _, err := KnowledgeDirectoryService.RequireUsableDirectory(req.KnowledgeBaseID, req.DirectoryID); err != nil {
 		return err
@@ -204,10 +204,10 @@ func (s *knowledgeDocumentService) BatchMoveKnowledgeDocuments(req request.Batch
 	for _, id := range ids {
 		current := s.Get(id)
 		if current == nil || current.Status == enums.StatusDeleted {
-			return errorsx.InvalidParam("文档不存在")
+			return errorsx.InvalidParamI18n("error.e0218")
 		}
 		if current.KnowledgeBaseID != req.KnowledgeBaseID {
-			return errorsx.InvalidParam("只能移动当前知识库下的文档")
+			return errorsx.InvalidParamI18n("error.e0139")
 		}
 	}
 	now := time.Now()
@@ -240,7 +240,7 @@ func (s *knowledgeDocumentService) BatchMoveKnowledgeDocuments(req request.Batch
 func (s *knowledgeDocumentService) BatchDeleteKnowledgeDocuments(req request.BatchDeleteKnowledgeDocumentRequest) error {
 	ids := uniquePositiveIDs(req.IDs)
 	if len(ids) == 0 {
-		return errorsx.InvalidParam("请选择要删除的文档")
+		return errorsx.InvalidParamI18n("error.e0331")
 	}
 	for _, id := range ids {
 		if err := s.DeleteKnowledgeDocument(id); err != nil {
@@ -255,7 +255,7 @@ func (s *knowledgeDocumentService) buildKnowledgeDocumentModel(req request.Creat
 		req.ContentType = enums.KnowledgeDocumentContentTypeHTML
 	}
 	if req.ContentType != enums.KnowledgeDocumentContentTypeHTML && req.ContentType != enums.KnowledgeDocumentContentTypeMarkdown {
-		return nil, errorsx.InvalidParam("内容类型不支持")
+		return nil, errorsx.InvalidParamI18n("error.e0129")
 	}
 
 	plainText := rag.ExtractPlainText(req.Content, req.ContentType)

@@ -167,7 +167,7 @@ func (s *customerContactService) ReplaceAllForCustomerInTx(
 	operator *dto.AuthPrincipal,
 ) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	type line struct {
 		id      *int64
@@ -184,7 +184,7 @@ func (s *customerContactService) ReplaceAllForCustomerInTx(
 			continue
 		}
 		if !enums.IsValidContactType(ct) {
-			return errorsx.InvalidParam("联系方式类型不合法")
+			return errorsx.InvalidParamI18n("error.e0301")
 		}
 		items = append(items, line{
 			id:      r.ID,
@@ -204,7 +204,7 @@ func (s *customerContactService) ReplaceAllForCustomerInTx(
 		if primaryCount == 0 {
 			items[0].primary = true
 		} else if primaryCount > 1 {
-			return errorsx.InvalidParam("仅能指定一条主联系方式")
+			return errorsx.InvalidParamI18n("error.e0092")
 		}
 	}
 
@@ -241,10 +241,10 @@ func (s *customerContactService) ReplaceAllForCustomerInTx(
 		if it.id != nil && *it.id > 0 {
 			row := repositories.CustomerContactRepository.Get(ctx.Tx, *it.id)
 			if row == nil || row.CustomerID != customerID || row.Status == enums.StatusDeleted {
-				return errorsx.InvalidParam("联系方式不存在")
+				return errorsx.InvalidParamI18n("error.e0299")
 			}
 			if s.hasDuplicateContact(ctx.Tx, customerID, it.ct, it.val, *it.id) {
-				return errorsx.InvalidParam("该联系方式已存在")
+				return errorsx.InvalidParamI18n("error.e0318")
 			}
 			if it.primary {
 				if err := s.clearPrimaryExcept(ctx.Tx, customerID, *it.id); err != nil {
@@ -265,7 +265,7 @@ func (s *customerContactService) ReplaceAllForCustomerInTx(
 			continue
 		}
 		if s.hasDuplicateContact(ctx.Tx, customerID, it.ct, it.val, 0) {
-			return errorsx.InvalidParam("该联系方式已存在")
+			return errorsx.InvalidParamI18n("error.e0318")
 		}
 		if deleted := s.findSoftDeletedContactByNaturalKey(ctx.Tx, customerID, it.ct, it.val); deleted != nil {
 			if it.primary {
@@ -331,10 +331,10 @@ func (s *customerContactService) clearPrimaryExcept(db *gorm.DB, customerID int6
 
 func (s *customerContactService) validateContactStatus(status int) error {
 	if !enums.IsValidStatus(status) {
-		return errorsx.InvalidParam("状态值不合法")
+		return errorsx.InvalidParamI18n("error.e0254")
 	}
 	if status == int(enums.StatusDeleted) {
-		return errorsx.InvalidParam("状态值不合法")
+		return errorsx.InvalidParamI18n("error.e0254")
 	}
 	return nil
 }
@@ -342,21 +342,21 @@ func (s *customerContactService) validateContactStatus(status int) error {
 // CreateCustomerContact 创建联系方式；主联系方式在同一客户下唯一。
 func (s *customerContactService) CreateCustomerContact(req request.CreateCustomerContactRequest, operator *dto.AuthPrincipal) (*models.CustomerContact, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	if req.CustomerID <= 0 {
-		return nil, errorsx.InvalidParam("客户不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0155")
 	}
 	if CustomerService.Get(req.CustomerID) == nil {
-		return nil, errorsx.InvalidParam("客户不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0155")
 	}
 	ct := strings.TrimSpace(req.ContactType)
 	if !enums.IsValidContactType(ct) {
-		return nil, errorsx.InvalidParam("联系方式类型不合法")
+		return nil, errorsx.InvalidParamI18n("error.e0301")
 	}
 	val := strings.TrimSpace(req.ContactValue)
 	if val == "" {
-		return nil, errorsx.InvalidParam("联系方式不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0300")
 	}
 	if err := s.validateContactStatus(req.Status); err != nil {
 		return nil, err
@@ -369,7 +369,7 @@ func (s *customerContactService) CreateCustomerContact(req request.CreateCustome
 	var created *models.CustomerContact
 	err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
 		if s.hasDuplicateContact(ctx.Tx, req.CustomerID, enums.ContactType(ct), val, 0) {
-			return errorsx.InvalidParam("该联系方式已存在")
+			return errorsx.InvalidParamI18n("error.e0318")
 		}
 		now := time.Now()
 		if deleted := s.findSoftDeletedContactByNaturalKey(ctx.Tx, req.CustomerID, enums.ContactType(ct), val); deleted != nil {
@@ -439,22 +439,22 @@ func (s *customerContactService) CreateCustomerContact(req request.CreateCustome
 // UpdateCustomerContact 更新联系方式。
 func (s *customerContactService) UpdateCustomerContact(req request.UpdateCustomerContactRequest, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	if req.ID <= 0 {
-		return errorsx.InvalidParam("联系方式不存在")
+		return errorsx.InvalidParamI18n("error.e0299")
 	}
 	current := s.Get(req.ID)
 	if current == nil {
-		return errorsx.InvalidParam("联系方式不存在")
+		return errorsx.InvalidParamI18n("error.e0299")
 	}
 	ct := strings.TrimSpace(req.ContactType)
 	if !enums.IsValidContactType(ct) {
-		return errorsx.InvalidParam("联系方式类型不合法")
+		return errorsx.InvalidParamI18n("error.e0301")
 	}
 	val := strings.TrimSpace(req.ContactValue)
 	if val == "" {
-		return errorsx.InvalidParam("联系方式不能为空")
+		return errorsx.InvalidParamI18n("error.e0300")
 	}
 	if err := s.validateContactStatus(req.Status); err != nil {
 		return err
@@ -462,7 +462,7 @@ func (s *customerContactService) UpdateCustomerContact(req request.UpdateCustome
 
 	return sqls.WithTransaction(func(ctx *sqls.TxContext) error {
 		if s.hasDuplicateContact(ctx.Tx, current.CustomerID, enums.ContactType(ct), val, req.ID) {
-			return errorsx.InvalidParam("该联系方式已存在")
+			return errorsx.InvalidParamI18n("error.e0318")
 		}
 		if req.IsPrimary {
 			if err := s.clearPrimaryExcept(ctx.Tx, current.CustomerID, req.ID); err != nil {
@@ -500,14 +500,14 @@ func (s *customerContactService) UpdateCustomerContact(req request.UpdateCustome
 // DeleteCustomerContact 软删除联系方式并同步客户主联系方式冗余字段。
 func (s *customerContactService) DeleteCustomerContact(id int64, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	if id <= 0 {
-		return errorsx.InvalidParam("联系方式不存在")
+		return errorsx.InvalidParamI18n("error.e0299")
 	}
 	current := s.Get(id)
 	if current == nil {
-		return errorsx.InvalidParam("联系方式不存在")
+		return errorsx.InvalidParamI18n("error.e0299")
 	}
 	return sqls.WithTransaction(func(ctx *sqls.TxContext) error {
 		now := time.Now()

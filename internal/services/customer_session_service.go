@@ -54,7 +54,7 @@ type CustomerSessionVerifyResult struct {
 
 func (s *customerSessionService) Exchange(channel *models.Channel, externalUser openidentity.ExternalUser) (*response.CustomerSessionExchangeResponse, error) {
 	if channel == nil || channel.Status != enums.StatusOk {
-		return nil, errorsx.InvalidParam("接入渠道不存在或已停用")
+		return nil, errorsx.InvalidParamI18n("error.e0209")
 	}
 	var customerID int64
 	if err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
@@ -69,7 +69,7 @@ func (s *customerSessionService) Exchange(channel *models.Channel, externalUser 
 	}
 	customer := CustomerService.Get(customerID)
 	if customer == nil || customer.Status == enums.StatusDeleted {
-		return nil, errorsx.InvalidParam("客户不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0155")
 	}
 	token, expiresAt, err := s.Sign(channel, customer, externalUser)
 	if err != nil {
@@ -93,7 +93,7 @@ func (s *customerSessionService) Sign(channel *models.Channel, customer *models.
 		return "", time.Time{}, errorsx.BusinessError(1, "客服会话密钥未配置")
 	}
 	if channel == nil || customer == nil {
-		return "", time.Time{}, errorsx.InvalidParam("客服会话参数不完整")
+		return "", time.Time{}, errorsx.InvalidParamI18n("error.e0158")
 	}
 	now := time.Now()
 	expiresAt := now.Add(time.Duration(cfg.TTL()) * time.Minute)
@@ -119,21 +119,21 @@ func (s *customerSessionService) Sign(channel *models.Channel, customer *models.
 func (s *customerSessionService) VerifyRequest(ctx *gin.Context, channel *models.Channel) (*CustomerSessionVerifyResult, error) {
 	token := s.getCustomerSessionToken(ctx)
 	if token == "" {
-		return nil, errorsx.Unauthorized("客服会话不能为空")
+		return nil, errorsx.UnauthorizedI18n("error.e0157")
 	}
 	claims, err := s.verifyToken(token)
 	if err != nil {
 		return nil, err
 	}
 	if channel == nil || channel.Status != enums.StatusOk {
-		return nil, errorsx.InvalidParam("接入渠道不存在或已停用")
+		return nil, errorsx.InvalidParamI18n("error.e0209")
 	}
 	if claims.ChannelID != channel.ID || strings.TrimSpace(claims.ChannelCode) != strings.TrimSpace(channel.ChannelID) {
-		return nil, errorsx.Unauthorized("客服会话校验失败")
+		return nil, errorsx.UnauthorizedI18n("error.e0161")
 	}
 	customer := CustomerService.Get(claims.CustomerID)
 	if customer == nil || customer.Status == enums.StatusDeleted {
-		return nil, errorsx.Unauthorized("客服会话校验失败")
+		return nil, errorsx.UnauthorizedI18n("error.e0161")
 	}
 	external, err := s.externalUserFromClaims(claims, customer)
 	if err != nil {
@@ -183,15 +183,15 @@ func (s *customerSessionService) verifyToken(rawToken string) (*customerSessionC
 	}))
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) {
-			return nil, errorsx.Unauthorized("客服会话已过期")
+			return nil, errorsx.UnauthorizedI18n("error.e0160")
 		}
-		return nil, errorsx.Unauthorized("客服会话校验失败")
+		return nil, errorsx.UnauthorizedI18n("error.e0161")
 	}
 	if token == nil || !token.Valid || claims.TokenType != customerSessionTokenType || claims.ExpiresAt == nil {
-		return nil, errorsx.Unauthorized("客服会话校验失败")
+		return nil, errorsx.UnauthorizedI18n("error.e0161")
 	}
 	if claims.ChannelID <= 0 || strings.TrimSpace(claims.ChannelCode) == "" || claims.CustomerID <= 0 || strings.TrimSpace(claims.IdentityKey) == "" {
-		return nil, errorsx.Unauthorized("客服会话校验失败")
+		return nil, errorsx.UnauthorizedI18n("error.e0161")
 	}
 	return claims, nil
 }
@@ -200,7 +200,7 @@ func (s *customerSessionService) externalUserFromClaims(claims *customerSessionC
 	identityKey := strings.TrimSpace(claims.IdentityKey)
 	parts := strings.SplitN(identityKey, ":", 2)
 	if len(parts) != 2 || strings.TrimSpace(parts[1]) == "" {
-		return nil, errorsx.Unauthorized("客服会话校验失败")
+		return nil, errorsx.UnauthorizedI18n("error.e0161")
 	}
 	var source enums.ExternalSource
 	switch parts[0] {
@@ -209,11 +209,11 @@ func (s *customerSessionService) externalUserFromClaims(claims *customerSessionC
 	case "guest":
 		source = enums.ExternalSourceGuest
 	default:
-		return nil, errorsx.Unauthorized("客服会话校验失败")
+		return nil, errorsx.UnauthorizedI18n("error.e0161")
 	}
 	identity := repositories.CustomerIdentityRepository.GetBy(sqls.DB(), source, parts[1])
 	if identity == nil || identity.CustomerID != claims.CustomerID {
-		return nil, errorsx.Unauthorized("客服会话校验失败")
+		return nil, errorsx.UnauthorizedI18n("error.e0161")
 	}
 	name := strings.TrimSpace(claims.CustomerName)
 	if customer != nil && strings.TrimSpace(customer.Name) != "" {

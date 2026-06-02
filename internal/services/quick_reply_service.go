@@ -74,12 +74,12 @@ func (s *quickReplyService) Delete(id int64) {
 
 func (s *quickReplyService) CreateQuickReply(req request.CreateQuickReplyRequest, operator *dto.AuthPrincipal) (*models.QuickReply, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	title := strings.TrimSpace(req.Title)
 	content := strings.TrimSpace(req.Content)
 	if title == "" || content == "" {
-		return nil, errorsx.InvalidParam("标题和内容不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0240")
 	}
 	item := &models.QuickReply{
 		GroupName:   strings.TrimSpace(req.GroupName),
@@ -97,11 +97,11 @@ func (s *quickReplyService) CreateQuickReply(req request.CreateQuickReplyRequest
 
 func (s *quickReplyService) UpdateQuickReply(req request.UpdateQuickReplyRequest, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	item := s.Get(req.ID)
 	if item == nil {
-		return errorsx.InvalidParam("快捷回复不存在")
+		return errorsx.InvalidParamI18n("error.e0203")
 	}
 	return s.Updates(req.ID, map[string]any{
 		"group_name":       strings.TrimSpace(req.GroupName),
@@ -118,7 +118,7 @@ func (s *quickReplyService) UpdateQuickReply(req request.UpdateQuickReplyRequest
 func (s *quickReplyService) DeleteQuickReply(id int64) error {
 	item := s.Get(id)
 	if item == nil {
-		return errorsx.InvalidParam("快捷回复不存在")
+		return errorsx.InvalidParamI18n("error.e0203")
 	}
 	s.Delete(id)
 	return nil

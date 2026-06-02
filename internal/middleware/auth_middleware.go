@@ -18,7 +18,7 @@ func AuthMiddleware(ctx *gin.Context) {
 func authenticateRequest(ctx *gin.Context) bool {
 	if _, err := services.AuthService.Authenticate(ctx); err != nil {
 		result := web.JsonError(err)
-		result.Message = i18nx.T(ctx, "error.auth.expired", nil)
+		result.Message = i18nx.T(ctx, "error.auth.expired")
 		ctx.JSON(200, result)
 		ctx.Abort()
 		return false

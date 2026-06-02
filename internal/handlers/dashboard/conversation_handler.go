@@ -112,7 +112,7 @@ func ConversationGetBy(ctx *gin.Context) {
 
 	item := services.ConversationService.Get(id)
 	if item == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("会话不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0116"))
 		return
 	}
 
@@ -137,7 +137,7 @@ func ConversationAnyMessage_list(ctx *gin.Context) {
 		limit, _          = params.GetInt(ctx, "limit")
 	)
 	if conversation := services.ConversationService.Get(conversationID); conversation == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("会话不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0116"))
 		return
 	}
 
@@ -311,12 +311,12 @@ func ConversationPostUpload_image(ctx *gin.Context) {
 
 	rawConv := strings.TrimSpace(params.FormValue(ctx, "conversationId"))
 	if rawConv == "" {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("conversationId不能为空"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0064"))
 		return
 	}
 	conversationID, err := strconv.ParseInt(rawConv, 10, 64)
 	if err != nil || conversationID <= 0 {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("conversationId不能为空"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0064"))
 		return
 	}
 	if _, err := services.MessageService.ValidateConversationSender(conversationID, enums.IMSenderTypeAgent, operator, nil); err != nil {
@@ -326,11 +326,11 @@ func ConversationPostUpload_image(ctx *gin.Context) {
 
 	header, err := ctx.FormFile("file")
 	if err != nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("请选择上传图片"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0322"))
 		return
 	}
 	if !strings.HasPrefix(strings.ToLower(header.Header.Get("Content-Type")), "image/") {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("仅支持上传图片文件"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0090"))
 		return
 	}
 
@@ -351,12 +351,12 @@ func ConversationPostUpload_attachment(ctx *gin.Context) {
 
 	rawConv := strings.TrimSpace(params.FormValue(ctx, "conversationId"))
 	if rawConv == "" {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("conversationId不能为空"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0064"))
 		return
 	}
 	conversationID, err := strconv.ParseInt(rawConv, 10, 64)
 	if err != nil || conversationID <= 0 {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("conversationId不能为空"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0064"))
 		return
 	}
 	if _, err := services.MessageService.ValidateConversationSender(conversationID, enums.IMSenderTypeAgent, operator, nil); err != nil {
@@ -366,7 +366,7 @@ func ConversationPostUpload_attachment(ctx *gin.Context) {
 
 	header, err := ctx.FormFile("file")
 	if err != nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("请选择上传附件"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0324"))
 		return
 	}
 	item, err := services.AssetService.UploadFile(header, "attachments", operator)

@@ -25,7 +25,7 @@ var Answer = &answer{}
 
 func (s *answer) DebugSearch(ctx context.Context, req request.KnowledgeSearchRequest) (*response.KnowledgeSearchResponse, error) {
 	if strings.TrimSpace(req.Question) == "" {
-		return nil, errorsx.InvalidParam("问题不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0340")
 	}
 	startedAt := time.Now()
 	results, err := s.retrieve(req, ctx)
@@ -60,7 +60,7 @@ func (s *answer) DebugSearch(ctx context.Context, req request.KnowledgeSearchReq
 
 func (s *answer) DebugAnswer(ctx context.Context, req request.KnowledgeAnswerRequest, operator *dto.AuthPrincipal) (*response.KnowledgeAnswerResponse, error) {
 	if strings.TrimSpace(req.Question) == "" {
-		return nil, errorsx.InvalidParam("问题不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0340")
 	}
 	startedAt := time.Now()
 
@@ -276,7 +276,7 @@ func (s *answer) BuildDocumentIndex(ctx context.Context, documentID int64) error
 
 func (s *answer) retrieve(req request.KnowledgeSearchRequest, ctx context.Context) ([]RetrieveResult, error) {
 	if len(normalizeKnowledgeBaseIDs(req.KnowledgeBaseIDs)) == 0 {
-		return nil, errorsx.InvalidParam("知识库不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0284")
 	}
 	knowledgeBases := s.loadKnowledgeBases(req.KnowledgeBaseIDs)
 

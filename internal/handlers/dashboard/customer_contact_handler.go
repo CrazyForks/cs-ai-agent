@@ -10,7 +10,6 @@ import (
 	"agent-desk/internal/pkg/httpx/params"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mlogclub/simple/web"
 )
 
 // AnyList GET/POST /customer-contact/list?customerId=
@@ -21,7 +20,7 @@ func CustomerContactAnyList(ctx *gin.Context) {
 	}
 	customerID, _ := params.GetInt64(ctx, "customerId")
 	if customerID <= 0 {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("customerId 必填"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0065"))
 		return
 	}
 	list := services.CustomerContactService.FindActiveByCustomerID(customerID)

@@ -95,21 +95,21 @@ func (s *toolCatalogService) ValidateToolCode(toolCode string) error {
 	cfg := config.Current()
 	toolCode = strings.TrimSpace(toolCode)
 	if toolCode == "" {
-		return errorsx.InvalidParam("toolCode不能为空")
+		return errorsx.InvalidParamI18n("error.e0074")
 	}
 	if toolx.IsAgentDirectToolCode(toolCode) {
 		return nil
 	}
 	serverCode, toolName := toolx.SplitMCPToolCode(toolCode)
 	if serverCode == "" || toolName == "" {
-		return errorsx.InvalidParam("toolCode格式不合法")
+		return errorsx.InvalidParamI18n("error.e0075")
 	}
 	if !cfg.MCP.Enabled {
-		return errorsx.InvalidParam("MCP未启用")
+		return errorsx.InvalidParamI18n("error.e0035")
 	}
 	server, ok := cfg.MCP.Servers[serverCode]
 	if !ok || !server.Enabled {
-		return errorsx.InvalidParam("toolCode 绑定的 MCP 服务不存在或未启用")
+		return errorsx.InvalidParamI18n("error.e0073")
 	}
 	return nil
 }

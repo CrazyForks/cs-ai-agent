@@ -80,7 +80,7 @@ func (s *wxWorkKFInboundService) SyncCallbackMessages(message kf.CallbackMessage
 func (s *wxWorkKFInboundService) consumeSyncMessage(item syncmsg.Message) error {
 	msgID := strings.TrimSpace(item.MsgID)
 	if msgID == "" {
-		return errorsx.InvalidParam("企业微信消息ID不能为空")
+		return errorsx.InvalidParamI18n("error.e0101")
 	}
 	if WxWorkKFMessageRefService.Take("wx_msg_id = ?", msgID) != nil {
 		return nil
@@ -369,7 +369,7 @@ func (s *wxWorkKFInboundService) recordOrphanEvent(item syncmsg.Message, content
 func (s *wxWorkKFInboundService) ensureConversation(base syncmsg.BaseMessage, profile map[string]any) (*models.Conversation, error) {
 	externalID := strings.TrimSpace(base.ExternalUserID)
 	if externalID == "" {
-		return nil, errorsx.InvalidParam("企业微信客户ID不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0096")
 	}
 	channel, err := s.getChannelByOpenKfID(base.OpenKFID)
 	if err != nil {
@@ -474,7 +474,7 @@ func (s *wxWorkKFInboundService) createMessageRef(conversationID, messageID int6
 func (s *wxWorkKFInboundService) saveNextCursor(openKfID, nextCursor string) error {
 	openKfID = strings.TrimSpace(openKfID)
 	if openKfID == "" {
-		return errorsx.InvalidParam("openKfID不能为空")
+		return errorsx.InvalidParamI18n("error.e0068")
 	}
 	now := time.Now()
 	state := WxWorkKFSyncStateService.Take("open_kf_id = ?", openKfID)
@@ -517,7 +517,7 @@ func (s *wxWorkKFInboundService) appendConversationEvent(conversationID int64, c
 func (s *wxWorkKFInboundService) buildInboundAssetPayload(conversationID int64, mediaID string) (string, string, error) {
 	mediaID = strings.TrimSpace(mediaID)
 	if mediaID == "" {
-		return "", "", errorsx.InvalidParam("企业微信媒体ID不能为空")
+		return "", "", errorsx.InvalidParamI18n("error.e0095")
 	}
 	materialCli := wxwork.GetWorkCli().GetMaterial()
 	data, err := materialCli.GetTempFile(mediaID)
@@ -542,18 +542,18 @@ func (s *wxWorkKFInboundService) buildInboundAssetPayload(conversationID int64, 
 func (s *wxWorkKFInboundService) getChannelByOpenKfID(openKfID string) (*models.Channel, error) {
 	openKfID = strings.TrimSpace(openKfID)
 	if openKfID == "" {
-		return nil, errorsx.InvalidParam("企业微信 openKfID 不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0094")
 	}
 	channel := ChannelService.GetEnabledWxWorkKFChannelByOpenKfID(openKfID)
 	if channel == nil {
-		return nil, errorsx.InvalidParam("未找到匹配的企业微信接入渠道")
+		return nil, errorsx.InvalidParamI18n("error.e0231")
 	}
 	if channel.AIAgentID <= 0 {
-		return nil, errorsx.InvalidParam("企业微信接入渠道未绑定AI Agent")
+		return nil, errorsx.InvalidParamI18n("error.e0098")
 	}
 	agent := AIAgentService.Get(channel.AIAgentID)
 	if agent == nil || agent.Status != enums.StatusOk {
-		return nil, errorsx.InvalidParam("企业微信接入渠道绑定的AI Agent不存在或已禁用")
+		return nil, errorsx.InvalidParamI18n("error.e0099")
 	}
 	return channel, nil
 }

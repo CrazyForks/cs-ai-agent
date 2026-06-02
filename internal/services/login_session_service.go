@@ -71,7 +71,7 @@ func (s *loginSessionService) Delete(id int64) {
 func (s *loginSessionService) Revoke(id int64, operatorID int64, operatorName string) error {
 	session := s.Get(id)
 	if session == nil {
-		return errorsx.InvalidParam("会话不存在")
+		return errorsx.InvalidParamI18n("error.e0116")
 	}
 	now := time.Now()
 	return s.Updates(id, map[string]any{

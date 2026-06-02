@@ -38,10 +38,10 @@ func NormalizeMCPToolRequest(item request.AIAgentMCPToolRequest) (request.AIAgen
 		parsedServerCode, parsedToolName := SplitMCPToolCode(toolCode)
 		if parsedServerCode != "" && parsedToolName != "" {
 			if serverCode != "" && !strings.EqualFold(serverCode, parsedServerCode) {
-				return request.AIAgentMCPToolRequest{}, errorsx.InvalidParam("Direct Tool 的 toolCode 与 serverCode 不一致")
+				return request.AIAgentMCPToolRequest{}, errorsx.InvalidParamI18n("error.e0016")
 			}
 			if toolName != "" && !strings.EqualFold(toolName, parsedToolName) {
-				return request.AIAgentMCPToolRequest{}, errorsx.InvalidParam("Direct Tool 的 toolCode 与 toolName 不一致")
+				return request.AIAgentMCPToolRequest{}, errorsx.InvalidParamI18n("error.e0017")
 			}
 			serverCode = parsedServerCode
 			toolName = parsedToolName
@@ -53,14 +53,14 @@ func NormalizeMCPToolRequest(item request.AIAgentMCPToolRequest) (request.AIAgen
 		toolCode = BuildMCPToolCode(serverCode, toolName)
 	}
 	if toolCode == "" {
-		return request.AIAgentMCPToolRequest{}, errorsx.InvalidParam("Direct Tool 的 toolCode、serverCode 和 toolName 不能为空")
+		return request.AIAgentMCPToolRequest{}, errorsx.InvalidParamI18n("error.e0019")
 	}
 	if parsedServerCode, parsedToolName := SplitMCPToolCode(toolCode); parsedServerCode != "" && parsedToolName != "" {
 		serverCode = parsedServerCode
 		toolName = parsedToolName
 	}
 	if serverCode == "" && toolName == "" && strings.Contains(toolCode, "/") && !strings.HasPrefix(toolCode, "builtin/") {
-		return request.AIAgentMCPToolRequest{}, errorsx.InvalidParam("Direct Tool 的 toolCode 格式不合法")
+		return request.AIAgentMCPToolRequest{}, errorsx.InvalidParamI18n("error.e0018")
 	}
 	ret := request.AIAgentMCPToolRequest{
 		ToolCode:    toolCode,

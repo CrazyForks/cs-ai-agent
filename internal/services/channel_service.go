@@ -80,7 +80,7 @@ func (s *channelService) UpdateColumn(id int64, name string, value interface{}) 
 
 func (s *channelService) CreateChannel(req request.CreateChannelRequest, operator *dto.AuthPrincipal) (*models.Channel, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	item, err := s.buildChannelModel(0, req)
 	if err != nil {
@@ -95,11 +95,11 @@ func (s *channelService) CreateChannel(req request.CreateChannelRequest, operato
 
 func (s *channelService) UpdateChannel(req request.UpdateChannelRequest, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	current := s.Get(req.ID)
 	if current == nil || current.Status == enums.StatusDeleted {
-		return errorsx.InvalidParam("接入渠道不存在")
+		return errorsx.InvalidParamI18n("error.e0208")
 	}
 	item, err := s.buildChannelModel(req.ID, req.CreateChannelRequest)
 	if err != nil {
@@ -121,14 +121,14 @@ func (s *channelService) UpdateChannel(req request.UpdateChannelRequest, operato
 
 func (s *channelService) UpdateStatus(id int64, status int, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	item := s.Get(id)
 	if item == nil || item.Status == enums.StatusDeleted {
-		return errorsx.InvalidParam("接入渠道不存在")
+		return errorsx.InvalidParamI18n("error.e0208")
 	}
 	if status != int(enums.StatusOk) && status != int(enums.StatusDisabled) {
-		return errorsx.InvalidParam("状态值不合法")
+		return errorsx.InvalidParamI18n("error.e0254")
 	}
 	return s.Updates(id, map[string]any{
 		"status":           status,
@@ -140,11 +140,11 @@ func (s *channelService) UpdateStatus(id int64, status int, operator *dto.AuthPr
 
 func (s *channelService) DeleteChannel(id int64, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	item := s.Get(id)
 	if item == nil || item.Status == enums.StatusDeleted {
-		return errorsx.InvalidParam("接入渠道不存在")
+		return errorsx.InvalidParamI18n("error.e0208")
 	}
 	return s.Updates(id, map[string]any{
 		"status":           enums.StatusDeleted,
@@ -233,7 +233,7 @@ func (s *channelService) ParseWebChannelConfig(raw string) (*dto.WebChannelConfi
 		cfg.Position = "right"
 	}
 	if cfg.Position != "left" && cfg.Position != "right" {
-		return nil, errorsx.InvalidParam("Web渠道配置 position 只能为 left 或 right")
+		return nil, errorsx.InvalidParamI18n("error.e0059")
 	}
 	cfg.Width = strings.TrimSpace(cfg.Width)
 	if cfg.Width == "" {
@@ -292,14 +292,14 @@ func (s *channelService) GetUserTokenSecret(channel *models.Channel) string {
 
 func (s *channelService) ResetUserTokenSecret(channelID int64, operator *dto.AuthPrincipal) (string, error) {
 	if operator == nil {
-		return "", errorsx.Unauthorized("未登录或登录已过期")
+		return "", errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	channel := s.Get(channelID)
 	if channel == nil || channel.Status == enums.StatusDeleted {
-		return "", errorsx.InvalidParam("接入渠道不存在")
+		return "", errorsx.InvalidParamI18n("error.e0208")
 	}
 	if channel.ChannelType != enums.ChannelTypeWeb && channel.ChannelType != enums.ChannelTypeWechatMP {
-		return "", errorsx.InvalidParam("当前渠道不支持用户 JWT Secret")
+		return "", errorsx.InvalidParamI18n("error.e0196")
 	}
 	secret, err := generateUserTokenSecret()
 	if err != nil {
@@ -385,32 +385,32 @@ func (s *channelService) GetEnabledChannel(ctx *gin.Context) *models.Channel {
 func (s *channelService) buildChannelModel(id int64, req request.CreateChannelRequest) (*models.Channel, error) {
 	channelType := strings.TrimSpace(req.ChannelType)
 	if channelType != enums.ChannelTypeWeb && channelType != enums.ChannelTypeWechatMP && channelType != enums.ChannelTypeWxWorkKF {
-		return nil, errorsx.InvalidParam("渠道类型不合法")
+		return nil, errorsx.InvalidParamI18n("error.e0250")
 	}
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
-		return nil, errorsx.InvalidParam("渠道名称不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0247")
 	}
 	if req.AIAgentID <= 0 {
-		return nil, errorsx.InvalidParam("请选择 AI Agent")
+		return nil, errorsx.InvalidParamI18n("error.e0321")
 	}
 	aiAgent := AIAgentService.Get(req.AIAgentID)
 	if aiAgent == nil || aiAgent.Status != enums.StatusOk {
-		return nil, errorsx.InvalidParam("AI Agent 不存在或未启用")
+		return nil, errorsx.InvalidParamI18n("error.e0004")
 	}
 	status := enums.Status(req.Status)
 	if req.Status == 0 {
 		status = enums.StatusOk
 	}
 	if status != enums.StatusOk && status != enums.StatusDisabled {
-		return nil, errorsx.InvalidParam("渠道状态不合法")
+		return nil, errorsx.InvalidParamI18n("error.e0249")
 	}
 
 	channelID := ""
 	if id > 0 {
 		current := s.Get(id)
 		if current == nil || current.Status == enums.StatusDeleted {
-			return nil, errorsx.InvalidParam("接入渠道不存在")
+			return nil, errorsx.InvalidParamI18n("error.e0208")
 		}
 		channelID = strings.TrimSpace(current.ChannelID)
 	}
@@ -421,11 +421,11 @@ func (s *channelService) buildChannelModel(id int64, req request.CreateChannelRe
 			channelID = strs.UUID()
 		}
 		if exists := s.Take("channel_id = ? AND status <> ? AND id <> ?", channelID, enums.StatusDeleted, id); exists != nil {
-			return nil, errorsx.InvalidParam("渠道标识已存在")
+			return nil, errorsx.InvalidParamI18n("error.e0248")
 		}
 		cfg, err := s.ParseWebChannelConfig(configJSON)
 		if err != nil {
-			return nil, errorsx.InvalidParam("Web渠道配置不合法")
+			return nil, errorsx.InvalidParamI18n("error.e0060")
 		}
 		if strings.TrimSpace(cfg.UserTokenSecret) == "" {
 			secret, err := generateUserTokenSecret()
@@ -444,11 +444,11 @@ func (s *channelService) buildChannelModel(id int64, req request.CreateChannelRe
 			channelID = strs.UUID()
 		}
 		if exists := s.Take("channel_id = ? AND status <> ? AND id <> ?", channelID, enums.StatusDeleted, id); exists != nil {
-			return nil, errorsx.InvalidParam("渠道标识已存在")
+			return nil, errorsx.InvalidParamI18n("error.e0248")
 		}
 		cfg, err := s.ParseWechatMPChannelConfig(configJSON)
 		if err != nil {
-			return nil, errorsx.InvalidParam("微信公众号渠道配置不合法")
+			return nil, errorsx.InvalidParamI18n("error.e0201")
 		}
 		if strings.TrimSpace(cfg.UserTokenSecret) == "" {
 			secret, err := generateUserTokenSecret()
@@ -467,17 +467,17 @@ func (s *channelService) buildChannelModel(id int64, req request.CreateChannelRe
 			channelID = strs.UUID()
 		}
 		if exists := s.Take("channel_id = ? AND status <> ? AND id <> ?", channelID, enums.StatusDeleted, id); exists != nil {
-			return nil, errorsx.InvalidParam("渠道标识已存在")
+			return nil, errorsx.InvalidParamI18n("error.e0248")
 		}
 		cfg, err := s.ParseWxWorkKFChannelConfig(configJSON)
 		if err != nil {
-			return nil, errorsx.InvalidParam("企业微信渠道配置不合法")
+			return nil, errorsx.InvalidParamI18n("error.e0102")
 		}
 		if cfg == nil || cfg.OpenKfID == "" {
-			return nil, errorsx.InvalidParam("企业微信渠道配置缺少 openKfId")
+			return nil, errorsx.InvalidParamI18n("error.e0103")
 		}
 		if channel := s.GetEnabledWxWorkKFChannelByOpenKfID(cfg.OpenKfID); channel != nil && channel.ID != id {
-			return nil, errorsx.InvalidParam("openKfId 已被其他渠道使用")
+			return nil, errorsx.InvalidParamI18n("error.e0069")
 		}
 	}
 

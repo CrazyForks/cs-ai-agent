@@ -132,16 +132,16 @@ func (s *OSSStorage) getBucket() (*oss.Bucket, error) {
 
 func (s *OSSStorage) validate() error {
 	if strings.TrimSpace(s.cfg.Endpoint) == "" {
-		return errorsx.InvalidParam("OSS endpoint 未配置")
+		return errorsx.InvalidParamI18n("error.e0051")
 	}
 	if strings.TrimSpace(s.cfg.Bucket) == "" {
-		return errorsx.InvalidParam("OSS bucket 未配置")
+		return errorsx.InvalidParamI18n("error.e0050")
 	}
 	if strings.TrimSpace(s.cfg.AccessKeyID) == "" {
-		return errorsx.InvalidParam("OSS accessKeyId 未配置")
+		return errorsx.InvalidParamI18n("error.e0048")
 	}
 	if strings.TrimSpace(s.cfg.AccessKeySecret) == "" {
-		return errorsx.InvalidParam("OSS accessKeySecret 未配置")
+		return errorsx.InvalidParamI18n("error.e0049")
 	}
 	return nil
 }

@@ -73,7 +73,7 @@ func SkillDefinitionGetBy(ctx *gin.Context) {
 
 	item := services.SkillDefinitionService.Get(id)
 	if item == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("Skill 不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0053"))
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildSkillDefinitionResponse(item))
@@ -131,24 +131,24 @@ func SkillDefinitionPostUpdate_status(ctx *gin.Context) {
 		return
 	}
 	if req.ID <= 0 {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("Skill ID 不合法"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0052"))
 		return
 	}
 	if !enums.IsValidStatus(req.Status) {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("状态值不合法"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0254"))
 		return
 	}
 	item := services.SkillDefinitionService.Get(req.ID)
 	if item == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("Skill 不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0053"))
 		return
 	}
 	if item.Status == enums.StatusDeleted {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("已删除的 Skill 不能直接修改状态，请先恢复"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0184"))
 		return
 	}
 	if req.Status == int(enums.StatusDeleted) {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("请使用删除接口处理删除状态"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0319"))
 		return
 	}
 
@@ -177,11 +177,11 @@ func SkillDefinitionPostDelete(ctx *gin.Context) {
 		return
 	}
 	if req.ID <= 0 {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("Skill ID 不合法"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0052"))
 		return
 	}
 	if services.SkillDefinitionService.Get(req.ID) == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("Skill 不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0053"))
 		return
 	}
 	if err := services.SkillDefinitionService.Updates(req.ID, map[string]any{
@@ -209,17 +209,17 @@ func SkillDefinitionPostRestore(ctx *gin.Context) {
 		return
 	}
 	if req.ID <= 0 {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("Skill ID 不合法"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0052"))
 		return
 	}
 
 	item := services.SkillDefinitionService.Get(req.ID)
 	if item == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("Skill 不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0053"))
 		return
 	}
 	if item.Status != enums.StatusDeleted {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("仅已删除的 Skill 支持恢复"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0088"))
 		return
 	}
 

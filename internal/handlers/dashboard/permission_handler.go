@@ -59,7 +59,7 @@ func PermissionGetBy(ctx *gin.Context) {
 
 	item := services.PermissionService.Get(id)
 	if item == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("权限不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0236"))
 		return
 	}
 	httpx.WriteJSON(ctx, &response.PermissionResponse{

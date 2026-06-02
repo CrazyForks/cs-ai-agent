@@ -21,7 +21,7 @@ func KnowledgeDirectoryGetList_all(ctx *gin.Context) {
 	}
 	knowledgeBaseID, ok := params.GetInt64(ctx, "knowledgeBaseId")
 	if !ok || knowledgeBaseID <= 0 {
-		httpx.WriteJSON(ctx, errorsx.InvalidParam("知识库不存在"))
+		httpx.WriteJSON(ctx, errorsx.InvalidParamI18n("error.e0283"))
 		return
 	}
 	list := services.KnowledgeDirectoryService.FindAllByKnowledgeBaseID(knowledgeBaseID)

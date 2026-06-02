@@ -68,7 +68,7 @@ func UserGetBy(ctx *gin.Context) {
 
 	item := services.UserService.Get(id)
 	if item == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("用户不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0255"))
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildUserResponse(item, builders.UserBuildOptions{
@@ -191,7 +191,7 @@ func UserPostChange_password(ctx *gin.Context) {
 		principal = services.AuthService.GetAuthPrincipal(ctx)
 	}
 	if principal == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("未登录或登录已过期"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.auth.expired"))
 		return
 	}
 

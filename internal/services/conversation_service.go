@@ -74,7 +74,7 @@ func (s *conversationService) ListConversations(userID int64, filter request.Age
 	case request.AgentConversationFilterClosed:
 		cnd.Eq("current_assignee_id", userID).Eq("status", enums.IMConversationStatusClosed).Desc("last_active_at").Desc("id")
 	default:
-		return nil, nil, errorsx.InvalidParam("会话筛选项不合法")
+		return nil, nil, errorsx.InvalidParamI18n("error.e0121")
 	}
 
 	list, paging := repositories.ConversationRepository.FindPageByCnd(sqls.DB(), cnd)
@@ -103,7 +103,7 @@ func (s *conversationService) getLatestNotFinishedByCustomerID(db *gorm.DB, cust
 func (s *conversationService) Create(externalUser openidentity.ExternalUser, channelID, aiAgentID int64) (*models.Conversation, error) {
 	aiAgent := AIAgentService.Get(aiAgentID)
 	if aiAgent == nil || aiAgent.Status != enums.StatusOk {
-		return nil, errorsx.InvalidParam("AI Agent 不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0002")
 	}
 
 	var conversation *models.Conversation
@@ -184,20 +184,20 @@ func (s *conversationService) Create(externalUser openidentity.ExternalUser, cha
 
 func (s *conversationService) AssignConversation(req request.AssignConversationRequest, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	targetProfile := AgentProfileService.GetByUserID(req.AssigneeID)
 	if targetProfile == nil || targetProfile.Status != enums.StatusOk {
-		return errorsx.InvalidParam("目标客服不存在")
+		return errorsx.InvalidParamI18n("error.e0276")
 	}
 	var assignedEvent events.ConversationAssignedEvent
 	if err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
 		conversation := repositories.ConversationRepository.Get(ctx.Tx, req.ConversationID)
 		if conversation == nil {
-			return errorsx.InvalidParam("会话不存在")
+			return errorsx.InvalidParamI18n("error.e0116")
 		}
 		if conversation.Status != enums.IMConversationStatusPending {
-			return errorsx.InvalidParam("只有待接入会话允许分配")
+			return errorsx.InvalidParamI18n("error.e0135")
 		}
 		now := time.Now()
 		if err := ConversationAssignmentService.FinishActiveAssignments(ctx, req.ConversationID, now); err != nil {
@@ -245,62 +245,62 @@ func (s *conversationService) AssignConversation(req request.AssignConversationR
 
 func (s *conversationService) AutoAssignConversation(conversationID int64, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 
 	conversation := s.Get(conversationID)
 	if conversation == nil {
-		return errorsx.InvalidParam("会话不存在")
+		return errorsx.InvalidParamI18n("error.e0116")
 	}
 	if conversation.Status != enums.IMConversationStatusPending {
-		return errorsx.InvalidParam("只有待接入会话允许自动分配")
+		return errorsx.InvalidParamI18n("error.e0136")
 	}
 	if conversation.CurrentAssigneeID > 0 {
-		return errorsx.InvalidParam("当前会话已分配客服")
+		return errorsx.InvalidParamI18n("error.e0190")
 	}
 
 	aiAgent := AIAgentService.Get(conversation.AIAgentID)
 	if aiAgent == nil || aiAgent.Status != enums.StatusOk {
-		return errorsx.InvalidParam("AI Agent 不存在或已停用")
+		return errorsx.InvalidParamI18n("error.e0003")
 	}
 	result, err := ConversationHumanDispatchService.DispatchPendingConversation(conversationID, *aiAgent)
 	if err != nil {
 		return err
 	}
 	if result == nil || result.Decision == HandoffDecisionOffHours {
-		return errorsx.InvalidParam("当前暂不在人工客服服务时间内")
+		return errorsx.InvalidParamI18n("error.e0194")
 	}
 	return nil
 }
 
 func (s *conversationService) TransferConversation(conversationID, toUserID int64, reason string, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	if toUserID <= 0 {
-		return errorsx.InvalidParam("目标客服不能为空")
+		return errorsx.InvalidParamI18n("error.e0278")
 	}
 	targetProfile := AgentProfileService.GetByUserID(toUserID)
 	if targetProfile == nil || targetProfile.Status != enums.StatusOk {
-		return errorsx.InvalidParam("目标客服不存在")
+		return errorsx.InvalidParamI18n("error.e0276")
 	}
 	var assignedEvent events.ConversationAssignedEvent
 	if err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
 		conversation := repositories.ConversationRepository.Get(ctx.Tx, conversationID)
 		if conversation == nil {
-			return errorsx.InvalidParam("会话不存在")
+			return errorsx.InvalidParamI18n("error.e0116")
 		}
 		if !s.canTransferConversation(conversation, operator) {
-			return errorsx.Forbidden("无权转接该会话")
+			return errorsx.ForbiddenI18n("error.e0223")
 		}
 		if conversation.Status != enums.IMConversationStatusActive {
-			return errorsx.InvalidParam("只有处理中会话允许转接")
+			return errorsx.InvalidParamI18n("error.e0134")
 		}
 		if conversation.CurrentAssigneeID <= 0 {
-			return errorsx.InvalidParam("当前会话未分配客服")
+			return errorsx.InvalidParamI18n("error.e0193")
 		}
 		if conversation.CurrentAssigneeID == toUserID {
-			return errorsx.InvalidParam("目标客服不能与当前指派人相同")
+			return errorsx.InvalidParamI18n("error.e0277")
 		}
 		now := time.Now()
 		if err := ConversationAssignmentService.FinishActiveAssignments(ctx, conversationID, now); err != nil {
@@ -352,7 +352,7 @@ func (s *conversationService) HandoffByAI(conversationID int64, aiAgent models.A
 
 func (s *conversationService) HandoffByAIWithRequestID(conversationID int64, aiAgent models.AIAgent, reason string, requestID string) error {
 	if conversationID <= 0 {
-		return errorsx.InvalidParam("会话不存在")
+		return errorsx.InvalidParamI18n("error.e0116")
 	}
 	_, err := ConversationHumanDispatchService.HandoffByAIWithRequestID(conversationID, aiAgent, reason, requestID)
 	if err != nil {
@@ -371,7 +371,7 @@ func (s *conversationService) TryOffHoursHandoffByAI(conversationID int64, aiAge
 
 func (s *conversationService) TryOffHoursHandoffByAIWithRequestID(conversationID int64, aiAgent models.AIAgent, reason string, requestID string) (bool, error) {
 	if conversationID <= 0 {
-		return false, errorsx.InvalidParam("会话不存在")
+		return false, errorsx.InvalidParamI18n("error.e0116")
 	}
 	handled, err := ConversationHumanDispatchService.TryOffHoursHandoffByAIWithRequestID(conversationID, aiAgent, reason, requestID)
 	if err != nil {
@@ -386,7 +386,7 @@ func (s *conversationService) TryOffHoursHandoffByAIWithRequestID(conversationID
 
 func (s *conversationService) CloseConversation(conversationID int64, closeReason string, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	return s.closeConversation(conversationID, enums.IMSenderTypeAgent, closeReason, operator)
 }
@@ -394,10 +394,10 @@ func (s *conversationService) CloseConversation(conversationID int64, closeReaso
 func (s *conversationService) CloseCustomerConversation(conversationID int64, externalUser openidentity.ExternalUser) error {
 	conversation := s.Get(conversationID)
 	if conversation == nil {
-		return errorsx.InvalidParam("会话不存在")
+		return errorsx.InvalidParamI18n("error.e0116")
 	}
 	if !s.IsCustomerConversationOwner(conversation, externalUser) {
-		return errorsx.Forbidden("无权访问该会话")
+		return errorsx.ForbiddenI18n("error.e0222")
 	}
 	return s.closeConversation(conversationID, enums.IMSenderTypeCustomer, "", nil)
 }
@@ -406,7 +406,7 @@ func (s *conversationService) closeConversation(conversationID int64, senderType
 	if err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
 		conversation := repositories.ConversationRepository.Get(ctx.Tx, conversationID)
 		if conversation == nil {
-			return errorsx.InvalidParam("会话不存在")
+			return errorsx.InvalidParamI18n("error.e0116")
 		}
 		if conversation.Status == enums.IMConversationStatusClosed {
 			return nil
@@ -414,7 +414,7 @@ func (s *conversationService) closeConversation(conversationID int64, senderType
 		if conversation.Status != enums.IMConversationStatusAIServing &&
 			conversation.Status != enums.IMConversationStatusPending &&
 			conversation.Status != enums.IMConversationStatusActive {
-			return errorsx.InvalidParam("当前状态不允许关闭会话")
+			return errorsx.InvalidParamI18n("error.e0197")
 		}
 		var (
 			now          = time.Now()
@@ -427,13 +427,13 @@ func (s *conversationService) closeConversation(conversationID int64, senderType
 			eventDesc = "客户关闭会话"
 		} else {
 			if operator == nil {
-				return errorsx.InvalidParam("无权限操作")
+				return errorsx.InvalidParamI18n("error.e0226")
 			}
 			if closeReason == "" {
-				return errorsx.InvalidParam("关闭原因不能为空")
+				return errorsx.InvalidParamI18n("error.e0128")
 			}
 			if !s.canCloseConversation(conversation, operator) {
-				return errorsx.Forbidden("无权关闭该会话")
+				return errorsx.ForbiddenI18n("error.e0221")
 			}
 			operatorID = operator.UserID
 			operatorName = operator.Nickname
@@ -471,11 +471,11 @@ func (s *conversationService) closeConversation(conversationID int64, senderType
 // MarkAgentConversationReadToMessage 控制台客服将会话已读推进到指定消息。
 func (s *conversationService) MarkAgentConversationReadToMessage(conversationID, messageID int64, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	conversation := s.Get(conversationID)
 	if conversation == nil {
-		return errorsx.InvalidParam("会话不存在")
+		return errorsx.InvalidParamI18n("error.e0116")
 	}
 	changed, err := s.markConversationReadWithActor(conversation, messageID, agentConversationReadActor{operator: operator})
 	if err != nil {
@@ -492,14 +492,14 @@ func (s *conversationService) MarkAgentConversationReadToMessage(conversationID,
 // MarkCustomerConversationReadToMessage IM 客户将会话已读推进到指定消息（需为会话归属外部身份）。
 func (s *conversationService) MarkCustomerConversationReadToMessage(conversationID, messageID int64, external *openidentity.ExternalUser) error {
 	if external == nil || strings.TrimSpace(external.ExternalID) == "" {
-		return errorsx.Unauthorized("外部用户标识不能为空")
+		return errorsx.UnauthorizedI18n("error.e0149")
 	}
 	conversation := s.Get(conversationID)
 	if conversation == nil {
-		return errorsx.InvalidParam("会话不存在")
+		return errorsx.InvalidParamI18n("error.e0116")
 	}
 	if !s.IsCustomerConversationOwner(conversation, *external) {
-		return errorsx.Forbidden("无权访问该会话")
+		return errorsx.ForbiddenI18n("error.e0222")
 	}
 	changed, err := s.markConversationReadWithActor(conversation, messageID, customerConversationReadActor{external: external})
 	if err != nil {
@@ -574,7 +574,7 @@ func (a customerConversationReadActor) conversationUpdateAudit() (int64, string)
 
 func (s *conversationService) markConversationReadWithActor(conversation *models.Conversation, messageID int64, actor conversationReadActor) (bool, error) {
 	if conversation == nil {
-		return false, errorsx.InvalidParam("会话不存在")
+		return false, errorsx.InvalidParamI18n("error.e0116")
 	}
 	targetMessage, err := MessageService.GetConversationReadTarget(conversation.ID, messageID)
 	if err != nil {
@@ -615,7 +615,7 @@ func (s *conversationService) markConversationReadWithActor(conversation *models
 	err = sqls.WithTransaction(func(ctx *sqls.TxContext) error {
 		currentConversation := repositories.ConversationRepository.Get(ctx.Tx, conversation.ID)
 		if currentConversation == nil {
-			return errorsx.InvalidParam("会话不存在")
+			return errorsx.InvalidParamI18n("error.e0116")
 		}
 		if err := actor.markRead(ctx, currentConversation, targetMessage); err != nil {
 			return err
@@ -741,30 +741,30 @@ func (s *conversationService) buildEventPayload(payload map[string]any) string {
 // LinkConversationCustomer 将会话绑定到指定客户。
 func (s *conversationService) LinkConversationCustomer(conversationID, customerID int64, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	if conversationID <= 0 || customerID <= 0 {
-		return errorsx.InvalidParam("参数不合法")
+		return errorsx.InvalidParamI18n("error.e0133")
 	}
 	cust := CustomerService.Get(customerID)
 	if cust == nil || cust.Status == enums.StatusDeleted {
-		return errorsx.InvalidParam("客户不存在")
+		return errorsx.InvalidParamI18n("error.e0155")
 	}
 	conv := s.Get(conversationID)
 	if conv == nil {
-		return errorsx.InvalidParam("会话不存在")
+		return errorsx.InvalidParamI18n("error.e0116")
 	}
 	if conv.Status == enums.IMConversationStatusClosed {
-		return errorsx.InvalidParam("已关闭的会话无法关联客户")
+		return errorsx.InvalidParamI18n("error.e0183")
 	}
 	if !s.canLinkConversationCustomer(conv, operator) {
-		return errorsx.Forbidden("无权限关联该会话")
+		return errorsx.ForbiddenI18n("error.e0224")
 	}
 
 	err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
 		current := repositories.ConversationRepository.Get(ctx.Tx, conversationID)
 		if current == nil {
-			return errorsx.InvalidParam("会话不存在")
+			return errorsx.InvalidParamI18n("error.e0116")
 		}
 		now := time.Now()
 		return repositories.ConversationRepository.Updates(ctx.Tx, conversationID, map[string]any{

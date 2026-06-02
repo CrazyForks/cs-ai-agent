@@ -3,6 +3,7 @@ package wxwork
 import (
 	"agent-desk/internal/pkg/dto/response"
 	"agent-desk/internal/pkg/errorsx"
+	"agent-desk/internal/pkg/i18nx"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
@@ -25,7 +26,7 @@ const (
 )
 
 var (
-	errStateInvalid  = fmt.Errorf("企业微信登录状态无效")
+	errStateInvalid  = i18nx.Errorf("error.e0110")
 	loginTicketStore sync.Map
 )
 
@@ -42,13 +43,13 @@ type loginTicket struct {
 
 func BuildLoginURL(state string) (string, error) {
 	if !Enabled() {
-		return "", fmt.Errorf("企业微信登录未启用")
+		return "", i18nx.Errorf("error.e0109")
 	}
 	if strings.TrimSpace(wxCfg.OAuthRedirect) == "" {
-		return "", fmt.Errorf("企业微信登录回调地址未配置")
+		return "", i18nx.Errorf("error.e0107")
 	}
 	if strings.TrimSpace(wxCfg.AgentID) == "" {
-		return "", fmt.Errorf("企业微信 AgentID 未配置")
+		return "", i18nx.Errorf("error.e0093")
 	}
 	return fmt.Sprintf(
 		"https://open.weixin.qq.com/connect/oauth2/authorize?appid=%s&redirect_uri=%s&response_type=code&scope=snsapi_privateinfo&agentid=%s&state=%s#wechat_redirect",
@@ -61,13 +62,13 @@ func BuildLoginURL(state string) (string, error) {
 
 func BuildQRCodeLoginURL(state string) (string, error) {
 	if !Enabled() {
-		return "", fmt.Errorf("企业微信登录未启用")
+		return "", i18nx.Errorf("error.e0109")
 	}
 	if strings.TrimSpace(wxCfg.OAuthRedirect) == "" {
-		return "", fmt.Errorf("企业微信登录回调地址未配置")
+		return "", i18nx.Errorf("error.e0107")
 	}
 	if strings.TrimSpace(wxCfg.AgentID) == "" {
-		return "", fmt.Errorf("企业微信 AgentID 未配置")
+		return "", i18nx.Errorf("error.e0093")
 	}
 	return fmt.Sprintf(
 		"https://open.work.weixin.qq.com/wwopen/sso/qrConnect?appid=%s&agentid=%s&redirect_uri=%s&state=%s",
@@ -129,7 +130,7 @@ func ParseState(state string) (string, error) {
 
 func IssueLoginTicket(loginResp *response.LoginResponse) (string, error) {
 	if loginResp == nil {
-		return "", fmt.Errorf("登录结果不能为空")
+		return "", i18nx.Errorf("error.e0272")
 	}
 	ticket, err := randomToken("wlt_")
 	if err != nil {
@@ -146,15 +147,15 @@ func IssueLoginTicket(loginResp *response.LoginResponse) (string, error) {
 func ConsumeLoginTicket(ticket string) (*response.LoginResponse, error) {
 	ticket = strings.TrimSpace(ticket)
 	if ticket == "" {
-		return nil, errorsx.InvalidParam("ticket 不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0072")
 	}
 	value, ok := loginTicketStore.LoadAndDelete(ticket)
 	if !ok {
-		return nil, errorsx.Unauthorized("登录票据无效或已过期")
+		return nil, errorsx.UnauthorizedI18n("error.e0271")
 	}
 	record, ok := value.(loginTicket)
 	if !ok || record.Response == nil || time.Now().After(record.ExpiredAt) {
-		return nil, errorsx.Unauthorized("登录票据无效或已过期")
+		return nil, errorsx.UnauthorizedI18n("error.e0271")
 	}
 	return record.Response, nil
 }
@@ -194,11 +195,11 @@ func randomToken(prefix string) (string, error) {
 
 func GetUserDetail(code string) (*LoginUser, error) {
 	if !Enabled() {
-		return nil, fmt.Errorf("企业微信登录未启用")
+		return nil, i18nx.Errorf("error.e0109")
 	}
 	code = strings.TrimSpace(code)
 	if code == "" {
-		return nil, fmt.Errorf("微信授权 code 不能为空")
+		return nil, i18nx.Errorf("error.e0202")
 	}
 
 	oauthClient := w.GetOauth()
@@ -207,7 +208,7 @@ func GetUserDetail(code string) (*LoginUser, error) {
 		return nil, err
 	}
 	if strings.TrimSpace(userInfo.UserID) == "" {
-		return nil, fmt.Errorf("当前登录身份不是企业内部成员")
+		return nil, i18nx.Errorf("error.e0198")
 	}
 
 	ret := &LoginUser{

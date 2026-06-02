@@ -6,6 +6,7 @@ import (
 	"agent-desk/internal/pkg/dto/response"
 	"agent-desk/internal/pkg/enums"
 	"agent-desk/internal/pkg/errorsx"
+	"agent-desk/internal/pkg/i18nx"
 	"agent-desk/internal/pkg/openidentity"
 	"agent-desk/internal/pkg/utils"
 	"encoding/json"
@@ -44,7 +45,7 @@ func newWsService() *wsService {
 func (s *wsService) HandleDashboardWS(ctx *gin.Context) {
 	principal := AuthService.GetAuthPrincipal(ctx)
 	if principal == nil {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, web.JsonError(errorsx.Unauthorized("未登录或登录已过期")))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, web.JsonErrorCode(errorsx.CodeAuthUnauthorized, i18nx.T(ctx, "error.auth.expired")))
 		return
 	}
 	if err := s.upgradeConnection(ctx, principal, nil, realtimeRoleAdmin); err != nil {
@@ -57,7 +58,7 @@ func (s *wsService) HandleDashboardWS(ctx *gin.Context) {
 func (s *wsService) HandleDashboardNotificationWS(ctx *gin.Context) {
 	principal := AuthService.GetAuthPrincipal(ctx)
 	if principal == nil {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, web.JsonError(errorsx.Unauthorized("未登录或登录已过期")))
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, web.JsonErrorCode(errorsx.CodeAuthUnauthorized, i18nx.T(ctx, "error.auth.expired")))
 		return
 	}
 	if err := s.upgradeConnection(ctx, principal, nil, realtimeRoleNotification); err != nil {
@@ -70,7 +71,7 @@ func (s *wsService) HandleDashboardNotificationWS(ctx *gin.Context) {
 func (s *wsService) HandleOpenWS(ctx *gin.Context) {
 	channel := ChannelService.GetEnabledChannel(ctx)
 	if channel == nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, web.JsonErrorMsg("接入渠道不存在或已停用"))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, web.JsonErrorCode(errorsx.CodeInvalidParam, i18nx.T(ctx, "error.e0209")))
 		return
 	}
 

@@ -101,6 +101,7 @@ type ImportKnowledgeFAQRequest struct {
 	Mode            KnowledgeFAQImportMode
 	Filename        string
 	Reader          io.Reader
+	Locale          string
 }
 
 type KnowledgeSearchRequest struct {

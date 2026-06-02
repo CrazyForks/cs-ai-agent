@@ -11,7 +11,7 @@ import (
 func ExternalUserMiddleware(ctx *gin.Context) {
 	channel := services.ChannelService.GetEnabledChannel(ctx)
 	if channel == nil {
-		ctx.JSON(200, web.JsonErrorMsg("接入渠道异常"))
+		ctx.JSON(200, httpx.JsonErrorMsg(ctx, "error.e0210"))
 		ctx.Abort()
 		return
 	}

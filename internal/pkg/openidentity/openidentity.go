@@ -44,10 +44,10 @@ func GetExternalUser(ctx *gin.Context, secret string) (*ExternalUser, error) {
 
 func verifyUserToken(userToken, secret string) (*UserTokenClaims, error) {
 	if strs.IsBlank(userToken) {
-		return nil, errorsx.Unauthorized("用户身份不能为空")
+		return nil, errorsx.UnauthorizedI18n("error.e0263")
 	}
 	if strs.IsBlank(secret) {
-		return nil, errorsx.Unauthorized("用户身份校验未配置")
+		return nil, errorsx.UnauthorizedI18n("error.e0266")
 	}
 
 	claims := &UserTokenClaims{}
@@ -63,22 +63,22 @@ func verifyUserToken(userToken, secret string) (*UserTokenClaims, error) {
 	}))
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) {
-			return nil, errorsx.Unauthorized("用户身份已过期")
+			return nil, errorsx.UnauthorizedI18n("error.e0264")
 		}
-		return nil, errorsx.Unauthorized("用户身份校验失败")
+		return nil, errorsx.UnauthorizedI18n("error.e0265")
 	}
 	if token == nil || !token.Valid {
-		return nil, errorsx.Unauthorized("用户身份校验失败")
+		return nil, errorsx.UnauthorizedI18n("error.e0265")
 	}
 
 	if strs.IsBlank(claims.UserID) {
-		return nil, errorsx.Unauthorized("用户标识不能为空")
+		return nil, errorsx.UnauthorizedI18n("error.e0262")
 	}
 	if strs.IsBlank(claims.Name) {
-		return nil, errorsx.Unauthorized("用户名称不能为空")
+		return nil, errorsx.UnauthorizedI18n("error.e0261")
 	}
 	if claims.ExpiresAt == nil {
-		return nil, errorsx.Unauthorized("用户身份已过期")
+		return nil, errorsx.UnauthorizedI18n("error.e0264")
 	}
 
 	return claims, nil
@@ -98,7 +98,7 @@ func getUserToken(ctx *gin.Context) string {
 func getGuestUser(ctx *gin.Context) (*ExternalUser, error) {
 	externalID := getExternalID(ctx)
 	if strs.IsBlank(externalID) {
-		return nil, errorsx.Unauthorized("用户标识不能为空")
+		return nil, errorsx.UnauthorizedI18n("error.e0262")
 	}
 	return &ExternalUser{
 		ExternalSource: enums.ExternalSourceGuest,

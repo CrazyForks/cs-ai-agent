@@ -12,7 +12,6 @@ import (
 	"agent-desk/internal/pkg/httpx/params"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mlogclub/simple/web"
 )
 
 func KnowledgeRetrievePostDebugSearch(ctx *gin.Context) {
@@ -92,5 +91,5 @@ func KnowledgeRetrievePostBuild(ctx *gin.Context) {
 		return
 	}
 
-	httpx.WriteJSON(ctx, web.JsonErrorMsg("documentId或faqId不能为空"))
+	httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0066"))
 }

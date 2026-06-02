@@ -62,7 +62,7 @@ func AIConfigGetBy(ctx *gin.Context) {
 
 	item := services.AIConfigService.Get(id)
 	if item == nil || item.Status == enums.StatusDeleted {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("AI配置不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0012"))
 		return
 	}
 	httpx.WriteJSON(ctx, response.BuildAIConfigResponse(item))

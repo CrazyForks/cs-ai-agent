@@ -11,7 +11,6 @@ import (
 	"agent-desk/internal/pkg/httpx/params"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mlogclub/simple/web"
 )
 
 func ConversationGetBy(ctx *gin.Context) {
@@ -20,22 +19,22 @@ func ConversationGetBy(ctx *gin.Context) {
 		return
 	}
 	if services.ChannelService.GetEnabledChannel(ctx) == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("接入渠道未初始化"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0211"))
 		return
 	}
 	external := httpx.GetExternalUser(ctx)
 	if external == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("外部身份未初始化"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0150"))
 		return
 	}
 
 	item := services.ConversationService.Get(id)
 	if item == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("会话不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0116"))
 		return
 	}
 	if !services.ConversationService.IsCustomerConversationOwner(item, *external) {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("无权访问该会话"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0222"))
 		return
 	}
 
@@ -49,12 +48,12 @@ func ConversationGetBy(ctx *gin.Context) {
 func ConversationPostCreate_or_match(ctx *gin.Context) {
 	channel := services.ChannelService.GetEnabledChannel(ctx)
 	if channel == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("接入渠道未初始化"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0211"))
 		return
 	}
 	external := httpx.GetExternalUser(ctx)
 	if external == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("外部身份未初始化"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0150"))
 		return
 	}
 
@@ -68,12 +67,12 @@ func ConversationPostCreate_or_match(ctx *gin.Context) {
 
 func ConversationPostClose(ctx *gin.Context) {
 	if services.ChannelService.GetEnabledChannel(ctx) == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("接入渠道未初始化"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0211"))
 		return
 	}
 	external := httpx.GetExternalUser(ctx)
 	if external == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("外部身份未初始化"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0150"))
 		return
 	}
 

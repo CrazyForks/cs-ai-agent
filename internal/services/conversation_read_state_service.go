@@ -37,7 +37,7 @@ type readerCursor struct {
 
 func agentReaderCursor(operator *dto.AuthPrincipal) (readerCursor, error) {
 	if operator == nil {
-		return readerCursor{}, errorsx.Unauthorized("未登录或登录已过期")
+		return readerCursor{}, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	return readerCursor{
 		readerType:       enums.IMSenderTypeAgent,
@@ -50,7 +50,7 @@ func agentReaderCursor(operator *dto.AuthPrincipal) (readerCursor, error) {
 
 func customerReaderCursor(external *openidentity.ExternalUser) (readerCursor, error) {
 	if external == nil || strings.TrimSpace(external.ExternalID) == "" {
-		return readerCursor{}, errorsx.Unauthorized("外部用户标识不能为空")
+		return readerCursor{}, errorsx.UnauthorizedI18n("error.e0149")
 	}
 	extID := strings.TrimSpace(external.ExternalID)
 	name := strings.TrimSpace(external.ExternalName)
@@ -195,7 +195,7 @@ func (s *conversationReadStateService) markReadTxWithCursor(ctx *sqls.TxContext,
 		return nil, nil
 	}
 	if c.readerType != enums.IMSenderTypeAgent && c.readerType != enums.IMSenderTypeCustomer {
-		return nil, errorsx.InvalidParam("不支持的已读操作类型")
+		return nil, errorsx.InvalidParamI18n("error.e0081")
 	}
 
 	now := time.Now()

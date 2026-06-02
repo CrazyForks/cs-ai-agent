@@ -13,33 +13,32 @@ import (
 	"agent-desk/internal/pkg/httpx/params"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mlogclub/simple/web"
 	"github.com/spf13/cast"
 )
 
 func MessageAnyList(ctx *gin.Context) {
 	if services.ChannelService.GetEnabledChannel(ctx) == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("接入渠道未初始化"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0211"))
 		return
 	}
 	external := httpx.GetExternalUser(ctx)
 	if external == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("外部身份未初始化"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0150"))
 		return
 	}
 
 	conversationID, _ := params.GetInt64(ctx, "conversationId")
 	if conversationID <= 0 {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("conversationId不能为空"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0064"))
 		return
 	}
 	conversation := services.ConversationService.Get(conversationID)
 	if conversation == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("会话不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0116"))
 		return
 	}
 	if !services.ConversationService.IsCustomerConversationOwner(conversation, *external) {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("无权访问该会话"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0222"))
 		return
 	}
 
@@ -58,12 +57,12 @@ func MessageAnyList(ctx *gin.Context) {
 
 func MessagePostSend(ctx *gin.Context) {
 	if services.ChannelService.GetEnabledChannel(ctx) == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("接入渠道未初始化"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0211"))
 		return
 	}
 	external := httpx.GetExternalUser(ctx)
 	if external == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("外部身份未初始化"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0150"))
 		return
 	}
 
@@ -83,12 +82,12 @@ func MessagePostSend(ctx *gin.Context) {
 
 func MessagePostRead(ctx *gin.Context) {
 	if services.ChannelService.GetEnabledChannel(ctx) == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("接入渠道未初始化"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0211"))
 		return
 	}
 	external := httpx.GetExternalUser(ctx)
 	if external == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("外部身份未初始化"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0150"))
 		return
 	}
 
@@ -106,32 +105,32 @@ func MessagePostRead(ctx *gin.Context) {
 
 func MessagePostUpload_image(ctx *gin.Context) {
 	if services.ChannelService.GetEnabledChannel(ctx) == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("接入渠道未初始化"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0211"))
 		return
 	}
 	external := httpx.GetExternalUser(ctx)
 	if external == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("外部身份未初始化"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0150"))
 		return
 	}
 
 	rawConv := strings.TrimSpace(params.FormValue(ctx, "conversationId"))
 	if rawConv == "" {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("conversationId不能为空"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0064"))
 		return
 	}
 	conversationID, err := strconv.ParseInt(rawConv, 10, 64)
 	if err != nil || conversationID <= 0 {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("conversationId不能为空"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0064"))
 		return
 	}
 	conversation := services.ConversationService.Get(conversationID)
 	if conversation == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("会话不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0116"))
 		return
 	}
 	if !services.ConversationService.IsCustomerConversationOwner(conversation, *external) {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("无权访问该会话"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0222"))
 		return
 	}
 	if _, err := services.MessageService.ValidateConversationSender(conversationID, enums.IMSenderTypeCustomer, nil, external); err != nil {
@@ -141,11 +140,11 @@ func MessagePostUpload_image(ctx *gin.Context) {
 
 	header, err := ctx.FormFile("file")
 	if err != nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("请选择上传图片"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0322"))
 		return
 	}
 	if !strings.HasPrefix(strings.ToLower(header.Header.Get("Content-Type")), "image/") {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("仅支持上传图片文件"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0090"))
 		return
 	}
 
@@ -159,23 +158,23 @@ func MessagePostUpload_image(ctx *gin.Context) {
 
 func MessagePostUpload_attachment(ctx *gin.Context) {
 	if services.ChannelService.GetEnabledChannel(ctx) == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("接入渠道未初始化"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0211"))
 		return
 	}
 	external := httpx.GetExternalUser(ctx)
 	if external == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("外部身份未初始化"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0150"))
 		return
 	}
 
 	rawConv := strings.TrimSpace(params.FormValue(ctx, "conversationId"))
 	if rawConv == "" {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("conversationId不能为空"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0064"))
 		return
 	}
 	conversationID, err := strconv.ParseInt(rawConv, 10, 64)
 	if err != nil || conversationID <= 0 {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("conversationId不能为空"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0064"))
 		return
 	}
 	if _, err := services.MessageService.ValidateConversationSender(conversationID, enums.IMSenderTypeCustomer, nil, external); err != nil {
@@ -185,7 +184,7 @@ func MessagePostUpload_attachment(ctx *gin.Context) {
 
 	header, err := ctx.FormFile("file")
 	if err != nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("请选择上传附件"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0324"))
 		return
 	}
 	item, err := services.AssetService.UploadFile(header, "attachments", nil)

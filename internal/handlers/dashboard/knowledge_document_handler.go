@@ -37,7 +37,7 @@ func KnowledgeDocumentAnyList(ctx *gin.Context) {
 	}
 	if indexStatus, ok := params.Get(ctx, "indexStatus"); ok {
 		if !enums.IsValidKnowledgeDocumentIndexStatus(indexStatus) {
-			httpx.WriteJSON(ctx, web.JsonErrorMsg("indexStatus参数不合法"))
+			httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0067"))
 			return
 		}
 		cnd.Where("index_status = ?", indexStatus)
@@ -66,7 +66,7 @@ func KnowledgeDocumentGetBy(ctx *gin.Context) {
 
 	item := services.KnowledgeDocumentService.Get(id)
 	if item == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("文档不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0218"))
 		return
 	}
 	resp := builders.BuildKnowledgeDocument(item)

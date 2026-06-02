@@ -71,7 +71,7 @@ func RoleGetBy(ctx *gin.Context) {
 
 	item := services.RoleService.Get(id)
 	if item == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("角色不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0305"))
 		return
 	}
 

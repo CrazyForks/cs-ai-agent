@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"agent-desk/internal/pkg/errorsx"
 	"agent-desk/internal/pkg/i18nx"
 	"encoding/json"
 	"errors"
@@ -68,12 +69,12 @@ func TestWriteJSONWrapsCommonResultTypes(t *testing.T) {
 	}
 }
 
-func TestWriteJSONLocalizesKnownErrorMessages(t *testing.T) {
+func TestWriteJSONLocalizesI18nErrors(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	ctx, recorder := testContext()
 	i18nx.SetLocale(ctx, i18nx.LocaleEnUS)
 
-	WriteJSON(ctx, web.JsonErrorMsg("会话不存在"))
+	WriteJSON(ctx, errorsx.InvalidParamI18n("error.e0116"))
 
 	var got web.JsonResult
 	if err := json.Unmarshal(recorder.Body.Bytes(), &got); err != nil {

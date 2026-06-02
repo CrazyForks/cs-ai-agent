@@ -2,12 +2,12 @@ package mcps
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"agent-desk/internal/pkg/errorsx"
+	"agent-desk/internal/pkg/i18nx"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -52,7 +52,7 @@ func (c *Client) ListTools(ctx context.Context, cfg ServerConfig) ([]ToolInfo, e
 
 	result, err := session.ListTools(ctx, nil)
 	if err != nil {
-		return nil, fmt.Errorf("列出 MCP 工具失败: %w", err)
+		return nil, i18nx.Errorf("error.mcp.listToolsFailed", err)
 	}
 	ret := make([]ToolInfo, 0, len(result.Tools))
 	for _, tool := range result.Tools {
@@ -70,7 +70,7 @@ func (c *Client) ListTools(ctx context.Context, cfg ServerConfig) ([]ToolInfo, e
 func (c *Client) CallTool(ctx context.Context, cfg ServerConfig, toolName string, arguments map[string]any) (*ToolCallResult, error) {
 	toolName = strings.TrimSpace(toolName)
 	if toolName == "" {
-		return nil, errorsx.InvalidParam("toolName不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0076")
 	}
 
 	session, closeFn, err := c.connect(ctx, cfg)
@@ -84,7 +84,7 @@ func (c *Client) CallTool(ctx context.Context, cfg ServerConfig, toolName string
 		Arguments: arguments,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("调用 MCP 工具失败: %w", err)
+		return nil, i18nx.Errorf("error.mcp.callToolFailed", err)
 	}
 	return &ToolCallResult{
 		ServerCode:        cfg.Code,
@@ -97,10 +97,10 @@ func (c *Client) CallTool(ctx context.Context, cfg ServerConfig, toolName string
 
 func (c *Client) connect(ctx context.Context, cfg ServerConfig) (*mcp.ClientSession, func(), error) {
 	if strings.TrimSpace(cfg.Code) == "" {
-		return nil, nil, errorsx.InvalidParam("serverCode不能为空")
+		return nil, nil, errorsx.InvalidParamI18n("error.e0070")
 	}
 	if strings.TrimSpace(cfg.Endpoint) == "" {
-		return nil, nil, errorsx.InvalidParam("MCP endpoint不能为空")
+		return nil, nil, errorsx.InvalidParamI18n("error.e0032")
 	}
 
 	timeout := time.Duration(cfg.TimeoutMS) * time.Millisecond
@@ -128,7 +128,7 @@ func (c *Client) connect(ctx context.Context, cfg ServerConfig) (*mcp.ClientSess
 	session, err := client.Connect(connCtx, transport, nil)
 	if err != nil {
 		cancel()
-		return nil, nil, fmt.Errorf("连接 MCP Server 失败: %w", err)
+		return nil, nil, i18nx.Errorf("error.mcp.connectServerFailed", err)
 	}
 	return session, func() {
 		_ = session.Close()

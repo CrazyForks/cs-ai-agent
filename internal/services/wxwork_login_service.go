@@ -47,7 +47,7 @@ func (s *wxWorkLoginService) BuildWxWorkQRCodeLoginURL(next string) (string, err
 func (s *wxWorkLoginService) LoginByWxWork(code, state string, authCfg config.AuthConfig, clientIP, userAgent string) (string, string, error) {
 	next, err := wxwork.ParseState(state)
 	if err != nil {
-		return "", "", errorsx.Unauthorized("企业微信登录状态无效或已过期")
+		return "", "", errorsx.UnauthorizedI18n("error.e0111")
 	}
 	profile, err := wxwork.GetUserDetail(code)
 	if err != nil {
@@ -96,7 +96,7 @@ func (s *wxWorkLoginService) loginWithWxWorkProfile(profile *wxwork.LoginUser, a
 		}
 
 		if user.Status != enums.StatusOk {
-			return errorsx.Unauthorized("当前系统账号已被禁用")
+			return errorsx.UnauthorizedI18n("error.e0200")
 		}
 
 		if err = repositories.UserRepository.Updates(ctx.Tx, user.ID, map[string]any{

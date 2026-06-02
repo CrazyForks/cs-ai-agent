@@ -59,7 +59,7 @@ func AgentRunLogGetBy(ctx *gin.Context) {
 
 	item := services.AgentRunLogService.Get(id)
 	if item == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("Agent 运行日志不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0013"))
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildAgentRunLog(item))

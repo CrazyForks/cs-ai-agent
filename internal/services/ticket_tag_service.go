@@ -66,11 +66,11 @@ func (s *ticketTagService) ValidateTagIDs(tagIDs []int64) ([]int64, error) {
 	}
 	tags := repositories.TagRepository.Find(sqls.DB(), sqls.NewCnd().In("id", normalized))
 	if len(tags) != len(normalized) {
-		return nil, errorsx.InvalidParam("存在无效工单标签")
+		return nil, errorsx.InvalidParamI18n("error.e0153")
 	}
 	for i := range tags {
 		if tags[i].Status != enums.StatusOk {
-			return nil, errorsx.InvalidParam("存在未启用的工单标签")
+			return nil, errorsx.InvalidParamI18n("error.e0154")
 		}
 	}
 	return normalized, nil

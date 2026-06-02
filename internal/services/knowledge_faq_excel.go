@@ -18,6 +18,7 @@ import (
 	"agent-desk/internal/pkg/dto/response"
 	"agent-desk/internal/pkg/enums"
 	"agent-desk/internal/pkg/errorsx"
+	"agent-desk/internal/pkg/i18nx"
 	"agent-desk/internal/pkg/utils"
 	"agent-desk/internal/repositories"
 
@@ -78,22 +79,22 @@ func (s *knowledgeFAQService) ExportKnowledgeFAQs(knowledgeBaseID int64) (*respo
 
 func (s *knowledgeFAQService) ImportKnowledgeFAQs(req request.ImportKnowledgeFAQRequest, operator *dto.AuthPrincipal) (*response.KnowledgeFAQImportResult, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	if req.Mode != request.KnowledgeFAQImportModeAppend && req.Mode != request.KnowledgeFAQImportModeOverwrite {
-		return nil, errorsx.InvalidParam("导入模式不合法")
+		return nil, errorsx.InvalidParamI18n("error.e0177")
 	}
 	if req.Reader == nil {
-		return nil, errorsx.InvalidParam("请选择导入文件")
+		return nil, errorsx.InvalidParamI18n("error.e0327")
 	}
 	if strings.ToLower(filepath.Ext(req.Filename)) != ".xlsx" {
-		return nil, errorsx.InvalidParam("仅支持.xlsx文件")
+		return nil, errorsx.InvalidParamI18n("error.e0089")
 	}
 	kb, err := s.requireFAQKnowledgeBase(req.KnowledgeBaseID)
 	if err != nil {
 		return nil, err
 	}
-	rows, result, err := parseKnowledgeFAQImportRows(req.Reader)
+	rows, result, err := parseKnowledgeFAQImportRows(req.Reader, req.Locale)
 	if err != nil {
 		return nil, err
 	}
@@ -119,14 +120,14 @@ func (s *knowledgeFAQService) ImportKnowledgeFAQs(req request.ImportKnowledgeFAQ
 			existing, exists := existingMap[row.Question]
 			if exists && req.Mode == request.KnowledgeFAQImportModeAppend {
 				result.Skipped++
-				result.Errors = append(result.Errors, response.KnowledgeFAQImportError{Row: row.RowNo, Message: "标准问题已存在，已跳过"})
+				result.Errors = append(result.Errors, response.KnowledgeFAQImportError{Row: row.RowNo, Message: i18nx.Getf(req.Locale, "error.e0237")})
 				continue
 			}
 
 			similarQuestions, marshalErr := json.Marshal(row.SimilarQuestions)
 			if marshalErr != nil {
 				result.Failed++
-				result.Errors = append(result.Errors, response.KnowledgeFAQImportError{Row: row.RowNo, Message: "相似问格式不合法"})
+				result.Errors = append(result.Errors, response.KnowledgeFAQImportError{Row: row.RowNo, Message: i18nx.Getf(req.Locale, "error.e0280")})
 				continue
 			}
 
@@ -227,33 +228,33 @@ func buildKnowledgeFAQExcelFile(filename string, workbook *excelize.File) (*resp
 	}, nil
 }
 
-func parseKnowledgeFAQImportRows(reader io.Reader) ([]knowledgeFAQImportRow, *response.KnowledgeFAQImportResult, error) {
+func parseKnowledgeFAQImportRows(reader io.Reader, locale string) ([]knowledgeFAQImportRow, *response.KnowledgeFAQImportResult, error) {
 	workbook, err := excelize.OpenReader(reader)
 	if err != nil {
-		return nil, nil, errorsx.InvalidParam("Excel文件解析失败")
+		return nil, nil, errorsx.InvalidParamI18n("error.e0023")
 	}
 	defer workbook.Close()
 	sheet := knowledgeFAQExcelSheetName
 	if index, _ := workbook.GetSheetIndex(sheet); index < 0 {
 		sheets := workbook.GetSheetList()
 		if len(sheets) == 0 {
-			return nil, nil, errorsx.InvalidParam("Excel文件为空")
+			return nil, nil, errorsx.InvalidParamI18n("error.e0022")
 		}
 		sheet = sheets[0]
 	}
 	table, err := workbook.GetRows(sheet)
 	if err != nil {
-		return nil, nil, errorsx.InvalidParam("Excel文件读取失败")
+		return nil, nil, errorsx.InvalidParamI18n("error.e0024")
 	}
 	if len(table) == 0 {
-		return nil, nil, errorsx.InvalidParam("Excel文件为空")
+		return nil, nil, errorsx.InvalidParamI18n("error.e0022")
 	}
 	headerMap := buildKnowledgeFAQHeaderMap(table[0])
 	if _, ok := headerMap["question"]; !ok {
-		return nil, nil, errorsx.InvalidParam("缺少标准问题列")
+		return nil, nil, errorsx.InvalidParamI18n("error.e0297")
 	}
 	if _, ok := headerMap["answer"]; !ok {
-		return nil, nil, errorsx.InvalidParam("缺少答案列")
+		return nil, nil, errorsx.InvalidParamI18n("error.e0298")
 	}
 
 	result := &response.KnowledgeFAQImportResult{Errors: make([]response.KnowledgeFAQImportError, 0)}
@@ -275,22 +276,22 @@ func parseKnowledgeFAQImportRows(reader io.Reader) ([]knowledgeFAQImportRow, *re
 		}
 		if row.Question == "" {
 			result.Failed++
-			result.Errors = append(result.Errors, response.KnowledgeFAQImportError{Row: rowNo, Message: "问题不能为空"})
+			result.Errors = append(result.Errors, response.KnowledgeFAQImportError{Row: rowNo, Message: i18nx.Getf(locale, "error.e0340")})
 			continue
 		}
 		if len([]rune(row.Question)) > 500 {
 			result.Failed++
-			result.Errors = append(result.Errors, response.KnowledgeFAQImportError{Row: rowNo, Message: "问题不能超过500字"})
+			result.Errors = append(result.Errors, response.KnowledgeFAQImportError{Row: rowNo, Message: i18nx.Getf(locale, "error.e0341")})
 			continue
 		}
 		if row.Answer == "" {
 			result.Failed++
-			result.Errors = append(result.Errors, response.KnowledgeFAQImportError{Row: rowNo, Message: "答案不能为空"})
+			result.Errors = append(result.Errors, response.KnowledgeFAQImportError{Row: rowNo, Message: i18nx.Getf(locale, "error.e0292")})
 			continue
 		}
 		if firstRow, exists := seen[row.Question]; exists {
 			result.Failed++
-			result.Errors = append(result.Errors, response.KnowledgeFAQImportError{Row: rowNo, Message: fmt.Sprintf("同一文件中标准问题重复，首次出现于第%d行", firstRow)})
+			result.Errors = append(result.Errors, response.KnowledgeFAQImportError{Row: rowNo, Message: i18nx.Getf(locale, "error.knowledgeFAQImport.duplicateQuestionInFile", firstRow)})
 			continue
 		}
 		seen[row.Question] = rowNo

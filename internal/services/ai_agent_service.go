@@ -66,7 +66,7 @@ func (s *aIAgentService) FindByIds(ids []int64) []models.AIAgent {
 
 func (s *aIAgentService) CreateAIAgent(req request.CreateAIAgentRequest, operator *dto.AuthPrincipal) (*models.AIAgent, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	item, err := s.buildAIAgentModel(0, req)
 	if err != nil {
@@ -83,10 +83,10 @@ func (s *aIAgentService) CreateAIAgent(req request.CreateAIAgentRequest, operato
 
 func (s *aIAgentService) UpdateAIAgent(req request.UpdateAIAgentRequest, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	if s.Get(req.ID) == nil {
-		return errorsx.InvalidParam("AI Agent 不存在")
+		return errorsx.InvalidParamI18n("error.e0002")
 	}
 	item, err := s.buildAIAgentModel(req.ID, req.CreateAIAgentRequest)
 	if err != nil {
@@ -117,10 +117,10 @@ func (s *aIAgentService) UpdateAIAgent(req request.UpdateAIAgentRequest, operato
 func (s *aIAgentService) DeleteAIAgent(id int64, operator *dto.AuthPrincipal) error {
 	current := s.Get(id)
 	if current == nil {
-		return errorsx.InvalidParam("AI Agent 不存在")
+		return errorsx.InvalidParamI18n("error.e0002")
 	}
 	if ChannelService.Take("ai_agent_id = ?", id) != nil {
-		return errorsx.Forbidden("已有接入渠道绑定该 AI Agent，无法删除")
+		return errorsx.ForbiddenI18n("error.e0185")
 	}
 	return repositories.AIAgentRepository.Updates(sqls.DB(), id, map[string]any{
 		"status":           enums.StatusDeleted,
@@ -133,23 +133,23 @@ func (s *aIAgentService) DeleteAIAgent(id int64, operator *dto.AuthPrincipal) er
 func (s *aIAgentService) buildAIAgentModel(id int64, req request.CreateAIAgentRequest) (*models.AIAgent, error) {
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
-		return nil, errorsx.InvalidParam("AI Agent 名称不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0005")
 	}
 	if exists := s.Take("name = ? AND id <> ?", name, id); exists != nil {
-		return nil, errorsx.InvalidParam("AI Agent 名称已存在")
+		return nil, errorsx.InvalidParamI18n("error.e0006")
 	}
 	if req.AIConfigID <= 0 {
-		return nil, errorsx.InvalidParam("AI 配置不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0010")
 	}
 	aiConfig := AIConfigService.Get(req.AIConfigID)
 	if aiConfig == nil {
-		return nil, errorsx.InvalidParam("AI 配置不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0009")
 	}
 	if aiConfig.Status != enums.StatusOk {
-		return nil, errorsx.InvalidParam("AI 配置未启用")
+		return nil, errorsx.InvalidParamI18n("error.e0011")
 	}
 	if !slices.Contains(enums.IMConversationServiceModeValues, req.ServiceMode) {
-		return nil, errorsx.InvalidParam("服务模式不合法")
+		return nil, errorsx.InvalidParamI18n("error.e0230")
 	}
 	teamIDs, err := s.normalizeTeamIDs(req.TeamIDs)
 	if err != nil {
@@ -157,19 +157,19 @@ func (s *aIAgentService) buildAIAgentModel(id int64, req request.CreateAIAgentRe
 	}
 
 	if !slices.Contains(enums.AIAgentHandoffModeValues, enums.AIAgentHandoffMode(req.HandoffMode)) {
-		return nil, errorsx.InvalidParam("转人工模式不合法")
+		return nil, errorsx.InvalidParamI18n("error.e0336")
 	}
 	if req.FallbackMode == 0 {
 		req.FallbackMode = enums.AIAgentFallbackModeNoAnswer
 	}
 	if !slices.Contains(enums.AIAgentFallbackModeValues, enums.AIAgentFallbackMode(req.FallbackMode)) {
-		return nil, errorsx.InvalidParam("兜底策略不合法")
+		return nil, errorsx.InvalidParamI18n("error.e0123")
 	}
 	if enums.AIAgentHandoffMode(req.HandoffMode) == enums.AIAgentHandoffModeDefaultTeamPool && len(teamIDs) == 0 {
-		return nil, errorsx.InvalidParam("默认客服组待接入池模式必须至少选择一个客服组")
+		return nil, errorsx.InvalidParamI18n("error.e0347")
 	}
 	if req.ReplyTimeoutSeconds < 0 {
-		return nil, errorsx.InvalidParam("回复超时秒数不能小于 0")
+		return nil, errorsx.InvalidParamI18n("error.e0144")
 	}
 
 	knowledgeIDs, err := s.normalizeKnowledgeIDs(req.KnowledgeIDs)
@@ -177,7 +177,7 @@ func (s *aIAgentService) buildAIAgentModel(id int64, req request.CreateAIAgentRe
 		return nil, err
 	}
 	if len(knowledgeIDs) == 0 {
-		return nil, errorsx.InvalidParam("请至少选择一个知识库")
+		return nil, errorsx.InvalidParamI18n("error.e0320")
 	}
 	skillIDs, err := s.normalizeSkillIDs(req.SkillIDs)
 	if err != nil {
@@ -195,7 +195,7 @@ func (s *aIAgentService) buildAIAgentModel(id int64, req request.CreateAIAgentRe
 	if len(directTools) > 0 {
 		buf, marshalErr := json.Marshal(directTools)
 		if marshalErr != nil {
-			return nil, errorsx.InvalidParam("Direct Tools 配置格式不合法")
+			return nil, errorsx.InvalidParamI18n("error.e0021")
 		}
 		directToolsJSON = string(buf)
 	}
@@ -203,7 +203,7 @@ func (s *aIAgentService) buildAIAgentModel(id int64, req request.CreateAIAgentRe
 	if len(graphTools) > 0 {
 		buf, marshalErr := json.Marshal(graphTools)
 		if marshalErr != nil {
-			return nil, errorsx.InvalidParam("Graph Tools 配置格式不合法")
+			return nil, errorsx.InvalidParamI18n("error.e0028")
 		}
 		graphToolsJSON = string(buf)
 	}
@@ -241,7 +241,7 @@ func (s *aIAgentService) normalizeTeamIDs(input []int64) ([]int64, error) {
 			continue
 		}
 		// if team.Status != enums.StatusOk {
-		// 	return nil, errorsx.InvalidParam("客服组未启用")
+		// 	return nil, errorsx.InvalidParamI18n("error.e0173")
 		// }
 		seen[id] = struct{}{}
 		ret = append(ret, id)
@@ -265,7 +265,7 @@ func (s *aIAgentService) normalizeKnowledgeIDs(input []int64) ([]int64, error) {
 			continue
 		}
 		// if kb.Status != enums.StatusOk {
-		// 	return nil, errorsx.InvalidParam("知识库未启用")
+		// 	return nil, errorsx.InvalidParamI18n("error.e0285")
 		// }
 		seen[id] = struct{}{}
 		ret = append(ret, id)
@@ -288,7 +288,7 @@ func (s *aIAgentService) normalizeSkillIDs(input []int64) ([]int64, error) {
 			continue
 		}
 		// if skill.Status != enums.StatusOk {
-		// 	return nil, errorsx.InvalidParam("Skill 未启用")
+		// 	return nil, errorsx.InvalidParamI18n("error.e0056")
 		// }
 		seen[id] = struct{}{}
 		ret = append(ret, id)
@@ -311,7 +311,7 @@ func (s *aIAgentService) normalizeDirectTools(input []request.AIAgentMCPToolRequ
 			continue
 		}
 		if toolx.ResolveToolSourceType(normalized.ToolCode) != enums.ToolSourceTypeMCP {
-			return nil, errorsx.InvalidParam("Direct Tools 仅允许配置 MCP 工具")
+			return nil, errorsx.InvalidParamI18n("error.e0020")
 		}
 		if err := ToolCatalogService.ValidateToolCode(normalized.ToolCode); err != nil {
 			return nil, err
@@ -338,7 +338,7 @@ func (s *aIAgentService) normalizeGraphTools(input []string) ([]string, error) {
 			continue
 		}
 		if !toolx.IsAgentDirectGraphToolCode(toolCode) {
-			return nil, errorsx.InvalidParam("Graph Tools 仅允许配置 Graph Tool")
+			return nil, errorsx.InvalidParamI18n("error.e0027")
 		}
 		if _, exists := seen[toolCode]; exists {
 			continue
@@ -362,14 +362,14 @@ func (s *aIAgentService) UpdateSort(ids []int64) error {
 
 func (s *aIAgentService) UpdateStatus(id int64, status int, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	current := s.Get(id)
 	if current == nil {
-		return errorsx.InvalidParam("AI Agent 不存在")
+		return errorsx.InvalidParamI18n("error.e0002")
 	}
 	if status != int(enums.StatusOk) && status != int(enums.StatusDisabled) {
-		return errorsx.InvalidParam("状态值不合法")
+		return errorsx.InvalidParamI18n("error.e0254")
 	}
 
 	return repositories.AIAgentRepository.Updates(sqls.DB(), id, map[string]any{

@@ -38,7 +38,7 @@ func KnowledgeFAQGetExport(ctx *gin.Context) {
 	}
 	knowledgeBaseID, ok := params.GetInt64(ctx, "knowledgeBaseId")
 	if !ok || knowledgeBaseID <= 0 {
-		httpx.WriteJSON(ctx, errorsx.InvalidParam("知识库不存在"))
+		httpx.WriteJSON(ctx, errorsx.InvalidParamI18n("error.e0283"))
 		return
 	}
 	file, err := services.KnowledgeFAQService.ExportKnowledgeFAQs(knowledgeBaseID)
@@ -64,17 +64,17 @@ func KnowledgeFAQPostImport(ctx *gin.Context) {
 	}
 	knowledgeBaseID, ok := params.GetInt64(ctx, "knowledgeBaseId")
 	if !ok || knowledgeBaseID <= 0 {
-		httpx.WriteJSON(ctx, errorsx.InvalidParam("知识库不存在"))
+		httpx.WriteJSON(ctx, errorsx.InvalidParamI18n("error.e0283"))
 		return
 	}
 	header, err := ctx.FormFile("file")
 	if err != nil {
-		httpx.WriteJSON(ctx, errorsx.InvalidParam("请选择导入文件"))
+		httpx.WriteJSON(ctx, errorsx.InvalidParamI18n("error.e0327"))
 		return
 	}
 	file, err := header.Open()
 	if err != nil {
-		httpx.WriteJSON(ctx, errorsx.InvalidParam("导入文件读取失败"))
+		httpx.WriteJSON(ctx, errorsx.InvalidParamI18n("error.e0176"))
 		return
 	}
 	defer file.Close()
@@ -83,12 +83,12 @@ func KnowledgeFAQPostImport(ctx *gin.Context) {
 		Mode:            mode,
 		Filename:        header.Filename,
 		Reader:          file,
+		Locale:          i18nx.Locale(ctx),
 	}, operator)
 	if err != nil {
 		httpx.WriteJSON(ctx, err)
 		return
 	}
-	translateKnowledgeFAQImportResult(i18nx.Locale(ctx), result)
 	httpx.WriteJSON(ctx, result)
 }
 
@@ -130,7 +130,7 @@ func KnowledgeFAQGetBy(ctx *gin.Context) {
 
 	item := services.KnowledgeFAQService.Get(id)
 	if item == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("FAQ不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0025"))
 		return
 	}
 	resp := builders.BuildKnowledgeFAQ(item)
@@ -233,15 +233,6 @@ func writeKnowledgeFAQExcelFile(ctx *gin.Context, file *response.KnowledgeFAQExp
 	ctx.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, file.Filename))
 	ctx.Header("Cache-Control", "no-store")
 	ctx.Data(http.StatusOK, file.ContentType, file.Data)
-}
-
-func translateKnowledgeFAQImportResult(locale string, result *response.KnowledgeFAQImportResult) {
-	if result == nil || len(result.Errors) == 0 {
-		return
-	}
-	for i := range result.Errors {
-		result.Errors[i].Message = i18nx.TranslateKnownMessage(locale, result.Errors[i].Message)
-	}
 }
 
 func fillKnowledgeFAQDirectory(resp *response.KnowledgeFAQResponse, directoryPaths map[int64]string) {

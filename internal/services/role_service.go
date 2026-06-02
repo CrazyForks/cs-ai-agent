@@ -78,10 +78,10 @@ func (s *roleService) CreateRole(req request.CreateRoleRequest, operator *dto.Au
 	name := strings.TrimSpace(req.Name)
 	code := strings.TrimSpace(req.Code)
 	if name == "" || code == "" {
-		return nil, errorsx.InvalidParam("角色名称和编码不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0306")
 	}
 	if s.Take("code = ?", code) != nil {
-		return nil, errorsx.InvalidParam("角色编码已存在")
+		return nil, errorsx.InvalidParamI18n("error.e0308")
 	}
 
 	role := &models.Role{
@@ -102,7 +102,7 @@ func (s *roleService) CreateRole(req request.CreateRoleRequest, operator *dto.Au
 func (s *roleService) UpdateRole(req request.UpdateRoleRequest, operator *dto.AuthPrincipal) error {
 	role := s.Get(req.ID)
 	if role == nil {
-		return errorsx.InvalidParam("角色不存在")
+		return errorsx.InvalidParamI18n("error.e0305")
 	}
 	now := time.Now()
 	return s.Updates(req.ID, map[string]any{
@@ -136,13 +136,13 @@ func (s *roleService) UpdateSort(ids []int64) error {
 func (s *roleService) DeleteRole(id int64) error {
 	role := s.Get(id)
 	if role == nil {
-		return errorsx.InvalidParam("角色不存在")
+		return errorsx.InvalidParamI18n("error.e0305")
 	}
 	if role.IsSystem {
-		return errorsx.Forbidden("系统内置角色不允许删除")
+		return errorsx.ForbiddenI18n("error.e0293")
 	}
 	if UserRoleService.Take("role_id = ?", id) != nil {
-		return errorsx.Forbidden("角色已被用户使用，无法删除")
+		return errorsx.ForbiddenI18n("error.e0307")
 	}
 	s.Delete(id)
 	return nil
@@ -151,10 +151,10 @@ func (s *roleService) DeleteRole(id int64) error {
 func (s *roleService) UpdateStatus(id int64, status enums.Status, operator *dto.AuthPrincipal) error {
 	role := s.Get(id)
 	if role == nil {
-		return errorsx.InvalidParam("角色不存在")
+		return errorsx.InvalidParamI18n("error.e0305")
 	}
 	if !slices.Contains(enums.StatusValues, status) {
-		return errorsx.InvalidParam("状态值不合法")
+		return errorsx.InvalidParamI18n("error.e0254")
 	}
 	if err := s.Updates(id, map[string]any{
 		"status":           status,
@@ -170,7 +170,7 @@ func (s *roleService) UpdateStatus(id int64, status enums.Status, operator *dto.
 func (s *roleService) AssignPermissions(roleID int64, permissionIDs []int64, operator *dto.AuthPrincipal) error {
 	role := s.Get(roleID)
 	if role == nil {
-		return errorsx.InvalidParam("角色不存在")
+		return errorsx.InvalidParamI18n("error.e0305")
 	}
 
 	return s.replaceRolePermissions(roleID, permissionIDs, operator)
@@ -184,7 +184,7 @@ func (s *roleService) replaceRolePermissions(roleID int64, permissionIDs []int64
 		for _, permissionID := range permissionIDs {
 			permission := PermissionService.Get(permissionID)
 			if permission == nil {
-				return errorsx.InvalidParam("权限不存在")
+				return errorsx.InvalidParamI18n("error.e0236")
 			}
 			relation := &models.RolePermission{
 				RoleID:       roleID,

@@ -48,7 +48,7 @@ func (s *assetService) FindPageByCnd(cnd *sqls.Cnd) (list []models.Asset, paging
 func (s *assetService) OpenReader(asset *models.Asset) (io.ReadCloser, error) {
 	cfg := config.Current()
 	if asset == nil {
-		return nil, errorsx.InvalidParam("图片资源不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0146")
 	}
 	switch asset.Provider {
 	case "", enums.AssetProviderLocal:
@@ -56,7 +56,7 @@ func (s *assetService) OpenReader(asset *models.Asset) (io.ReadCloser, error) {
 	case enums.AssetProviderOSS:
 		return storage.NewOSSStorage(cfg.Storage.OSS).Read(asset.StorageKey)
 	default:
-		return nil, errorsx.InvalidParam("当前暂不支持该存储类型的文件读取")
+		return nil, errorsx.InvalidParamI18n("error.e0195")
 	}
 }
 
@@ -73,12 +73,12 @@ func (s *assetService) UploadBytes(data []byte, prefix, filename string, princip
 
 func (s *assetService) UploadFile(file *multipart.FileHeader, prefix string, principal *dto.AuthPrincipal) (*models.Asset, error) {
 	if file == nil {
-		return nil, errorsx.InvalidParam("请选择上传文件")
+		return nil, errorsx.InvalidParamI18n("error.e0323")
 	}
 
 	cfg := config.Current()
 	if file.Size > cfg.Storage.MaxUploadSizeBytes() {
-		return nil, errorsx.InvalidParam("上传文件超过大小限制")
+		return nil, errorsx.InvalidParamI18n("error.e0079")
 	}
 
 	src, err := file.Open()
@@ -137,10 +137,10 @@ func (s *assetService) Upload(reader io.Reader, info storage.UploadInfo) (*model
 func (s *assetService) GetSignedURL(id int64) (string, error) {
 	item := s.Get(id)
 	if item == nil {
-		return "", errorsx.InvalidParam("文件不存在")
+		return "", errorsx.InvalidParamI18n("error.e0214")
 	}
 	if item.Status != enums.AssetStatusSuccess {
-		return "", errorsx.InvalidParam("文件不可访问")
+		return "", errorsx.InvalidParamI18n("error.e0213")
 	}
 
 	provider, err := storage.NewProvider(item.Provider)
@@ -153,11 +153,11 @@ func (s *assetService) GetSignedURL(id int64) (string, error) {
 
 func (s *assetService) DeleteAsset(id int64, principal *dto.AuthPrincipal) error {
 	if principal == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	item := s.Get(id)
 	if item == nil {
-		return errorsx.InvalidParam("文件不存在")
+		return errorsx.InvalidParamI18n("error.e0214")
 	}
 	return repositories.AssetRepository.Updates(sqls.DB(), id, map[string]any{
 		"status":           enums.AssetStatusDeleted,

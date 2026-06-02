@@ -64,7 +64,7 @@ func AIAgentGetBy(ctx *gin.Context) {
 	}
 	item := services.AIAgentService.Get(id)
 	if item == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("AI Agent 不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0002"))
 		return
 	}
 	httpx.WriteJSON(ctx, buildAIAgentResponseWithLocale(item, i18nx.Locale(ctx)))

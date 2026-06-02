@@ -72,7 +72,7 @@ func KnowledgeBaseGetBy(ctx *gin.Context) {
 
 	item := services.KnowledgeBaseService.Get(id)
 	if item == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("知识库不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0283"))
 		return
 	}
 	resp := builders.BuildKnowledgeBase(item)
@@ -169,7 +169,7 @@ func KnowledgeBasePostRebuild_index(ctx *gin.Context) {
 
 	knowledgeBase := services.KnowledgeBaseService.Get(req.ID)
 	if knowledgeBase == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("知识库不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0283"))
 		return
 	}
 

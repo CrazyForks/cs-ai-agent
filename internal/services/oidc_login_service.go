@@ -87,7 +87,7 @@ func (s *oidcLoginService) loginWithOIDCProfile(profile *oidcLoginProfile, authC
 		}
 
 		if user.Status != enums.StatusOk {
-			return errorsx.Unauthorized("当前系统账号已被禁用")
+			return errorsx.UnauthorizedI18n("error.e0200")
 		}
 
 		if err = repositories.UserRepository.Updates(ctx.Tx, user.ID, map[string]any{

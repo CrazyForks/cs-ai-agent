@@ -22,13 +22,13 @@ type skillRuntimeService struct{}
 
 func (s *skillRuntimeService) DebugRun(ctx context.Context, req request.SkillDebugRunRequest) (*response.SkillDebugRunResponse, error) {
 	if req.AIAgentID <= 0 {
-		return nil, errorsx.InvalidParam("aiAgentId不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0061")
 	}
 	if strings.TrimSpace(req.SkillCode) == "" {
-		return nil, errorsx.InvalidParam("skillCode不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0071")
 	}
 	if strings.TrimSpace(req.UserMessage) == "" {
-		return nil, errorsx.InvalidParam("userMessage不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0078")
 	}
 	if SkillDebugRunHook == nil {
 		return nil, fmt.Errorf("skill debug runner is not initialized")
@@ -38,13 +38,13 @@ func (s *skillRuntimeService) DebugRun(ctx context.Context, req request.SkillDeb
 
 func (s *skillRuntimeService) DebugResume(ctx context.Context, req request.SkillDebugResumeRequest) (*response.SkillDebugRunResponse, error) {
 	if req.AIAgentID <= 0 {
-		return nil, errorsx.InvalidParam("aiAgentId不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0061")
 	}
 	if strings.TrimSpace(req.CheckPointID) == "" {
-		return nil, errorsx.InvalidParam("checkPointId不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0063")
 	}
 	if strings.TrimSpace(req.UserMessage) == "" {
-		return nil, errorsx.InvalidParam("userMessage不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0078")
 	}
 	if SkillDebugResumeHook == nil {
 		return nil, fmt.Errorf("skill debug resume runner is not initialized")

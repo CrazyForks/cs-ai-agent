@@ -6,9 +6,9 @@ import (
 	"agent-desk/internal/pkg/dto/request"
 	"agent-desk/internal/pkg/enums"
 	"agent-desk/internal/pkg/errorsx"
+	"agent-desk/internal/pkg/i18nx"
 	"agent-desk/internal/pkg/utils"
 	"agent-desk/internal/repositories"
-	"fmt"
 	"slices"
 	"strings"
 	"sync"
@@ -101,7 +101,7 @@ func (s *agentTeamScheduleService) FindCalendarSchedules(req request.AgentTeamSc
 		return nil, err
 	}
 	if !endAtValue.After(startAtValue) {
-		return nil, errorsx.InvalidParam("结束时间必须晚于开始时间")
+		return nil, errorsx.InvalidParamI18n("error.e0296")
 	}
 	return repositories.AgentTeamScheduleRepository.FindByTimeRange(sqls.DB(), startAtValue, endAtValue, req.TeamID), nil
 }
@@ -128,7 +128,7 @@ func (s *agentTeamScheduleService) Delete(id int64) {
 
 func (s *agentTeamScheduleService) CreateAgentTeamSchedule(req request.CreateAgentTeamScheduleRequest, operator *dto.AuthPrincipal) (*models.AgentTeamSchedule, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	s.writeMu.Lock()
 	item, err := s.buildScheduleModel(0, req.TeamID, req.StartAt, req.EndAt, req.Remark)
@@ -148,12 +148,12 @@ func (s *agentTeamScheduleService) CreateAgentTeamSchedule(req request.CreateAge
 
 func (s *agentTeamScheduleService) UpdateAgentTeamSchedule(req request.UpdateAgentTeamScheduleRequest, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	s.writeMu.Lock()
 	if s.Get(req.ID) == nil {
 		s.writeMu.Unlock()
-		return errorsx.InvalidParam("客服组排班不存在")
+		return errorsx.InvalidParamI18n("error.e0172")
 	}
 	item, err := s.buildScheduleModel(req.ID, req.TeamID, req.StartAt, req.EndAt, req.Remark)
 	if err != nil {
@@ -179,7 +179,7 @@ func (s *agentTeamScheduleService) UpdateAgentTeamSchedule(req request.UpdateAge
 
 func (s *agentTeamScheduleService) DeleteAgentTeamSchedule(id int64) error {
 	if s.Get(id) == nil {
-		return errorsx.InvalidParam("客服组排班不存在")
+		return errorsx.InvalidParamI18n("error.e0172")
 	}
 	repositories.AgentTeamScheduleRepository.Delete(sqls.DB(), id)
 	return nil
@@ -187,19 +187,19 @@ func (s *agentTeamScheduleService) DeleteAgentTeamSchedule(id int64) error {
 
 func (s *agentTeamScheduleService) BatchPreview(req request.AgentTeamScheduleBatchRequest, operator *dto.AuthPrincipal) (*AgentTeamScheduleBatchPreviewResult, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	candidates, err := s.buildBatchScheduleCandidates(req)
 	if err != nil {
 		return nil, err
 	}
-	conflicts := s.findBatchConflict(candidates)
+	conflicts := s.findBatchConflict(candidates, req.Locale)
 	return buildBatchPreviewResult(candidates, conflicts), nil
 }
 
 func (s *agentTeamScheduleService) BatchGenerate(req request.AgentTeamScheduleBatchRequest, operator *dto.AuthPrincipal) (*AgentTeamScheduleBatchGenerateResult, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	s.writeMu.Lock()
 	candidates, err := s.buildBatchScheduleCandidates(req)
@@ -207,11 +207,11 @@ func (s *agentTeamScheduleService) BatchGenerate(req request.AgentTeamScheduleBa
 		s.writeMu.Unlock()
 		return nil, err
 	}
-	conflicts := s.findBatchConflict(candidates)
+	conflicts := s.findBatchConflict(candidates, req.Locale)
 	for _, conflict := range conflicts {
 		if conflict != "" {
 			s.writeMu.Unlock()
-			return nil, errorsx.InvalidParam("存在冲突排班，请先处理冲突")
+			return nil, errorsx.InvalidParamI18n("error.e0151")
 		}
 	}
 
@@ -227,10 +227,10 @@ func (s *agentTeamScheduleService) BatchGenerate(req request.AgentTeamScheduleBa
 		})
 	}
 	if err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
-		conflicts := s.findBatchConflictByDB(ctx.Tx, candidates)
+		conflicts := s.findBatchConflictByDB(ctx.Tx, candidates, req.Locale)
 		for _, conflict := range conflicts {
 			if conflict != "" {
-				return errorsx.InvalidParam("存在冲突排班，请先处理冲突")
+				return errorsx.InvalidParamI18n("error.e0151")
 			}
 		}
 		return repositories.AgentTeamScheduleRepository.CreateBatch(ctx.Tx, schedules)
@@ -247,14 +247,14 @@ func (s *agentTeamScheduleService) BatchGenerate(req request.AgentTeamScheduleBa
 
 func (s *agentTeamScheduleService) buildScheduleModel(id, teamID int64, startAt, endAt, remark string) (*models.AgentTeamSchedule, error) {
 	if teamID <= 0 {
-		return nil, errorsx.InvalidParam("请选择客服组")
+		return nil, errorsx.InvalidParamI18n("error.e0326")
 	}
 	team := AgentTeamService.Get(teamID)
 	if team == nil {
-		return nil, errorsx.InvalidParam("客服组不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0169")
 	}
 	if !slices.Contains(enums.StatusValues, team.Status) {
-		return nil, errorsx.InvalidParam("客服组状态不合法")
+		return nil, errorsx.InvalidParamI18n("error.e0174")
 	}
 	startAtValue, err := parseRequiredDateTime(startAt, "开始时间格式错误")
 	if err != nil {
@@ -265,18 +265,18 @@ func (s *agentTeamScheduleService) buildScheduleModel(id, teamID int64, startAt,
 		return nil, err
 	}
 	if !endAtValue.After(startAtValue) {
-		return nil, errorsx.InvalidParam("结束时间必须晚于开始时间")
+		return nil, errorsx.InvalidParamI18n("error.e0296")
 	}
 	if !sameLocalDay(startAtValue, endAtValue) {
-		return nil, errorsx.InvalidParam("单条排班记录不能跨天")
+		return nil, errorsx.InvalidParamI18n("error.e0132")
 	}
 	if startAtValue.Before(startOfLocalDay(time.Now())) {
-		return nil, errorsx.InvalidParam("不能添加或修改历史日期的排班")
+		return nil, errorsx.InvalidParamI18n("error.e0085")
 	}
 	overlapping := repositories.AgentTeamScheduleRepository.FindOverlappingByTeamIDsAndTimeRange(sqls.DB(), []int64{teamID}, startAtValue, endAtValue)
 	for _, item := range overlapping {
 		if item.ID != id {
-			return nil, errorsx.InvalidParam("该客服组在所选时间段已存在排班")
+			return nil, errorsx.InvalidParamI18n("error.e0309")
 		}
 	}
 	return &models.AgentTeamSchedule{
@@ -290,7 +290,7 @@ func (s *agentTeamScheduleService) buildScheduleModel(id, teamID int64, startAt,
 func (s *agentTeamScheduleService) buildBatchScheduleCandidates(req request.AgentTeamScheduleBatchRequest) ([]batchScheduleCandidate, error) {
 	teamIDs := uniquePositiveInt64s(req.TeamIDs)
 	if len(teamIDs) == 0 {
-		return nil, errorsx.InvalidParam("请选择客服组")
+		return nil, errorsx.InvalidParamI18n("error.e0326")
 	}
 	weekdays, err := normalizeBatchWeekdays(req.Weekdays)
 	if err != nil {
@@ -305,10 +305,10 @@ func (s *agentTeamScheduleService) buildBatchScheduleCandidates(req request.Agen
 		return nil, err
 	}
 	if endDate.Before(startDate) {
-		return nil, errorsx.InvalidParam("结束日期必须晚于或等于开始日期")
+		return nil, errorsx.InvalidParamI18n("error.e0295")
 	}
 	if startDate.Before(startOfLocalDay(time.Now())) {
-		return nil, errorsx.InvalidParam("不能添加或修改历史日期的排班")
+		return nil, errorsx.InvalidParamI18n("error.e0085")
 	}
 	startClock, err := parseRequiredClock(req.StartTime, "开始时间格式错误")
 	if err != nil {
@@ -321,7 +321,7 @@ func (s *agentTeamScheduleService) buildBatchScheduleCandidates(req request.Agen
 	firstStartAt := combineDateAndClock(startDate, startClock)
 	firstEndAt := combineDateAndClock(startDate, endClock)
 	if !firstEndAt.After(firstStartAt) {
-		return nil, errorsx.InvalidParam("结束时间必须晚于开始时间")
+		return nil, errorsx.InvalidParamI18n("error.e0296")
 	}
 
 	teams := AgentTeamService.FindByIds(teamIDs)
@@ -332,10 +332,10 @@ func (s *agentTeamScheduleService) buildBatchScheduleCandidates(req request.Agen
 	for _, teamID := range teamIDs {
 		team, ok := teamsByID[teamID]
 		if !ok || team.Status == enums.StatusDeleted {
-			return nil, errorsx.InvalidParam("客服组不存在")
+			return nil, errorsx.InvalidParamI18n("error.e0169")
 		}
 		if !slices.Contains(enums.StatusValues, team.Status) {
-			return nil, errorsx.InvalidParam("客服组状态不合法")
+			return nil, errorsx.InvalidParamI18n("error.e0174")
 		}
 	}
 
@@ -352,7 +352,7 @@ func (s *agentTeamScheduleService) buildBatchScheduleCandidates(req request.Agen
 				continue
 			}
 			if len(candidates) >= maxAgentTeamScheduleBatchItems {
-				return nil, errorsx.InvalidParam(fmt.Sprintf("单次最多生成 %d 条排班", maxAgentTeamScheduleBatchItems))
+				return nil, errorsx.InvalidParamI18n("error.agentTeamSchedule.batchLimit", maxAgentTeamScheduleBatchItems)
 			}
 			candidates = append(candidates, batchScheduleCandidate{
 				TeamID:   teamID,
@@ -365,7 +365,7 @@ func (s *agentTeamScheduleService) buildBatchScheduleCandidates(req request.Agen
 		}
 	}
 	if len(candidates) == 0 {
-		return nil, errorsx.InvalidParam("未生成任何排班")
+		return nil, errorsx.InvalidParamI18n("error.e0232")
 	}
 	return candidates, nil
 }
@@ -430,11 +430,11 @@ func buildBatchPreviewResult(candidates []batchScheduleCandidate, conflicts map[
 	}
 }
 
-func (s *agentTeamScheduleService) findBatchConflict(candidates []batchScheduleCandidate) map[int]string {
-	return s.findBatchConflictByDB(sqls.DB(), candidates)
+func (s *agentTeamScheduleService) findBatchConflict(candidates []batchScheduleCandidate, locale string) map[int]string {
+	return s.findBatchConflictByDB(sqls.DB(), candidates, locale)
 }
 
-func (s *agentTeamScheduleService) findBatchConflictByDB(db *gorm.DB, candidates []batchScheduleCandidate) map[int]string {
+func (s *agentTeamScheduleService) findBatchConflictByDB(db *gorm.DB, candidates []batchScheduleCandidate, locale string) map[int]string {
 	conflicts := make(map[int]string)
 	if len(candidates) == 0 {
 		return conflicts
@@ -458,7 +458,7 @@ func (s *agentTeamScheduleService) findBatchConflictByDB(db *gorm.DB, candidates
 				continue
 			}
 			if item.StartAt.Before(candidate.EndAt) && item.EndAt.After(candidate.StartAt) {
-				conflicts[i] = fmt.Sprintf("该客服组在 %s 至 %s 已存在排班", item.StartAt.Format(time.DateTime), item.EndAt.Format(time.DateTime))
+				conflicts[i] = i18nx.Getf(locale, "error.agentTeamSchedule.conflictRange", item.StartAt.Format(time.DateTime), item.EndAt.Format(time.DateTime))
 				break
 			}
 		}
@@ -471,7 +471,7 @@ func normalizeBatchWeekdays(values []int) ([]int, error) {
 	ret := make([]int, 0, len(values))
 	for _, value := range values {
 		if value < 1 || value > 7 {
-			return nil, errorsx.InvalidParam("星期必须在 1 到 7 之间")
+			return nil, errorsx.InvalidParamI18n("error.e0228")
 		}
 		if _, ok := seen[value]; ok {
 			continue
@@ -480,7 +480,7 @@ func normalizeBatchWeekdays(values []int) ([]int, error) {
 		ret = append(ret, value)
 	}
 	if len(ret) == 0 {
-		return nil, errorsx.InvalidParam("请选择星期")
+		return nil, errorsx.InvalidParamI18n("error.e0329")
 	}
 	return ret, nil
 }
@@ -532,7 +532,7 @@ func parseDateTimeValue(value string) (time.Time, error) {
 			return ret, nil
 		}
 	}
-	return time.Time{}, errorsx.InvalidParam("时间格式错误")
+	return time.Time{}, errorsx.InvalidParamI18n("error.e0227")
 }
 
 func startOfLocalDay(value time.Time) time.Time {

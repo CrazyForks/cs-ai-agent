@@ -32,7 +32,7 @@ func (s *embedding) GetModel(ctx context.Context) (*models.AIConfig, error) {
 
 func (s *embedding) GenerateEmbedding(ctx context.Context, text string) (*EmbeddingResult, error) {
 	if text == "" {
-		return nil, errorsx.InvalidParam("文本内容不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0215")
 	}
 
 	result, err := s.callEmbeddingAPI(ctx, text)
@@ -45,7 +45,7 @@ func (s *embedding) GenerateEmbedding(ctx context.Context, text string) (*Embedd
 
 func (s *embedding) GenerateBatchEmbeddings(ctx context.Context, texts []string) ([]EmbeddingResult, error) {
 	if len(texts) == 0 {
-		return nil, errorsx.InvalidParam("文本列表不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0216")
 	}
 
 	results := make([]EmbeddingResult, 0, len(texts))

@@ -76,4 +76,5 @@ type AgentTeamScheduleBatchRequest struct {
 	StartTime string  `json:"startTime"`
 	EndTime   string  `json:"endTime"`
 	Remark    string  `json:"remark"`
+	Locale    string  `json:"-"`
 }

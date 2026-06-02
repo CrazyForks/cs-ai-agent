@@ -79,7 +79,7 @@ func (s *agentTeamService) Delete(id int64) {
 
 func (s *agentTeamService) CreateAgentTeam(req request.CreateAgentTeamRequest, operator *dto.AuthPrincipal) (*models.AgentTeam, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	item, err := s.buildTeamModel(0, req.Name, req.LeaderUserID, req.Status, req.Description, req.Remark)
 	if err != nil {
@@ -94,11 +94,11 @@ func (s *agentTeamService) CreateAgentTeam(req request.CreateAgentTeamRequest, o
 
 func (s *agentTeamService) UpdateAgentTeam(req request.UpdateAgentTeamRequest, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	current := s.Get(req.ID)
 	if current == nil || current.Status == enums.StatusDeleted {
-		return errorsx.InvalidParam("客服组不存在")
+		return errorsx.InvalidParamI18n("error.e0169")
 	}
 	item, err := s.buildTeamModel(req.ID, req.Name, req.LeaderUserID, req.Status, req.Description, req.Remark)
 	if err != nil {
@@ -119,17 +119,17 @@ func (s *agentTeamService) UpdateAgentTeam(req request.UpdateAgentTeamRequest, o
 
 func (s *agentTeamService) DeleteAgentTeam(id int64, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	current := s.Get(id)
 	if current == nil || current.Status == enums.StatusDeleted {
-		return errorsx.InvalidParam("客服组不存在")
+		return errorsx.InvalidParamI18n("error.e0169")
 	}
 	if AgentProfileService.Take("team_id = ?", id) != nil {
-		return errorsx.Forbidden("客服组下仍有关联客服档案，无法删除")
+		return errorsx.ForbiddenI18n("error.e0167")
 	}
 	if AgentTeamScheduleService.Take("team_id = ?", id) != nil {
-		return errorsx.Forbidden("客服组下仍有关联组排班，无法删除")
+		return errorsx.ForbiddenI18n("error.e0168")
 	}
 	if AIAgentService.Take(
 		"(team_ids = ? OR team_ids LIKE ? OR team_ids LIKE ? OR team_ids LIKE ?) AND status <> ?",
@@ -139,7 +139,7 @@ func (s *agentTeamService) DeleteAgentTeam(id int64, operator *dto.AuthPrincipal
 		"%,"+utils.JoinInt64s([]int64{id})+",%",
 		enums.StatusDeleted,
 	) != nil {
-		return errorsx.Forbidden("客服组下仍有关联 AI Agent，无法删除")
+		return errorsx.ForbiddenI18n("error.e0166")
 	}
 	return repositories.AgentTeamRepository.Updates(sqls.DB(), id, map[string]any{
 		"status":           enums.StatusDeleted,
@@ -152,16 +152,16 @@ func (s *agentTeamService) DeleteAgentTeam(id int64, operator *dto.AuthPrincipal
 func (s *agentTeamService) buildTeamModel(id int64, name string, leaderUserID int64, status int, description, remark string) (*models.AgentTeam, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return nil, errorsx.InvalidParam("客服组名称不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0170")
 	}
 	if exists := s.Take("name = ? AND status <> ? AND id <> ?", name, enums.StatusDeleted, id); exists != nil {
-		return nil, errorsx.InvalidParam("客服组名称已存在")
+		return nil, errorsx.InvalidParamI18n("error.e0171")
 	}
 	if leaderUserID > 0 && UserService.Get(leaderUserID) == nil {
-		return nil, errorsx.InvalidParam("组长用户不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0294")
 	}
 	if status != 0 && status != 1 {
-		return nil, errorsx.InvalidParam("客服组状态不合法")
+		return nil, errorsx.InvalidParamI18n("error.e0174")
 	}
 	return &models.AgentTeam{
 		Name:         name,

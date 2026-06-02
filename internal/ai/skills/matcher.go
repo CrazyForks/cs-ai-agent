@@ -21,7 +21,7 @@ func MatchSkill(execCtx context.Context, ctx RuntimeContext) (*models.SkillDefin
 	if strs.IsNotBlank(ctx.ManualSkillCode) {
 		skill := loader.findManualSkillDefinition(ctx.ManualSkillCode)
 		if skill == nil || skill.Status != enums.StatusOk {
-			return nil, "", nil, errorsx.InvalidParam("Skill 不存在或未启用")
+			return nil, "", nil, errorsx.InvalidParamI18n("error.e0054")
 		}
 		return skill, "manual_skill_code", &RouteTrace{
 			Status:            "manual_selected",

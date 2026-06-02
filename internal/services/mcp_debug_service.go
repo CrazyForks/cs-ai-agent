@@ -95,18 +95,18 @@ func (s *mCPDebugService) CallTool(ctx context.Context, serverCode string, toolN
 func (s *mCPDebugService) resolveServer(serverCode string) (mcps.ServerConfig, error) {
 	cfg := config.Current()
 	if !cfg.MCP.Enabled {
-		return mcps.ServerConfig{}, errorsx.InvalidParam("MCP未启用")
+		return mcps.ServerConfig{}, errorsx.InvalidParamI18n("error.e0035")
 	}
 	serverCode = strings.TrimSpace(serverCode)
 	if serverCode == "" {
-		return mcps.ServerConfig{}, errorsx.InvalidParam("serverCode不能为空")
+		return mcps.ServerConfig{}, errorsx.InvalidParamI18n("error.e0070")
 	}
 	server, ok := cfg.MCP.Servers[serverCode]
 	if !ok {
-		return mcps.ServerConfig{}, errorsx.InvalidParam("MCP服务配置不存在")
+		return mcps.ServerConfig{}, errorsx.InvalidParamI18n("error.e0034")
 	}
 	if !server.Enabled {
-		return mcps.ServerConfig{}, errorsx.InvalidParam("MCP服务未启用")
+		return mcps.ServerConfig{}, errorsx.InvalidParamI18n("error.e0033")
 	}
 	return mcps.ServerConfig{
 		Code:      serverCode,

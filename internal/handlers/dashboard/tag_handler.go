@@ -49,7 +49,7 @@ func TagGetBy(ctx *gin.Context) {
 
 	item := services.TagService.Get(id)
 	if item == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("标签不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0238"))
 		return
 	}
 	result := builders.BuildTagResponse(item)

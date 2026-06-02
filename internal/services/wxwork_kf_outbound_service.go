@@ -9,6 +9,7 @@ import (
 
 	"agent-desk/internal/models"
 	"agent-desk/internal/pkg/enums"
+	"agent-desk/internal/pkg/i18nx"
 	"agent-desk/internal/pkg/utils"
 	"agent-desk/internal/repositories"
 	"agent-desk/internal/wxwork"
@@ -233,7 +234,7 @@ func (s *wxWorkKFOutboundService) sendOutboundChunk(mapping *models.WxWorkKFConv
 	case enums.IMMessageTypeImage:
 		return s.sendImageMessage(mapping, message, chunk, chunkIndex)
 	default:
-		return "", fmt.Errorf("不支持的企业微信下行消息类型: %s", chunk.MessageType)
+		return "", i18nx.Errorf("error.wxwork.unsupportedOutboundMessageType", chunk.MessageType)
 	}
 }
 
@@ -265,7 +266,7 @@ func (s *wxWorkKFOutboundService) sendTextMessage(mapping *models.WxWorkKFConver
 		return "", err
 	}
 	if strings.TrimSpace(resp.MsgID) == "" {
-		return "", fmt.Errorf("企业微信返回的消息ID为空")
+		return "", i18nx.Errorf("error.e0114")
 	}
 	slog.Info("wxwork text message accepted",
 		"conversation_id", message.ConversationID,
@@ -281,12 +282,12 @@ func (s *wxWorkKFOutboundService) sendTextMessage(mapping *models.WxWorkKFConver
 
 func (s *wxWorkKFOutboundService) sendImageMessage(mapping *models.WxWorkKFConversation, message *models.Message, chunk wxWorkKFOutboundChunk, chunkIndex int) (string, error) {
 	if strings.TrimSpace(chunk.AssetID) == "" {
-		return "", fmt.Errorf("图片消息缺少 assetId")
+		return "", i18nx.Errorf("error.e0145")
 	}
 
 	asset := AssetService.GetByAssetID(chunk.AssetID)
 	if asset == nil {
-		return "", fmt.Errorf("图片资源不存在")
+		return "", i18nx.Errorf("error.e0146")
 	}
 	fileReader, err := AssetService.OpenReader(asset)
 	if err != nil {
@@ -315,7 +316,7 @@ func (s *wxWorkKFOutboundService) sendImageMessage(mapping *models.WxWorkKFConve
 		return "", err
 	}
 	if strings.TrimSpace(uploadResp.MediaID) == "" {
-		return "", fmt.Errorf("企业微信返回的图片 media_id 为空")
+		return "", i18nx.Errorf("error.e0113")
 	}
 
 	kfCli, err := wxwork.GetWorkCli().GetKF()
@@ -337,7 +338,7 @@ func (s *wxWorkKFOutboundService) sendImageMessage(mapping *models.WxWorkKFConve
 		return "", err
 	}
 	if strings.TrimSpace(resp.MsgID) == "" {
-		return "", fmt.Errorf("企业微信返回的消息ID为空")
+		return "", i18nx.Errorf("error.e0114")
 	}
 	slog.Info("wxwork image message accepted",
 		"conversation_id", message.ConversationID,
@@ -421,19 +422,19 @@ func (s *wxWorkKFOutboundService) parseOutboxPayload(raw string) (*wxWorkKFOutbo
 
 func (s *wxWorkKFOutboundService) buildOutboundChunks(message *models.Message) ([]wxWorkKFOutboundChunk, error) {
 	if message == nil {
-		return nil, fmt.Errorf("平台消息不存在")
+		return nil, i18nx.Errorf("error.e0186")
 	}
 	switch message.MessageType {
 	case enums.IMMessageTypeText:
 		content := strings.TrimSpace(message.Content)
 		if content == "" {
-			return nil, fmt.Errorf("文本消息内容为空")
+			return nil, i18nx.Errorf("error.e0217")
 		}
 		return []wxWorkKFOutboundChunk{{MessageType: enums.IMMessageTypeText, Content: content}}, nil
 	case enums.IMMessageTypeHTML:
 		return s.buildHTMLChunks(message.Content)
 	default:
-		return nil, fmt.Errorf("当前暂不支持企业微信下行消息类型: %s", message.MessageType)
+		return nil, i18nx.Errorf("error.wxwork.currentUnsupportedOutboundMessageType", message.MessageType)
 	}
 }
 
@@ -467,7 +468,7 @@ func (s *wxWorkKFOutboundService) buildHTMLChunks(content string) ([]wxWorkKFOut
 		}
 	}
 	if len(chunks) == 0 {
-		return nil, fmt.Errorf("HTML 消息内容为空")
+		return nil, i18nx.Errorf("error.e0029")
 	}
 	return chunks, nil
 }

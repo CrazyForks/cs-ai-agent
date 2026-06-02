@@ -42,20 +42,20 @@ func (s *knowledgeDirectoryService) Count(cnd *sqls.Cnd) int64 {
 
 func (s *knowledgeDirectoryService) CreateDirectory(req request.CreateKnowledgeDirectoryRequest, operator *dto.AuthPrincipal) (*models.KnowledgeDirectory, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
-		return nil, errorsx.InvalidParam("目录名称不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0275")
 	}
 	if req.KnowledgeBaseID <= 0 || KnowledgeBaseService.Get(req.KnowledgeBaseID) == nil {
-		return nil, errorsx.InvalidParam("知识库不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0283")
 	}
 	if err := s.validateParent(req.KnowledgeBaseID, req.ParentID, 0); err != nil {
 		return nil, err
 	}
 	if existing := s.findByName(req.KnowledgeBaseID, req.ParentID, name); existing != nil {
-		return nil, errorsx.InvalidParam("同级下已存在相同名称的目录")
+		return nil, errorsx.InvalidParamI18n("error.e0142")
 	}
 	item := &models.KnowledgeDirectory{
 		KnowledgeBaseID: req.KnowledgeBaseID,
@@ -74,30 +74,30 @@ func (s *knowledgeDirectoryService) CreateDirectory(req request.CreateKnowledgeD
 
 func (s *knowledgeDirectoryService) UpdateDirectory(req request.UpdateKnowledgeDirectoryRequest, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	item := s.Get(req.ID)
 	if item == nil {
-		return errorsx.InvalidParam("目录不存在")
+		return errorsx.InvalidParamI18n("error.e0273")
 	}
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
-		return errorsx.InvalidParam("目录名称不能为空")
+		return errorsx.InvalidParamI18n("error.e0275")
 	}
 	if req.KnowledgeBaseID <= 0 {
 		req.KnowledgeBaseID = item.KnowledgeBaseID
 	}
 	if req.KnowledgeBaseID != item.KnowledgeBaseID {
-		return errorsx.InvalidParam("目录不能移动到其他知识库")
+		return errorsx.InvalidParamI18n("error.e0274")
 	}
 	if err := s.validateParent(item.KnowledgeBaseID, req.ParentID, req.ID); err != nil {
 		return err
 	}
 	if req.ParentID > 0 && s.Count(sqls.NewCnd().Eq("parent_id", req.ID)) > 0 {
-		return errorsx.InvalidParam("存在子目录的目录不能移动到二级目录")
+		return errorsx.InvalidParamI18n("error.e0152")
 	}
 	if existing := s.findByName(item.KnowledgeBaseID, req.ParentID, name); existing != nil && existing.ID != req.ID {
-		return errorsx.InvalidParam("同级下已存在相同名称的目录")
+		return errorsx.InvalidParamI18n("error.e0142")
 	}
 	return repositories.KnowledgeDirectoryRepository.Updates(sqls.DB(), req.ID, map[string]any{
 		"parent_id":        req.ParentID,
@@ -112,16 +112,16 @@ func (s *knowledgeDirectoryService) UpdateDirectory(req request.UpdateKnowledgeD
 func (s *knowledgeDirectoryService) DeleteDirectory(id int64) error {
 	item := s.Get(id)
 	if item == nil {
-		return errorsx.InvalidParam("目录不存在")
+		return errorsx.InvalidParamI18n("error.e0273")
 	}
 	if s.Count(sqls.NewCnd().Eq("parent_id", id)) > 0 {
-		return errorsx.InvalidParam("该目录下存在子目录，无法删除")
+		return errorsx.InvalidParamI18n("error.e0316")
 	}
 	if KnowledgeDocumentService.Count(sqls.NewCnd().Eq("directory_id", id)) > 0 {
-		return errorsx.InvalidParam("该目录下存在文档，无法删除")
+		return errorsx.InvalidParamI18n("error.e0317")
 	}
 	if KnowledgeFAQService.Count(sqls.NewCnd().Eq("directory_id", id)) > 0 {
-		return errorsx.InvalidParam("该目录下存在FAQ，无法删除")
+		return errorsx.InvalidParamI18n("error.e0315")
 	}
 	return repositories.KnowledgeDirectoryRepository.Delete(sqls.DB(), id)
 }
@@ -131,10 +131,10 @@ func (s *knowledgeDirectoryService) UpdateSort(knowledgeBaseID int64, parentID i
 		for i, id := range ids {
 			item := repositories.KnowledgeDirectoryRepository.Get(ctx.Tx, id)
 			if item == nil {
-				return errorsx.InvalidParam("目录不存在")
+				return errorsx.InvalidParamI18n("error.e0273")
 			}
 			if item.KnowledgeBaseID != knowledgeBaseID || item.ParentID != parentID {
-				return errorsx.InvalidParam("只能调整同知识库同级目录排序")
+				return errorsx.InvalidParamI18n("error.e0140")
 			}
 			if err := repositories.KnowledgeDirectoryRepository.UpdateColumn(ctx.Tx, id, "sort_no", i+1); err != nil {
 				return err
@@ -150,13 +150,13 @@ func (s *knowledgeDirectoryService) RequireUsableDirectory(knowledgeBaseID int64
 	}
 	item := s.Get(directoryID)
 	if item == nil {
-		return nil, errorsx.InvalidParam("知识库目录不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0287")
 	}
 	if item.KnowledgeBaseID != knowledgeBaseID {
-		return nil, errorsx.InvalidParam("知识库目录不属于当前知识库")
+		return nil, errorsx.InvalidParamI18n("error.e0288")
 	}
 	if item.Status != enums.StatusOk {
-		return nil, errorsx.InvalidParam("知识库目录不可用")
+		return nil, errorsx.InvalidParamI18n("error.e0286")
 	}
 	return item, nil
 }
@@ -192,17 +192,17 @@ func (s *knowledgeDirectoryService) validateParent(knowledgeBaseID int64, parent
 		return nil
 	}
 	if parentID == selfID {
-		return errorsx.InvalidParam("不能将目录设为自己的子目录")
+		return errorsx.InvalidParamI18n("error.e0084")
 	}
 	parent := s.Get(parentID)
 	if parent == nil {
-		return errorsx.InvalidParam("父目录不存在")
+		return errorsx.InvalidParamI18n("error.e0252")
 	}
 	if parent.KnowledgeBaseID != knowledgeBaseID {
-		return errorsx.InvalidParam("父目录不属于当前知识库")
+		return errorsx.InvalidParamI18n("error.e0253")
 	}
 	if parent.ParentID > 0 {
-		return errorsx.InvalidParam("知识库目录最多支持二级")
+		return errorsx.InvalidParamI18n("error.e0289")
 	}
 	return nil
 }

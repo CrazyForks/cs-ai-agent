@@ -46,7 +46,7 @@ func (s *knowledgeFAQService) Count(cnd *sqls.Cnd) int64 {
 
 func (s *knowledgeFAQService) CreateKnowledgeFAQ(req request.CreateKnowledgeFAQRequest, operator *dto.AuthPrincipal) (*models.KnowledgeFAQ, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	kb, err := s.requireFAQKnowledgeBase(req.KnowledgeBaseID)
 	if err != nil {
@@ -76,11 +76,11 @@ func (s *knowledgeFAQService) CreateKnowledgeFAQ(req request.CreateKnowledgeFAQR
 
 func (s *knowledgeFAQService) UpdateKnowledgeFAQ(req request.UpdateKnowledgeFAQRequest, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	current := s.Get(req.ID)
 	if current == nil {
-		return errorsx.InvalidParam("FAQ不存在")
+		return errorsx.InvalidParamI18n("error.e0025")
 	}
 	if _, err := s.requireFAQKnowledgeBase(req.KnowledgeBaseID); err != nil {
 		return err
@@ -114,7 +114,7 @@ func (s *knowledgeFAQService) UpdateKnowledgeFAQ(req request.UpdateKnowledgeFAQR
 func (s *knowledgeFAQService) DeleteKnowledgeFAQ(id int64) error {
 	current := s.Get(id)
 	if current == nil {
-		return errorsx.InvalidParam("FAQ不存在")
+		return errorsx.InvalidParamI18n("error.e0025")
 	}
 	if err := repositories.KnowledgeFAQRepository.Delete(sqls.DB(), id); err != nil {
 		return err
@@ -124,11 +124,11 @@ func (s *knowledgeFAQService) DeleteKnowledgeFAQ(id int64) error {
 
 func (s *knowledgeFAQService) BatchMoveKnowledgeFAQs(req request.BatchMoveKnowledgeFAQRequest, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	ids := uniquePositiveIDs(req.IDs)
 	if len(ids) == 0 {
-		return errorsx.InvalidParam("请选择要移动的FAQ")
+		return errorsx.InvalidParamI18n("error.e0332")
 	}
 	if _, err := s.requireFAQKnowledgeBase(req.KnowledgeBaseID); err != nil {
 		return err
@@ -139,10 +139,10 @@ func (s *knowledgeFAQService) BatchMoveKnowledgeFAQs(req request.BatchMoveKnowle
 	for _, id := range ids {
 		current := s.Get(id)
 		if current == nil {
-			return errorsx.InvalidParam("FAQ不存在")
+			return errorsx.InvalidParamI18n("error.e0025")
 		}
 		if current.KnowledgeBaseID != req.KnowledgeBaseID {
-			return errorsx.InvalidParam("只能移动当前知识库下的FAQ")
+			return errorsx.InvalidParamI18n("error.e0138")
 		}
 	}
 	now := time.Now()
@@ -175,7 +175,7 @@ func (s *knowledgeFAQService) BatchMoveKnowledgeFAQs(req request.BatchMoveKnowle
 func (s *knowledgeFAQService) BatchDeleteKnowledgeFAQs(req request.BatchDeleteKnowledgeFAQRequest) error {
 	ids := uniquePositiveIDs(req.IDs)
 	if len(ids) == 0 {
-		return errorsx.InvalidParam("请选择要删除的FAQ")
+		return errorsx.InvalidParamI18n("error.e0330")
 	}
 	for _, id := range ids {
 		if err := s.DeleteKnowledgeFAQ(id); err != nil {
@@ -187,17 +187,17 @@ func (s *knowledgeFAQService) BatchDeleteKnowledgeFAQs(req request.BatchDeleteKn
 
 func (s *knowledgeFAQService) buildKnowledgeFAQModel(req request.CreateKnowledgeFAQRequest) (*models.KnowledgeFAQ, error) {
 	if req.KnowledgeBaseID <= 0 {
-		return nil, errorsx.InvalidParam("知识库不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0283")
 	}
 	if req.Question == "" {
-		return nil, errorsx.InvalidParam("问题不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0340")
 	}
 	if req.Answer == "" {
-		return nil, errorsx.InvalidParam("答案不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0292")
 	}
 	similarQuestions, err := json.Marshal(normalizeSimilarQuestions(req.SimilarQuestions))
 	if err != nil {
-		return nil, errorsx.InvalidParam("相似问格式不合法")
+		return nil, errorsx.InvalidParamI18n("error.e0280")
 	}
 	return &models.KnowledgeFAQ{
 		KnowledgeBaseID:  req.KnowledgeBaseID,
@@ -212,10 +212,10 @@ func (s *knowledgeFAQService) buildKnowledgeFAQModel(req request.CreateKnowledge
 func (s *knowledgeFAQService) requireFAQKnowledgeBase(knowledgeBaseID int64) (*models.KnowledgeBase, error) {
 	kb := KnowledgeBaseService.Get(knowledgeBaseID)
 	if kb == nil {
-		return nil, errorsx.InvalidParam("知识库不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0283")
 	}
 	if kb.KnowledgeType != "faq" {
-		return nil, errorsx.InvalidParam("当前知识库不是FAQ知识库")
+		return nil, errorsx.InvalidParamI18n("error.e0199")
 	}
 	return kb, nil
 }

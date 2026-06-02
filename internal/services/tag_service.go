@@ -87,24 +87,24 @@ func (s *tagService) FindByNameAndParentID(name string, parentID int64) *models.
 
 func (s *tagService) CreateTag(req request.CreateTagRequest, operator *dto.AuthPrincipal) (*models.Tag, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
-		return nil, errorsx.InvalidParam("标签名称不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0239")
 	}
 
 	if req.ParentID > 0 {
 		parent := s.Get(req.ParentID)
 		if parent == nil {
-			return nil, errorsx.InvalidParam("父标签不存在")
+			return nil, errorsx.InvalidParamI18n("error.e0251")
 		}
 	}
 
 	existing := s.FindByNameAndParentID(name, req.ParentID)
 	if existing != nil {
-		return nil, errorsx.InvalidParam("同级下已存在相同名称的标签")
+		return nil, errorsx.InvalidParamI18n("error.e0141")
 	}
 
 	item := &models.Tag{
@@ -132,32 +132,32 @@ func (s *tagService) NextSortNo(parentID int64) int {
 
 func (s *tagService) UpdateTag(req request.UpdateTagRequest, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 
 	item := s.Get(req.ID)
 	if item == nil {
-		return errorsx.InvalidParam("标签不存在")
+		return errorsx.InvalidParamI18n("error.e0238")
 	}
 
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
-		return errorsx.InvalidParam("标签名称不能为空")
+		return errorsx.InvalidParamI18n("error.e0239")
 	}
 
 	if req.ParentID > 0 {
 		if req.ParentID == req.ID {
-			return errorsx.InvalidParam("不能将标签设为自己的子标签")
+			return errorsx.InvalidParamI18n("error.e0083")
 		}
 		parent := s.Get(req.ParentID)
 		if parent == nil {
-			return errorsx.InvalidParam("父标签不存在")
+			return errorsx.InvalidParamI18n("error.e0251")
 		}
 	}
 
 	existing := s.FindByNameAndParentID(name, req.ParentID)
 	if existing != nil && existing.ID != req.ID {
-		return errorsx.InvalidParam("同级下已存在相同名称的标签")
+		return errorsx.InvalidParamI18n("error.e0141")
 	}
 
 	return s.Updates(req.ID, map[string]any{
@@ -184,17 +184,17 @@ func (s *tagService) UpdateSort(ids []int64) error {
 func (s *tagService) DeleteTag(id int64) error {
 	item := s.Get(id)
 	if item == nil {
-		return errorsx.InvalidParam("标签不存在")
+		return errorsx.InvalidParamI18n("error.e0238")
 	}
 
 	if s.HasChildren(id) {
-		return errorsx.InvalidParam("该标签下存在子标签，无法删除")
+		return errorsx.InvalidParamI18n("error.e0310")
 	}
 	if ConversationTagService.Take("tag_id = ?", id) != nil {
-		return errorsx.InvalidParam("该标签已关联会话，无法删除")
+		return errorsx.InvalidParamI18n("error.e0311")
 	}
 	if TicketTagService.Take("tag_id = ?", id) != nil {
-		return errorsx.InvalidParam("该标签已关联工单，无法删除")
+		return errorsx.InvalidParamI18n("error.e0312")
 	}
 
 	s.Delete(id)
@@ -247,16 +247,16 @@ func (s *tagService) GetSelfAndDescendantIDs(tagID int64) []int64 {
 
 func (s *tagService) UpdateStatus(id int64, status int, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 
 	item := s.Get(id)
 	if item == nil {
-		return errorsx.InvalidParam("标签不存在")
+		return errorsx.InvalidParamI18n("error.e0238")
 	}
 
 	if status != int(enums.StatusOk) && status != int(enums.StatusDisabled) {
-		return errorsx.InvalidParam("状态值不合法")
+		return errorsx.InvalidParamI18n("error.e0254")
 	}
 
 	now := time.Now()

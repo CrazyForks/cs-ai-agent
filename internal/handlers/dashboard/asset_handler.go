@@ -51,7 +51,7 @@ func AssetGetBy(ctx *gin.Context) {
 	}
 	item := services.AssetService.Get(id)
 	if item == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("文件不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0214"))
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildAsset(item))
@@ -71,7 +71,7 @@ func AssetPostCreate(ctx *gin.Context) {
 	}
 	header, err := ctx.FormFile("file")
 	if err != nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("请选择上传文件"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0323"))
 		return
 	}
 	item, err := services.AssetService.UploadFile(header, req.Prefix, operator)

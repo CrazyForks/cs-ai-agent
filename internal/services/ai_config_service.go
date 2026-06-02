@@ -77,7 +77,7 @@ func (s *aIConfigService) Delete(id int64) {
 
 func (s *aIConfigService) CreateAIConfig(req request.CreateAIConfigRequest, operator *dto.AuthPrincipal) (*models.AIConfig, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	item, err := s.buildAIConfigModel(req)
 	if err != nil {
@@ -100,11 +100,11 @@ func (s *aIConfigService) CreateAIConfig(req request.CreateAIConfigRequest, oper
 
 func (s *aIConfigService) UpdateAIConfig(req request.UpdateAIConfigRequest, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	current := s.Get(req.ID)
 	if current == nil {
-		return errorsx.InvalidParam("AI配置不存在")
+		return errorsx.InvalidParamI18n("error.e0012")
 	}
 	item, err := s.buildAIConfigModel(req.CreateAIConfigRequest)
 	if err != nil {
@@ -141,7 +141,7 @@ func (s *aIConfigService) DeleteAIConfig(id int64, operator *dto.AuthPrincipal) 
 		return nil
 	}
 	if current.Status == enums.StatusOk {
-		return errorsx.Forbidden("启用中的AI配置不允许删除")
+		return errorsx.ForbiddenI18n("error.e0143")
 	}
 	return repositories.AIConfigRepository.Updates(sqls.DB(), id, map[string]any{
 		"status":           enums.StatusDeleted,
@@ -153,14 +153,14 @@ func (s *aIConfigService) DeleteAIConfig(id int64, operator *dto.AuthPrincipal) 
 
 func (s *aIConfigService) UpdateStatus(id int64, status enums.Status, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	current := s.Get(id)
 	if current == nil {
-		return errorsx.InvalidParam("AI配置不存在")
+		return errorsx.InvalidParamI18n("error.e0012")
 	}
 	if status != enums.StatusOk && status != enums.StatusDisabled {
-		return errorsx.InvalidParam("状态值不合法")
+		return errorsx.InvalidParamI18n("error.e0254")
 	}
 
 	return sqls.WithTransaction(func(ctx *sqls.TxContext) error {
@@ -206,19 +206,19 @@ func (s *aIConfigService) buildAIConfigModel(req request.CreateAIConfigRequest) 
 	modelName := strings.TrimSpace(req.ModelName)
 
 	if name == "" {
-		return nil, errorsx.InvalidParam("配置名称不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0339")
 	}
 	if strs.IsBlank(string(req.Provider)) {
-		return nil, errorsx.InvalidParam("供应商不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0122")
 	}
 	if baseURL == "" {
-		return nil, errorsx.InvalidParam("基础地址不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0147")
 	}
 	if strs.IsBlank(string(req.ModelType)) {
-		return nil, errorsx.InvalidParam("模型类型不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0243")
 	}
 	if modelName == "" {
-		return nil, errorsx.InvalidParam("模型名称不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0242")
 	}
 	if req.Dimension < 0 {
 		req.Dimension = 0

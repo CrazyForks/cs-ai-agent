@@ -185,22 +185,22 @@ func (s *ticketService) GetTags(ticketID int64) []models.Tag {
 
 func (s *ticketService) CreateTicket(req request.CreateTicketRequest, operator *dto.AuthPrincipal) (*models.Ticket, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	title := strings.TrimSpace(req.Title)
 	description := strings.TrimSpace(req.Description)
 	if title == "" {
-		return nil, errorsx.InvalidParam("工单标题不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0181")
 	}
 	if description == "" {
-		return nil, errorsx.InvalidParam("工单描述不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0179")
 	}
 	source := enums.TicketSource(strings.TrimSpace(req.Source))
 	if source == "" {
 		source = enums.TicketSourceManual
 	}
 	if !enums.IsValidTicketSource(string(source)) {
-		return nil, errorsx.InvalidParam("工单来源不合法")
+		return nil, errorsx.InvalidParamI18n("error.e0180")
 	}
 	if err := s.validateTicketRefs(req.CustomerID, req.ConversationID, req.CurrentAssigneeID); err != nil {
 		return nil, err
@@ -254,11 +254,11 @@ func (s *ticketService) CreateTicket(req request.CreateTicketRequest, operator *
 
 func (s *ticketService) CreateFromConversation(req request.CreateTicketFromConversationRequest, operator *dto.AuthPrincipal) (*models.Ticket, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	conversation := ConversationService.Get(req.ConversationID)
 	if conversation == nil {
-		return nil, errorsx.InvalidParam("会话不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0116")
 	}
 	title := strings.TrimSpace(req.Title)
 	if title == "" {
@@ -288,19 +288,19 @@ func (s *ticketService) CreateFromConversation(req request.CreateTicketFromConve
 
 func (s *ticketService) UpdateTicket(req request.UpdateTicketRequest, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	title := strings.TrimSpace(req.Title)
 	description := strings.TrimSpace(req.Description)
 	if title == "" {
-		return errorsx.InvalidParam("工单标题不能为空")
+		return errorsx.InvalidParamI18n("error.e0181")
 	}
 	if description == "" {
-		return errorsx.InvalidParam("工单描述不能为空")
+		return errorsx.InvalidParamI18n("error.e0179")
 	}
 	ticket := s.Get(req.TicketID)
 	if ticket == nil {
-		return errorsx.InvalidParam("工单不存在")
+		return errorsx.InvalidParamI18n("error.e0178")
 	}
 	if err := s.validateAssignee(req.CurrentAssigneeID); err != nil {
 		return err
@@ -327,22 +327,22 @@ func (s *ticketService) UpdateTicket(req request.UpdateTicketRequest, operator *
 
 func (s *ticketService) LinkCustomer(ticketID int64, customerID int64, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	ticket := s.Get(ticketID)
 	if ticket == nil {
-		return errorsx.InvalidParam("工单不存在")
+		return errorsx.InvalidParamI18n("error.e0178")
 	}
 	if customerID <= 0 || CustomerService.Get(customerID) == nil {
-		return errorsx.InvalidParam("客户不存在")
+		return errorsx.InvalidParamI18n("error.e0155")
 	}
 	if ticket.ConversationID > 0 {
 		conversation := ConversationService.Get(ticket.ConversationID)
 		if conversation == nil {
-			return errorsx.InvalidParam("会话不存在")
+			return errorsx.InvalidParamI18n("error.e0116")
 		}
 		if conversation.CustomerID > 0 && conversation.CustomerID != customerID {
-			return errorsx.InvalidParam("会话与客户不匹配")
+			return errorsx.InvalidParamI18n("error.e0118")
 		}
 	}
 	now := time.Now()
@@ -356,7 +356,7 @@ func (s *ticketService) LinkCustomer(ticketID int64, customerID int64, operator 
 
 func (s *ticketService) AssignTicket(req request.AssignTicketRequest, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	var assignedEvent *events.TicketAssignedEvent
 	if err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
@@ -377,15 +377,15 @@ func (s *ticketService) AssignTicket(req request.AssignTicketRequest, operator *
 
 func (s *ticketService) ChangeStatus(req request.ChangeTicketStatusRequest, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	status := strings.TrimSpace(req.Status)
 	if !enums.IsValidTicketStatus(status) {
-		return errorsx.InvalidParam("工单状态不合法")
+		return errorsx.InvalidParamI18n("error.e0182")
 	}
 	ticket := s.Get(req.TicketID)
 	if ticket == nil {
-		return errorsx.InvalidParam("工单不存在")
+		return errorsx.InvalidParamI18n("error.e0178")
 	}
 	now := time.Now()
 	var handledAt *time.Time
@@ -403,15 +403,15 @@ func (s *ticketService) ChangeStatus(req request.ChangeTicketStatusRequest, oper
 
 func (s *ticketService) AddProgress(req request.CreateTicketProgressRequest, operator *dto.AuthPrincipal) (*models.TicketProgress, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	content := strings.TrimSpace(req.Content)
 	if content == "" {
-		return nil, errorsx.InvalidParam("处理进展不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0148")
 	}
 	ticket := s.Get(req.TicketID)
 	if ticket == nil {
-		return nil, errorsx.InvalidParam("工单不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0178")
 	}
 	now := time.Now()
 	progress := &models.TicketProgress{
@@ -438,7 +438,7 @@ func (s *ticketService) AddProgress(req request.CreateTicketProgressRequest, ope
 func (s *ticketService) GetDetail(id int64) (*TicketDetailAggregate, error) {
 	ticket := s.Get(id)
 	if ticket == nil {
-		return nil, errorsx.InvalidParam("工单不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0178")
 	}
 	aggregate := &TicketDetailAggregate{
 		Ticket:     ticket,
@@ -497,14 +497,14 @@ func (s *ticketService) GetSummary(operator *dto.AuthPrincipal, staleHours ...in
 func (s *ticketService) assignTicketTx(tx *gorm.DB, req request.AssignTicketRequest, operator *dto.AuthPrincipal) (*events.TicketAssignedEvent, error) {
 	ticket := repositories.TicketRepository.Get(tx, req.TicketID)
 	if ticket == nil {
-		return nil, errorsx.InvalidParam("工单不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0178")
 	}
 	if err := s.validateRequiredAssignee(req.ToUserID); err != nil {
 		return nil, err
 	}
 	toUser := repositories.UserRepository.Get(tx, req.ToUserID)
 	if toUser == nil || toUser.Status != enums.StatusOk {
-		return nil, errorsx.InvalidParam("负责人不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0334")
 	}
 	var fromUser *models.User
 	if ticket.CurrentAssigneeID > 0 {
@@ -627,15 +627,15 @@ func (s *ticketService) enrichTicketTags(db *gorm.DB, aggregate *TicketListAggre
 
 func (s *ticketService) validateTicketRefs(customerID, conversationID, assigneeID int64) error {
 	if customerID > 0 && CustomerService.Get(customerID) == nil {
-		return errorsx.InvalidParam("客户不存在")
+		return errorsx.InvalidParamI18n("error.e0155")
 	}
 	if conversationID > 0 {
 		conversation := ConversationService.Get(conversationID)
 		if conversation == nil {
-			return errorsx.InvalidParam("会话不存在")
+			return errorsx.InvalidParamI18n("error.e0116")
 		}
 		if customerID > 0 && conversation.CustomerID != customerID {
-			return errorsx.InvalidParam("会话与客户不匹配")
+			return errorsx.InvalidParamI18n("error.e0118")
 		}
 	}
 	return s.validateAssignee(assigneeID)
@@ -650,11 +650,11 @@ func (s *ticketService) validateAssignee(userID int64) error {
 
 func (s *ticketService) validateRequiredAssignee(userID int64) error {
 	if userID <= 0 {
-		return errorsx.InvalidParam("负责人不存在")
+		return errorsx.InvalidParamI18n("error.e0334")
 	}
 	user := UserService.Get(userID)
 	if user == nil || user.Status != enums.StatusOk {
-		return errorsx.InvalidParam("负责人不存在")
+		return errorsx.InvalidParamI18n("error.e0334")
 	}
 	return nil
 }

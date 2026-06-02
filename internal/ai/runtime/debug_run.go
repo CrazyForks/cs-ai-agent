@@ -22,16 +22,16 @@ func init() {
 func DebugRunSkill(ctx context.Context, req request.SkillDebugRunRequest) (*response.SkillDebugRunResponse, error) {
 	aiAgent := svc.AIAgentService.Get(req.AIAgentID)
 	if aiAgent == nil || aiAgent.Status != enums.StatusOk {
-		return nil, errorsx.InvalidParam("AI Agent不存在或未启用")
+		return nil, errorsx.InvalidParamI18n("error.e0007")
 	}
 	aiConfig := svc.AIConfigService.Get(aiAgent.AIConfigID)
 	if aiConfig == nil {
-		return nil, errorsx.InvalidParam("AI Agent关联的AI配置不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0008")
 	}
 	var conversation *models.Conversation
 	if req.ConversationID > 0 {
 		if conversation = svc.ConversationService.Get(req.ConversationID); conversation == nil {
-			return nil, errorsx.InvalidParam("会话不存在")
+			return nil, errorsx.InvalidParamI18n("error.e0116")
 		}
 	} else {
 		conversation = &models.Conversation{ID: req.ConversationID, AIAgentID: req.AIAgentID}
@@ -57,32 +57,32 @@ func DebugRunSkill(ctx context.Context, req request.SkillDebugRunRequest) (*resp
 func DebugResumeSkill(ctx context.Context, req request.SkillDebugResumeRequest) (*response.SkillDebugRunResponse, error) {
 	aiAgent := svc.AIAgentService.Get(req.AIAgentID)
 	if aiAgent == nil || aiAgent.Status != enums.StatusOk {
-		return nil, errorsx.InvalidParam("AI Agent不存在或未启用")
+		return nil, errorsx.InvalidParamI18n("error.e0007")
 	}
 	aiConfig := svc.AIConfigService.Get(aiAgent.AIConfigID)
 	if aiConfig == nil {
-		return nil, errorsx.InvalidParam("AI Agent关联的AI配置不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0008")
 	}
 	pendingInterrupt := svc.ConversationInterruptService.GetByCheckPointID(strings.TrimSpace(req.CheckPointID))
 	if pendingInterrupt == nil {
-		return nil, errorsx.InvalidParam("CheckPoint 不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0014")
 	}
 	if pendingInterrupt.AIAgentID > 0 && pendingInterrupt.AIAgentID != req.AIAgentID {
-		return nil, errorsx.InvalidParam("CheckPoint 与 AI Agent 不匹配")
+		return nil, errorsx.InvalidParamI18n("error.e0015")
 	}
 	conversationID := req.ConversationID
 	if conversationID <= 0 {
 		conversationID = pendingInterrupt.ConversationID
 	}
 	if conversationID <= 0 {
-		return nil, errorsx.InvalidParam("会话不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0116")
 	}
 	conversation := svc.ConversationService.Get(conversationID)
 	if conversation == nil {
-		return nil, errorsx.InvalidParam("会话不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0116")
 	}
 	if conversation.AIAgentID > 0 && conversation.AIAgentID != req.AIAgentID {
-		return nil, errorsx.InvalidParam("会话与 AI Agent 不匹配")
+		return nil, errorsx.InvalidParamI18n("error.e0117")
 	}
 	resumeText := strings.TrimSpace(req.UserMessage)
 	summary, err := Service.Resume(ctx, applicationruntime.ResumeRequest{

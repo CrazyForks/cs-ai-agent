@@ -22,24 +22,24 @@ type imMessageAssetPayload struct {
 func parseIMMessageAssetPayload(payload string) (*imMessageAssetPayload, error) {
 	payload = strings.TrimSpace(payload)
 	if payload == "" {
-		return nil, errorsx.InvalidParam("附件消息缺少 payload")
+		return nil, errorsx.InvalidParamI18n("error.e0346")
 	}
 	ret := &imMessageAssetPayload{}
 	if err := json.Unmarshal([]byte(payload), ret); err != nil {
-		return nil, errorsx.InvalidParam("附件消息 payload 格式错误")
+		return nil, errorsx.InvalidParamI18n("error.e0344")
 	}
 	ret.AssetID = strings.TrimSpace(ret.AssetID)
 	ret.Provider = enums.AssetProvider(strings.TrimSpace(string(ret.Provider)))
 	ret.StorageKey = strings.TrimSpace(ret.StorageKey)
 	if ret.AssetID == "" {
-		return nil, errorsx.InvalidParam("附件消息缺少 assetId")
+		return nil, errorsx.InvalidParamI18n("error.e0345")
 	}
 	return ret, nil
 }
 
 func buildIMMessageAssetPayload(asset *models.Asset) (string, error) {
 	if asset == nil {
-		return "", errorsx.InvalidParam("附件不存在")
+		return "", errorsx.InvalidParamI18n("error.e0342")
 	}
 	payload, err := json.Marshal(imMessageAssetPayload{
 		AssetID:    asset.AssetID,
@@ -107,10 +107,10 @@ func hydrateIMMessageAssetPayload(payload *imMessageAssetPayload) *imMessageAsse
 
 func validateConversationAsset(asset *models.Asset, conversationID int64, messageType enums.IMMessageType) error {
 	if asset == nil {
-		return errorsx.InvalidParam("附件不存在")
+		return errorsx.InvalidParamI18n("error.e0342")
 	}
 	if asset.Status != enums.AssetStatusSuccess {
-		return errorsx.InvalidParam("附件尚未上传完成")
+		return errorsx.InvalidParamI18n("error.e0343")
 	}
 	return nil
 }

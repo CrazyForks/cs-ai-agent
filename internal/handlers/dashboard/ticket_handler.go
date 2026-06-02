@@ -252,11 +252,11 @@ func TicketAnyProgressList(ctx *gin.Context) {
 	}
 	ticketID, _ := params.GetInt64(ctx, "ticketId")
 	if ticketID <= 0 {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("工单不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0178"))
 		return
 	}
 	if services.TicketService.Get(ticketID) == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("工单不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0178"))
 		return
 	}
 	progresses := services.TicketProgressService.Find(sqls.NewCnd().Eq("ticket_id", ticketID).Asc("id"))

@@ -8,13 +8,12 @@ import (
 	"agent-desk/internal/services"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mlogclub/simple/web"
 )
 
 func ChannelAnyConfig(ctx *gin.Context) {
 	channel := services.ChannelService.GetEnabledChannel(ctx)
 	if channel == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("接入渠道未初始化"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0211"))
 		return
 	}
 	cfg, err := resolveWidgetConfig(channel.ChannelType, channel.ConfigJSON)
@@ -70,6 +69,6 @@ func resolveWidgetConfig(channelType, rawConfig string) (*webLikeWidgetConfig, e
 			Width:      "100%",
 		}, nil
 	default:
-		return nil, errorsx.InvalidParam("该渠道不支持开放客服配置")
+		return nil, errorsx.InvalidParamI18n("error.e0313")
 	}
 }

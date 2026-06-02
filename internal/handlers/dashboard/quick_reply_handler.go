@@ -44,7 +44,7 @@ func QuickReplyGetBy(ctx *gin.Context) {
 
 	item := services.QuickReplyService.Get(id)
 	if item == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("快捷回复不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0203"))
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildQuickReplyResponse(item))

@@ -55,7 +55,7 @@ func NewServer() (*gin.Engine, error) {
 		},
 		NotFoundPrefixes: notFoundPrefixes,
 		NotFoundHandler: func(ctx *gin.Context) {
-			httpx.WriteHttpStatusJSON(ctx, http.StatusNotFound, web.JsonErrorCode(http.StatusNotFound, i18nx.T(ctx, "error.notFound", nil)))
+			httpx.WriteHttpStatusJSON(ctx, http.StatusNotFound, web.JsonErrorCode(http.StatusNotFound, i18nx.T(ctx, "error.notFound")))
 		},
 	})
 

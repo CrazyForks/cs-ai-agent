@@ -88,7 +88,7 @@ func (s *agentProfileService) GetDispatchAgents(teamIds []int64) []models.AgentP
 
 func (s *agentProfileService) CreateAgentProfile(req request.CreateAgentProfileRequest, operator *dto.AuthPrincipal) (*models.AgentProfile, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	item, err := s.buildProfileModel(0, req)
 	if err != nil {
@@ -104,11 +104,11 @@ func (s *agentProfileService) CreateAgentProfile(req request.CreateAgentProfileR
 
 func (s *agentProfileService) UpdateAgentProfile(req request.UpdateAgentProfileRequest, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	current := s.Get(req.ID)
 	if current == nil {
-		return errorsx.InvalidParam("客服档案不存在")
+		return errorsx.InvalidParamI18n("error.e0164")
 	}
 	item, err := s.buildProfileModel(req.ID, req.CreateAgentProfileRequest)
 	if err != nil {
@@ -139,7 +139,7 @@ func (s *agentProfileService) UpdateAgentProfile(req request.UpdateAgentProfileR
 func (s *agentProfileService) DeleteAgentProfile(id int64) error {
 	current := s.Get(id)
 	if current == nil {
-		return errorsx.InvalidParam("客服档案不存在")
+		return errorsx.InvalidParamI18n("error.e0164")
 	}
 	repositories.AgentProfileRepository.Delete(sqls.DB(), id)
 	return nil
@@ -147,33 +147,33 @@ func (s *agentProfileService) DeleteAgentProfile(id int64) error {
 
 func (s *agentProfileService) buildProfileModel(id int64, req request.CreateAgentProfileRequest) (*models.AgentProfile, error) {
 	if req.UserID <= 0 {
-		return nil, errorsx.InvalidParam("请选择关联用户")
+		return nil, errorsx.InvalidParamI18n("error.e0325")
 	}
 	if UserService.Get(req.UserID) == nil {
-		return nil, errorsx.InvalidParam("关联用户不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0127")
 	}
 	if req.TeamID <= 0 {
-		return nil, errorsx.InvalidParam("请选择所属客服组")
+		return nil, errorsx.InvalidParamI18n("error.e0328")
 	}
 	if AgentTeamService.Get(req.TeamID) == nil {
-		return nil, errorsx.InvalidParam("所属客服组不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0205")
 	}
 	req.AgentCode = strings.TrimSpace(req.AgentCode)
 	req.DisplayName = strings.TrimSpace(req.DisplayName)
 	if req.AgentCode == "" || req.DisplayName == "" {
-		return nil, errorsx.InvalidParam("客服工号和展示名不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0162")
 	}
 	if exists := s.Take("user_id = ? AND id <> ?", req.UserID, id); exists != nil {
-		return nil, errorsx.InvalidParam("该用户已存在客服档案")
+		return nil, errorsx.InvalidParamI18n("error.e0314")
 	}
 	if exists := s.Take("agent_code = ? AND id <> ?", req.AgentCode, id); exists != nil {
-		return nil, errorsx.InvalidParam("客服工号已存在")
+		return nil, errorsx.InvalidParamI18n("error.e0163")
 	}
 	if !enums.IsValidServiceStatus(req.ServiceStatus) {
-		return nil, errorsx.InvalidParam("客服状态不合法")
+		return nil, errorsx.InvalidParamI18n("error.e0165")
 	}
 	if req.MaxConcurrentCount < 0 {
-		return nil, errorsx.InvalidParam("最大并发接待数不能小于 0")
+		return nil, errorsx.InvalidParamI18n("error.e0229")
 	}
 	return &models.AgentProfile{
 		UserID:                req.UserID,

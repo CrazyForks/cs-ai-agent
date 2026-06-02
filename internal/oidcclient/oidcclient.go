@@ -4,6 +4,7 @@ import (
 	"agent-desk/internal/pkg/config"
 	"agent-desk/internal/pkg/dto/response"
 	"agent-desk/internal/pkg/errorsx"
+	"agent-desk/internal/pkg/i18nx"
 	"context"
 	"crypto/hmac"
 	"crypto/rand"
@@ -11,7 +12,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -66,16 +66,16 @@ func Init(ctx context.Context) error {
 	}
 	oidcCfg = cfg
 	if strings.TrimSpace(cfg.Issuer) == "" {
-		return fmt.Errorf("OIDC issuer 未配置")
+		return i18nx.Errorf("error.e0039")
 	}
 	if strings.TrimSpace(cfg.ClientID) == "" {
-		return fmt.Errorf("OIDC clientId 未配置")
+		return i18nx.Errorf("error.e0036")
 	}
 	if strings.TrimSpace(cfg.ClientSecret) == "" {
-		return fmt.Errorf("OIDC clientSecret 未配置")
+		return i18nx.Errorf("error.e0037")
 	}
 	if strings.TrimSpace(cfg.RedirectURL) == "" {
-		return fmt.Errorf("OIDC redirectUrl 未配置")
+		return i18nx.Errorf("error.e0040")
 	}
 
 	p, err := gooidc.NewProvider(ctx, strings.TrimSpace(cfg.Issuer))
@@ -119,7 +119,7 @@ func ExchangeCode(ctx context.Context, code string) (*Profile, error) {
 	}
 	code = strings.TrimSpace(code)
 	if code == "" {
-		return nil, errorsx.InvalidParam("OIDC 授权 code 不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0041")
 	}
 	token, err := oauthConfig.Exchange(ctx, code)
 	if err != nil {
@@ -127,7 +127,7 @@ func ExchangeCode(ctx context.Context, code string) (*Profile, error) {
 	}
 	rawIDToken, ok := token.Extra("id_token").(string)
 	if !ok || strings.TrimSpace(rawIDToken) == "" {
-		return nil, errorsx.Unauthorized("OIDC id_token 不存在")
+		return nil, errorsx.UnauthorizedI18n("error.e0038")
 	}
 	idToken, err := idTokenVerifier.Verify(ctx, rawIDToken)
 	if err != nil {
@@ -171,32 +171,32 @@ func CreateState(next string) (string, error) {
 func ParseState(state string) (string, error) {
 	secret := stateSecret()
 	if secret == "" {
-		return "", errorsx.Unauthorized("OIDC 登录状态无效或已过期")
+		return "", errorsx.UnauthorizedI18n("error.e0046")
 	}
 	parts := strings.Split(strings.TrimSpace(state), ".")
 	if len(parts) != 2 {
-		return "", errorsx.Unauthorized("OIDC 登录状态无效或已过期")
+		return "", errorsx.UnauthorizedI18n("error.e0046")
 	}
 	if !hmac.Equal([]byte(parts[1]), []byte(signState(parts[0], secret))) {
-		return "", errorsx.Unauthorized("OIDC 登录状态无效或已过期")
+		return "", errorsx.UnauthorizedI18n("error.e0046")
 	}
 	body, err := base64.RawURLEncoding.DecodeString(parts[0])
 	if err != nil {
-		return "", errorsx.Unauthorized("OIDC 登录状态无效或已过期")
+		return "", errorsx.UnauthorizedI18n("error.e0046")
 	}
 	payload := statePayload{}
 	if err = json.Unmarshal(body, &payload); err != nil {
-		return "", errorsx.Unauthorized("OIDC 登录状态无效或已过期")
+		return "", errorsx.UnauthorizedI18n("error.e0046")
 	}
 	if payload.ExpiredAt <= time.Now().Unix() {
-		return "", errorsx.Unauthorized("OIDC 登录状态无效或已过期")
+		return "", errorsx.UnauthorizedI18n("error.e0046")
 	}
 	return sanitizeNextPath(payload.Next), nil
 }
 
 func IssueLoginTicket(loginResp *response.LoginResponse) (string, error) {
 	if loginResp == nil {
-		return "", fmt.Errorf("登录结果不能为空")
+		return "", i18nx.Errorf("error.e0272")
 	}
 	ticket, err := randomToken("olt_")
 	if err != nil {
@@ -213,15 +213,15 @@ func IssueLoginTicket(loginResp *response.LoginResponse) (string, error) {
 func ConsumeLoginTicket(ticket string) (*response.LoginResponse, error) {
 	ticket = strings.TrimSpace(ticket)
 	if ticket == "" {
-		return nil, errorsx.InvalidParam("ticket 不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0072")
 	}
 	value, ok := loginTicketStore.LoadAndDelete(ticket)
 	if !ok {
-		return nil, errorsx.Unauthorized("登录票据无效或已过期")
+		return nil, errorsx.UnauthorizedI18n("error.e0271")
 	}
 	record, ok := value.(loginTicket)
 	if !ok || record.Response == nil || time.Now().After(record.ExpiredAt) {
-		return nil, errorsx.Unauthorized("登录票据无效或已过期")
+		return nil, errorsx.UnauthorizedI18n("error.e0271")
 	}
 	return record.Response, nil
 }
@@ -241,7 +241,7 @@ func profileFromIDToken(idToken *gooidc.IDToken) (*Profile, error) {
 		RawProfile:        string(raw),
 	}
 	if strings.TrimSpace(profile.Subject) == "" {
-		return nil, errorsx.Unauthorized("OIDC 用户标识不存在")
+		return nil, errorsx.UnauthorizedI18n("error.e0043")
 	}
 	return profile, nil
 }
@@ -272,7 +272,7 @@ func profileFromUserInfo(userInfo *gooidc.UserInfo, fallback *Profile) (*Profile
 		}
 	}
 	if strings.TrimSpace(profile.Subject) == "" {
-		return nil, errorsx.Unauthorized("OIDC 用户标识不存在")
+		return nil, errorsx.UnauthorizedI18n("error.e0043")
 	}
 	return profile, nil
 }

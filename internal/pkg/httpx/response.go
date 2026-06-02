@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"agent-desk/internal/pkg/errorsx"
 	"agent-desk/internal/pkg/i18nx"
 	"net/http"
 
@@ -20,6 +21,10 @@ type pageData struct {
 	paging  *sqls.Paging
 }
 
+type localizedError interface {
+	Message(locale string) string
+}
+
 func CursorData(results any, cursor string, hasMore bool) any {
 	return cursorData{results: results, cursor: cursor, hasMore: hasMore}
 }
@@ -29,22 +34,14 @@ func PageData(results any, paging *sqls.Paging) any {
 }
 
 func WriteJSON(ctx *gin.Context, result any) {
-	ctx.JSON(http.StatusOK, localizeJSONResult(ctx, buildJSONResult(result)))
+	ctx.JSON(http.StatusOK, buildJSONResult(ctx, result))
 }
 
 func WriteHttpStatusJSON(ctx *gin.Context, statusCode int, result any) {
-	ctx.JSON(statusCode, localizeJSONResult(ctx, buildJSONResult(result)))
+	ctx.JSON(statusCode, buildJSONResult(ctx, result))
 }
 
-func localizeJSONResult(ctx *gin.Context, result *web.JsonResult) *web.JsonResult {
-	if result == nil || result.Success || result.Message == "" {
-		return result
-	}
-	result.Message = i18nx.TranslateKnownMessage(i18nx.Locale(ctx), result.Message)
-	return result
-}
-
-func buildJSONResult(result any) *web.JsonResult {
+func buildJSONResult(ctx *gin.Context, result any) *web.JsonResult {
 	switch value := result.(type) {
 	case nil:
 		return web.JsonSuccess()
@@ -56,6 +53,12 @@ func buildJSONResult(result any) *web.JsonResult {
 		return web.JsonError(value)
 	case web.CodeError:
 		return web.JsonError(&value)
+	case *errorsx.I18nError:
+		return value.JsonResult(i18nx.Locale(ctx))
+	case errorsx.I18nError:
+		return value.JsonResult(i18nx.Locale(ctx))
+	case localizedError:
+		return web.JsonErrorMsg(value.Message(i18nx.Locale(ctx)))
 	case error:
 		return web.JsonError(value)
 	case cursorData:

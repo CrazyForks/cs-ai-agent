@@ -44,7 +44,7 @@ func ChannelGetBy(ctx *gin.Context) {
 	}
 	item := services.ChannelService.Get(id)
 	if item == nil || item.Status == enums.StatusDeleted {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("channel not found"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0062"))
 		return
 	}
 	httpx.WriteJSON(ctx, buildChannelResponse(item))

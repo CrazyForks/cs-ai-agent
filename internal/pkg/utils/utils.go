@@ -54,7 +54,7 @@ func FormatTime(t time.Time) string {
 
 func GenerateRandomPassword(length int) (string, error) {
 	if length <= 0 {
-		return "", errorsx.InvalidParam("密码长度不合法")
+		return "", errorsx.InvalidParamI18n("error.e0175")
 	}
 
 	const charset = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"

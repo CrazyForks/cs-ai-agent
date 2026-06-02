@@ -60,7 +60,7 @@ func KnowledgeRetrieveLogGetBy(ctx *gin.Context) {
 
 	logItem := services.KnowledgeRetrieveLogService.Get(id)
 	if logItem == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("检索日志不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0241"))
 		return
 	}
 

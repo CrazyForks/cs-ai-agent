@@ -91,19 +91,19 @@ func (s *userService) GetByEmail(email string) *models.User {
 func (s *userService) CreateUser(req request.CreateUserRequest, operator *dto.AuthPrincipal) (*models.User, string, error) {
 	username := strings.TrimSpace(req.Username)
 	if username == "" {
-		return nil, "", errorsx.InvalidParam("用户名不能为空")
+		return nil, "", errorsx.InvalidParamI18n("error.e0257")
 	}
 	if s.GetByUsername(username) != nil {
-		return nil, "", errorsx.InvalidParam("用户名已存在")
+		return nil, "", errorsx.InvalidParamI18n("error.e0259")
 	}
 
 	mobile := utils.NormalizeNullableString(req.Mobile)
 	email := utils.NormalizeNullableString(req.Email)
 	if mobile != nil && s.GetByMobile(*mobile) != nil {
-		return nil, "", errorsx.InvalidParam("手机号已存在")
+		return nil, "", errorsx.InvalidParamI18n("error.e0206")
 	}
 	if email != nil && s.GetByEmail(*email) != nil {
-		return nil, "", errorsx.InvalidParam("邮箱已存在")
+		return nil, "", errorsx.InvalidParamI18n("error.e0338")
 	}
 
 	plain, err := utils.GenerateRandomPassword(12)
@@ -146,19 +146,19 @@ func (s *userService) CreateUser(req request.CreateUserRequest, operator *dto.Au
 func (s *userService) UpdateUser(req request.UpdateUserRequest, operator *dto.AuthPrincipal) error {
 	user := s.Get(req.ID)
 	if user == nil || user.DeletedAt != nil {
-		return errorsx.InvalidParam("用户不存在")
+		return errorsx.InvalidParamI18n("error.e0255")
 	}
 
 	mobile := utils.NormalizeNullableString(req.Mobile)
 	email := utils.NormalizeNullableString(req.Email)
 	if mobile != nil {
 		if existed := s.GetByMobile(*mobile); existed != nil && existed.ID != req.ID {
-			return errorsx.InvalidParam("手机号已存在")
+			return errorsx.InvalidParamI18n("error.e0206")
 		}
 	}
 	if email != nil {
 		if existed := s.GetByEmail(*email); existed != nil && existed.ID != req.ID {
-			return errorsx.InvalidParam("邮箱已存在")
+			return errorsx.InvalidParamI18n("error.e0338")
 		}
 	}
 
@@ -177,7 +177,7 @@ func (s *userService) UpdateUser(req request.UpdateUserRequest, operator *dto.Au
 func (s *userService) DeleteUser(id int64, operator *dto.AuthPrincipal) error {
 	user := s.Get(id)
 	if user == nil {
-		return errorsx.InvalidParam("用户不存在")
+		return errorsx.InvalidParamI18n("error.e0255")
 	}
 
 	if err := s.Updates(id, map[string]any{
@@ -195,10 +195,10 @@ func (s *userService) DeleteUser(id int64, operator *dto.AuthPrincipal) error {
 func (s *userService) UpdateStatus(id int64, status int, operator *dto.AuthPrincipal) error {
 	user := s.Get(id)
 	if user == nil {
-		return errorsx.InvalidParam("用户不存在")
+		return errorsx.InvalidParamI18n("error.e0255")
 	}
 	if !slices.Contains(enums.StatusValues, enums.Status(status)) {
-		return errorsx.InvalidParam("状态值不合法")
+		return errorsx.InvalidParamI18n("error.e0254")
 	}
 	if err := s.Updates(id, map[string]any{
 		"status":           status,
@@ -227,7 +227,7 @@ func (s *userService) ResetPassword(userID int64, operator *dto.AuthPrincipal) (
 
 func (s *userService) ChangeOwnPassword(password string, operator *dto.AuthPrincipal) error {
 	if operator == nil || operator.UserID <= 0 {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	return s.changePassword(operator.UserID, password, operator)
 }
@@ -235,7 +235,7 @@ func (s *userService) ChangeOwnPassword(password string, operator *dto.AuthPrinc
 func (s *userService) AssignRoles(userID int64, roleIDs []int64, operator *dto.AuthPrincipal) error {
 	user := s.Get(userID)
 	if user == nil || user.DeletedAt != nil {
-		return errorsx.InvalidParam("用户不存在")
+		return errorsx.InvalidParamI18n("error.e0255")
 	}
 	if err := s.replaceUserRoles(userID, roleIDs, operator); err != nil {
 		return err
@@ -256,10 +256,10 @@ func (s *userService) replaceUserRolesDB(db *gorm.DB, userID int64, roleIDs []in
 	for _, roleID := range roleIDs {
 		role := RoleService.Get(roleID)
 		if role == nil {
-			return errorsx.InvalidParam("角色不存在")
+			return errorsx.InvalidParamI18n("error.e0305")
 		}
 		if role.Status != enums.StatusOk {
-			return errorsx.InvalidParam("禁用角色不允许分配")
+			return errorsx.InvalidParamI18n("error.e0291")
 		}
 		relation := &models.UserRole{
 			UserID:      userID,
@@ -276,10 +276,10 @@ func (s *userService) replaceUserRolesDB(db *gorm.DB, userID int64, roleIDs []in
 func (s *userService) changePassword(userID int64, password string, operator *dto.AuthPrincipal) error {
 	user := s.Get(userID)
 	if user == nil || user.DeletedAt != nil {
-		return errorsx.InvalidParam("用户不存在")
+		return errorsx.InvalidParamI18n("error.e0255")
 	}
 	if strings.TrimSpace(password) == "" {
-		return errorsx.InvalidParam("新密码不能为空")
+		return errorsx.InvalidParamI18n("error.e0220")
 	}
 
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)

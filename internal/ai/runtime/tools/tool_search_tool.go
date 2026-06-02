@@ -10,6 +10,7 @@ import (
 	"agent-desk/internal/ai/mcps"
 	impladapter "agent-desk/internal/ai/runtime/internal/impl/adapter"
 	"agent-desk/internal/ai/runtime/registry"
+	"agent-desk/internal/pkg/i18nx"
 	"agent-desk/internal/pkg/toolx"
 
 	einotool "github.com/cloudwego/eino/components/tool"
@@ -161,10 +162,10 @@ func (t *ToolSearchTool) invokeTargetTool(ctx context.Context, toolCode string, 
 	toolCode = strings.TrimSpace(toolCode)
 	serverCode, toolName := toolx.SplitMCPToolCode(toolCode)
 	if serverCode == "" || toolName == "" {
-		return "", fmt.Errorf("tool_search 只支持调用 MCP toolCode")
+		return "", i18nx.Errorf("error.e0077")
 	}
 	if !containsToolCode(t.allowedToolCodes, toolCode) {
-		return "", fmt.Errorf("目标工具未被当前会话授权")
+		return "", i18nx.Errorf("error.e0279")
 	}
 	result, err := mcps.Runtime.CallTool(ctx, serverCode, toolName, cloneArguments(arguments))
 	if err != nil {

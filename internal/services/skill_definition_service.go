@@ -86,14 +86,14 @@ func (s *skillDefinitionService) GetByIDs(ids []int64) map[int64]models.SkillDef
 
 func (s *skillDefinitionService) CreateSkillDefinition(req request.CreateSkillDefinitionRequest, operator *dto.AuthPrincipal) (*models.SkillDefinition, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	normalized, err := s.normalizeSkillDefinitionRequest(req)
 	if err != nil {
 		return nil, err
 	}
 	if s.Take("code = ?", normalized.Code) != nil {
-		return nil, errorsx.InvalidParam("Skill 编码已存在")
+		return nil, errorsx.InvalidParamI18n("error.e0058")
 	}
 	item := &models.SkillDefinition{
 		Code:          normalized.Code,
@@ -114,21 +114,21 @@ func (s *skillDefinitionService) CreateSkillDefinition(req request.CreateSkillDe
 
 func (s *skillDefinitionService) UpdateSkillDefinition(req request.UpdateSkillDefinitionRequest, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	if req.ID <= 0 {
-		return errorsx.InvalidParam("Skill ID 不合法")
+		return errorsx.InvalidParamI18n("error.e0052")
 	}
 	current := s.Get(req.ID)
 	if current == nil {
-		return errorsx.InvalidParam("Skill 不存在")
+		return errorsx.InvalidParamI18n("error.e0053")
 	}
 	normalized, err := s.normalizeSkillDefinitionRequest(req.CreateSkillDefinitionRequest)
 	if err != nil {
 		return err
 	}
 	if exists := s.Take("code = ? AND id <> ?", normalized.Code, req.ID); exists != nil {
-		return errorsx.InvalidParam("Skill 编码已存在")
+		return errorsx.InvalidParamI18n("error.e0058")
 	}
 	return repositories.SkillDefinitionRepository.Updates(sqls.DB(), req.ID, map[string]any{
 		"code":             normalized.Code,
@@ -153,13 +153,13 @@ func (s *skillDefinitionService) normalizeSkillDefinitionRequest(req request.Cre
 		Remark:      strings.TrimSpace(req.Remark),
 	}
 	if normalized.Code == "" {
-		return nil, errorsx.InvalidParam("Skill 编码不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0057")
 	}
 	if normalized.Name == "" {
-		return nil, errorsx.InvalidParam("Skill 名称不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0055")
 	}
 	if normalized.Instruction == "" {
-		return nil, errorsx.InvalidParam("技能说明不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0207")
 	}
 	examples, err := normalizeSkillStringArray(req.Examples)
 	if err != nil {
@@ -182,11 +182,11 @@ func (s *skillDefinitionService) normalizeSkillDefinitionRequest(req request.Cre
 func normalizeSkillStringArray(input []string) ([]string, error) {
 	buf, err := json.Marshal(input)
 	if err != nil {
-		return nil, errorsx.InvalidParam("JSON 数组格式不合法")
+		return nil, errorsx.InvalidParamI18n("error.e0031")
 	}
 	var ret []string
 	if err := json.Unmarshal(buf, &ret); err != nil {
-		return nil, errorsx.InvalidParam("JSON 数组格式不合法")
+		return nil, errorsx.InvalidParamI18n("error.e0031")
 	}
 	normalized := make([]string, 0, len(ret))
 	seen := make(map[string]struct{}, len(ret))

@@ -26,7 +26,7 @@ type notificationService struct {
 
 func (s *notificationService) Create(req request.CreateNotificationRequest) (*models.Notification, error) {
 	if req.RecipientUserID <= 0 {
-		return nil, errorsx.InvalidParam("接收人不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0212")
 	}
 	now := time.Now()
 	item := &models.Notification{
@@ -82,11 +82,11 @@ func (s *notificationService) CountUnread(userID int64) int64 {
 
 func (s *notificationService) MarkRead(id int64, userID int64) error {
 	if id <= 0 {
-		return errorsx.InvalidParam("通知不存在")
+		return errorsx.InvalidParamI18n("error.e0337")
 	}
 	item := repositories.NotificationRepository.Get(sqls.DB(), id)
 	if item == nil || item.RecipientUserID != userID {
-		return errorsx.InvalidParam("通知不存在")
+		return errorsx.InvalidParamI18n("error.e0337")
 	}
 	if item.ReadAt != nil {
 		return nil
@@ -99,7 +99,7 @@ func (s *notificationService) MarkRead(id int64, userID int64) error {
 
 func (s *notificationService) MarkAllRead(userID int64) error {
 	if userID <= 0 {
-		return errorsx.InvalidParam("接收人不能为空")
+		return errorsx.InvalidParamI18n("error.e0212")
 	}
 	return repositories.NotificationRepository.MarkAllRead(sqls.DB(), userID, time.Now())
 }

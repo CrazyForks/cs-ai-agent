@@ -45,6 +45,6 @@ func NewProvider(provider enums.AssetProvider) (FileStorageProvider, error) {
 	case enums.AssetProviderOSS:
 		return NewOSSStorage(cfg.OSS), nil
 	default:
-		return nil, errorsx.InvalidParam("不支持的文件存储类型")
+		return nil, errorsx.InvalidParamI18n("error.e0082")
 	}
 }

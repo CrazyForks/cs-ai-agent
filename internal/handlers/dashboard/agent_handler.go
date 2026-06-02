@@ -55,7 +55,7 @@ func AgentGetBy(ctx *gin.Context) {
 	}
 	item := services.AgentProfileService.Get(id)
 	if item == nil {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("客服档案不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0164"))
 		return
 	}
 	httpx.WriteJSON(ctx, builders.BuildAgentProfileResponse(item))

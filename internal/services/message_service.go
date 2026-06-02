@@ -122,7 +122,7 @@ func (s *messageService) GetConversationReadTarget(conversationID, messageID int
 	if messageID > 0 {
 		message := s.Get(messageID)
 		if message == nil || message.ConversationID != conversationID {
-			return nil, errorsx.InvalidParam("消息不存在")
+			return nil, errorsx.InvalidParamI18n("error.e0244")
 		}
 		return message, nil
 	}
@@ -138,7 +138,7 @@ func (s *messageService) SendMessage(conversationID int64, senderType enums.IMSe
 	case enums.IMSenderTypeCustomer:
 		return s.sendMessage(conversationID, enums.IMSenderTypeCustomer, 0, clientMsgID, messageType, content, payload, nil, external, "")
 	default:
-		return nil, errorsx.InvalidParam("不支持的发送人类型")
+		return nil, errorsx.InvalidParamI18n("error.e0080")
 	}
 }
 
@@ -152,24 +152,24 @@ func (s *messageService) SendAgentMessageWithRequestID(conversationID int64, req
 
 func (s *messageService) RecallAgentMessage(messageID int64, operator *dto.AuthPrincipal) (*models.Message, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	if messageID <= 0 {
-		return nil, errorsx.InvalidParam("消息不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0244")
 	}
 
 	message := s.Get(messageID)
 	if message == nil {
-		return nil, errorsx.InvalidParam("消息不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0244")
 	}
 	if message.SenderType != enums.IMSenderTypeAgent {
-		return nil, errorsx.InvalidParam("仅支持撤回客服消息")
+		return nil, errorsx.InvalidParamI18n("error.e0091")
 	}
 	if message.SenderID != operator.UserID {
-		return nil, errorsx.Forbidden("仅允许撤回自己发送的消息")
+		return nil, errorsx.ForbiddenI18n("error.e0087")
 	}
 	if message.RecalledAt != nil || message.SendStatus == enums.IMMessageStatusRecalled {
-		return nil, errorsx.InvalidParam("消息已撤回")
+		return nil, errorsx.InvalidParamI18n("error.e0246")
 	}
 
 	conversation, err := s.ValidateConversationSender(message.ConversationID, enums.IMSenderTypeAgent, operator, nil)
@@ -260,10 +260,10 @@ func (s *messageService) SendAIServiceNotice(conversationID int64, aiAgentID int
 func (s *messageService) SendAIServiceNoticeWithRequestID(conversationID int64, aiAgentID int64, content string, requestID string) (*models.Message, error) {
 	conversation := ConversationService.Get(conversationID)
 	if conversation == nil {
-		return nil, errorsx.InvalidParam("会话不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0116")
 	}
 	if conversation.Status == enums.IMConversationStatusClosed {
-		return nil, errorsx.InvalidParam("会话已关闭")
+		return nil, errorsx.InvalidParamI18n("error.e0119")
 	}
 	return s.sendValidatedMessage(conversation, enums.IMSenderTypeAI, aiAgentID, strs.UUID(), enums.IMMessageTypeText, content, "", &dto.AuthPrincipal{
 		UserID:   0,
@@ -378,10 +378,10 @@ func (s *messageService) sendMessage(conversationID int64, senderType enums.IMSe
 
 	if senderType == enums.IMSenderTypeCustomer {
 		if external == nil || strings.TrimSpace(external.ExternalID) == "" {
-			return nil, errorsx.Unauthorized("外部用户标识不能为空")
+			return nil, errorsx.UnauthorizedI18n("error.e0149")
 		}
 	} else if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 
 	if strs.IsBlank(string(messageType)) {
@@ -404,7 +404,7 @@ func (s *messageService) sendValidatedMessage(conversation *models.Conversation,
 		return nil, err
 	}
 	if strs.IsBlank(content) && strs.IsBlank(payload) {
-		return nil, errorsx.InvalidParam("消息内容不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0245")
 	}
 
 	// 防抖，消息存在就不再发送了
@@ -610,11 +610,11 @@ func (s *messageService) normalizeMessageContent(conversationID int64, messageTy
 		sanitized := utils.SanitizeMessageHTML(content)
 		normalized, err := utils.NormalizeMessageHTMLAssets(sanitized)
 		if err != nil {
-			return "", "", "", errorsx.InvalidParam("HTML消息中的图片必须使用已上传文件")
+			return "", "", "", errorsx.InvalidParamI18n("error.e0030")
 		}
 		summary := utils.BuildHTMLSummary(normalized)
 		if summary == "" {
-			return "", "", "", errorsx.InvalidParam("消息内容不能为空")
+			return "", "", "", errorsx.InvalidParamI18n("error.e0245")
 		}
 		return normalized, "", summary, nil
 	case enums.IMMessageTypeImage, enums.IMMessageTypeAttachment:
@@ -639,7 +639,7 @@ func (s *messageService) normalizeMessageContent(conversationID int64, messageTy
 	default:
 		content = strings.TrimSpace(content)
 		if content == "" && strings.TrimSpace(payload) == "" {
-			return "", "", "", errorsx.InvalidParam("消息内容不能为空")
+			return "", "", "", errorsx.InvalidParamI18n("error.e0245")
 		}
 		return content, strings.TrimSpace(payload), buildMessageSummary(messageType, content), nil
 	}
@@ -648,38 +648,38 @@ func (s *messageService) normalizeMessageContent(conversationID int64, messageTy
 func (s *messageService) ValidateConversationSender(conversationID int64, senderType enums.IMSenderType, operator *dto.AuthPrincipal, external *openidentity.ExternalUser) (*models.Conversation, error) {
 	conversation := ConversationService.Get(conversationID)
 	if conversation == nil {
-		return nil, errorsx.InvalidParam("会话不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0116")
 	}
 	if conversation.Status == enums.IMConversationStatusClosed {
-		return nil, errorsx.InvalidParam("会话已关闭")
+		return nil, errorsx.InvalidParamI18n("error.e0119")
 	}
 	switch senderType {
 	case enums.IMSenderTypeAgent:
 		if operator == nil {
-			return nil, errorsx.Unauthorized("未登录或登录已过期")
+			return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 		}
 		if conversation.Status != enums.IMConversationStatusActive || conversation.CurrentAssigneeID == 0 {
-			return nil, errorsx.InvalidParam("会话未分配客服，暂不允许发送消息")
+			return nil, errorsx.InvalidParamI18n("error.e0120")
 		}
 		if conversation.CurrentAssigneeID != operator.UserID {
-			return nil, errorsx.Forbidden("当前会话已分配给其他客服")
+			return nil, errorsx.ForbiddenI18n("error.e0191")
 		}
 	case enums.IMSenderTypeAI:
 		if operator == nil {
-			return nil, errorsx.Unauthorized("未登录或登录已过期")
+			return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 		}
 		if conversation.Status != enums.IMConversationStatusAIServing && !s.allowAIMessageOnPendingHandoff(conversation) {
-			return nil, errorsx.Forbidden("当前会话不处于 AI 接待状态")
+			return nil, errorsx.ForbiddenI18n("error.e0189")
 		}
 		if conversation.CurrentAssigneeID != 0 {
-			return nil, errorsx.Forbidden("当前会话已由人工客服接管")
+			return nil, errorsx.ForbiddenI18n("error.e0192")
 		}
 	case enums.IMSenderTypeCustomer:
 		if external == nil || !ConversationService.IsCustomerConversationOwner(conversation, *external) {
-			return nil, errorsx.Forbidden("无权访问该会话")
+			return nil, errorsx.ForbiddenI18n("error.e0222")
 		}
 	default:
-		return nil, errorsx.InvalidParam("不支持的发送人类型")
+		return nil, errorsx.InvalidParamI18n("error.e0080")
 	}
 	return conversation, nil
 }

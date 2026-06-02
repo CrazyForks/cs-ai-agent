@@ -58,16 +58,16 @@ func (s *companyService) Count(cnd *sqls.Cnd) int64 {
 
 func (s *companyService) CreateCompany(req request.CreateCompanyRequest, operator *dto.AuthPrincipal) (*models.Company, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
-		return nil, errorsx.InvalidParam("公司名称不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0125")
 	}
 
 	existing := repositories.CompanyRepository.GetByName(sqls.DB(), name)
 	if existing != nil && existing.Status != enums.StatusDeleted {
-		return nil, errorsx.InvalidParam("公司名称已存在")
+		return nil, errorsx.InvalidParamI18n("error.e0126")
 	}
 
 	item := &models.Company{
@@ -85,20 +85,20 @@ func (s *companyService) CreateCompany(req request.CreateCompanyRequest, operato
 
 func (s *companyService) UpdateCompany(req request.UpdateCompanyRequest, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	item := s.Get(req.ID)
 	if item == nil {
-		return errorsx.InvalidParam("公司不存在")
+		return errorsx.InvalidParamI18n("error.e0124")
 	}
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
-		return errorsx.InvalidParam("公司名称不能为空")
+		return errorsx.InvalidParamI18n("error.e0125")
 	}
 
 	existing := repositories.CompanyRepository.GetByName(sqls.DB(), name)
 	if existing != nil && existing.ID != req.ID {
-		return errorsx.InvalidParam("公司名称已存在")
+		return errorsx.InvalidParamI18n("error.e0126")
 	}
 
 	now := time.Now()
@@ -118,7 +118,7 @@ func (s *companyService) UpdateCompany(req request.UpdateCompanyRequest, operato
 func (s *companyService) DeleteCompany(id int64, operator dto.AuthPrincipal) error {
 	item := s.Get(id)
 	if item == nil {
-		return errorsx.InvalidParam("公司不存在")
+		return errorsx.InvalidParamI18n("error.e0124")
 	}
 
 	return repositories.CompanyRepository.Updates(sqls.DB(), id, map[string]any{
@@ -131,14 +131,14 @@ func (s *companyService) DeleteCompany(id int64, operator dto.AuthPrincipal) err
 
 func (s *companyService) UpdateStatus(id int64, status int, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	item := s.Get(id)
 	if item == nil {
-		return errorsx.InvalidParam("公司不存在")
+		return errorsx.InvalidParamI18n("error.e0124")
 	}
 	if status != int(enums.StatusOk) && status != int(enums.StatusDisabled) {
-		return errorsx.InvalidParam("状态值不合法")
+		return errorsx.InvalidParamI18n("error.e0254")
 	}
 	now := time.Now()
 	return repositories.CompanyRepository.Updates(sqls.DB(), id, map[string]any{

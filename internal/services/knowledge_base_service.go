@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"agent-desk/internal/ai/rag"
@@ -78,7 +77,7 @@ func (s *knowledgeBaseService) Delete(id int64) {
 
 func (s *knowledgeBaseService) CreateKnowledgeBase(req request.CreateKnowledgeBaseRequest, operator *dto.AuthPrincipal) (*models.KnowledgeBase, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	item, err := s.buildKnowledgeBaseModel(req)
 	if err != nil {
@@ -94,11 +93,11 @@ func (s *knowledgeBaseService) CreateKnowledgeBase(req request.CreateKnowledgeBa
 
 func (s *knowledgeBaseService) UpdateKnowledgeBase(req request.UpdateKnowledgeBaseRequest, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	current := s.Get(req.ID)
 	if current == nil {
-		return errorsx.InvalidParam("知识库不存在")
+		return errorsx.InvalidParamI18n("error.e0283")
 	}
 	item, err := s.buildKnowledgeBaseModel(req.CreateKnowledgeBaseRequest)
 	if err != nil {
@@ -126,15 +125,15 @@ func (s *knowledgeBaseService) UpdateKnowledgeBase(req request.UpdateKnowledgeBa
 func (s *knowledgeBaseService) DeleteKnowledgeBase(id int64) error {
 	current := s.Get(id)
 	if current == nil {
-		return errorsx.InvalidParam("知识库不存在")
+		return errorsx.InvalidParamI18n("error.e0283")
 	}
 
 	referencingAgents := repositories.AIAgentRepository.FindByKnowledgeBaseID(sqls.DB(), id)
 	if len(referencingAgents) > 0 {
 		if len(referencingAgents) == 1 {
-			return errorsx.Forbidden(fmt.Sprintf("知识库已被 AI Agent「%s」引用，请先解除绑定", referencingAgents[0].Name))
+			return errorsx.ForbiddenI18n("error.knowledgeBase.referencedByAgent", referencingAgents[0].Name)
 		}
-		return errorsx.Forbidden(fmt.Sprintf("知识库已被 %d 个 AI Agent 引用，请先解除绑定", len(referencingAgents)))
+		return errorsx.ForbiddenI18n("error.knowledgeBase.referencedByAgents", len(referencingAgents))
 	}
 
 	if err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
@@ -185,7 +184,7 @@ func (s *knowledgeBaseService) buildKnowledgeBaseModel(req request.CreateKnowled
 		item.KnowledgeType = string(enums.KnowledgeBaseTypeDocument)
 	}
 	if !isValidKnowledgeType(item.KnowledgeType) {
-		return nil, errorsx.InvalidParam("知识库类型不支持")
+		return nil, errorsx.InvalidParamI18n("error.e0290")
 	}
 	if item.DefaultScoreThreshold == 0 {
 		item.DefaultScoreThreshold = 0.2
@@ -202,10 +201,10 @@ func (s *knowledgeBaseService) buildKnowledgeBaseModel(req request.CreateKnowled
 		item.ChunkMaxTokens = 0
 		item.ChunkOverlapTokens = 0
 	} else if item.ChunkProvider == string(enums.KnowledgeChunkProviderFAQ) {
-		return nil, errorsx.InvalidParam("文档知识库不能使用FAQ分块策略")
+		return nil, errorsx.InvalidParamI18n("error.e0219")
 	}
 	if !isValidChunkProvider(item.ChunkProvider) {
-		return nil, errorsx.InvalidParam("分块策略不支持")
+		return nil, errorsx.InvalidParamI18n("error.e0130")
 	}
 	if item.KnowledgeType != string(enums.KnowledgeBaseTypeFAQ) && item.ChunkTargetTokens == 0 {
 		item.ChunkTargetTokens = 300

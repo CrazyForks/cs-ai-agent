@@ -52,7 +52,7 @@ func (s *conversationHumanDispatchService) TryOffHoursHandoffByAI(conversationID
 func (s *conversationHumanDispatchService) TryOffHoursHandoffByAIWithRequestID(conversationID int64, aiAgent models.AIAgent, reason string, requestID string) (bool, error) {
 	conversation := ConversationService.Get(conversationID)
 	if conversation == nil {
-		return false, errorsx.InvalidParam("会话不存在")
+		return false, errorsx.InvalidParamI18n("error.e0116")
 	}
 	teamIDs := orderedPositiveIDs(aiAgent.TeamIDs)
 	activeTeamIDs := ConversationDispatchService.findActiveScheduleTeamIDs(teamIDs, time.Now())
@@ -75,7 +75,7 @@ func (s *conversationHumanDispatchService) HandoffByAI(conversationID int64, aiA
 func (s *conversationHumanDispatchService) HandoffByAIWithRequestID(conversationID int64, aiAgent models.AIAgent, reason string, requestID string) (*HandoffDecisionResult, error) {
 	conversation := ConversationService.Get(conversationID)
 	if conversation == nil {
-		return nil, errorsx.InvalidParam("会话不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0116")
 	}
 	teamIDs := orderedPositiveIDs(aiAgent.TeamIDs)
 	activeTeamIDs := ConversationDispatchService.findActiveScheduleTeamIDs(teamIDs, time.Now())
@@ -110,10 +110,10 @@ func (s *conversationHumanDispatchService) ApplyHumanOnlyCreate(conversationID i
 func (s *conversationHumanDispatchService) DispatchPendingConversation(conversationID int64, aiAgent models.AIAgent) (*HandoffDecisionResult, error) {
 	conversation := ConversationService.Get(conversationID)
 	if conversation == nil {
-		return nil, errorsx.InvalidParam("会话不存在")
+		return nil, errorsx.InvalidParamI18n("error.e0116")
 	}
 	if conversation.Status != enums.IMConversationStatusPending || conversation.CurrentAssigneeID > 0 {
-		return nil, errorsx.InvalidParam("只有待接入未分配会话允许自动分配")
+		return nil, errorsx.InvalidParamI18n("error.e0137")
 	}
 	activeTeamIDs := ConversationDispatchService.findActiveScheduleTeamIDs(orderedPositiveIDs(aiAgent.TeamIDs), time.Now())
 	if len(activeTeamIDs) == 0 {
@@ -227,7 +227,7 @@ func (s *conversationHumanDispatchService) moveToTeamPoolWithRequestID(conversat
 	err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
 		current := repositories.ConversationRepository.Get(ctx.Tx, conversationID)
 		if current == nil {
-			return errorsx.InvalidParam("会话不存在")
+			return errorsx.InvalidParamI18n("error.e0116")
 		}
 		if err := ConversationAssignmentService.FinishActiveAssignments(ctx, conversationID, now); err != nil {
 			return err
@@ -273,7 +273,7 @@ func (s *conversationHumanDispatchService) moveToGlobalPool(conversationID int64
 	return sqls.WithTransaction(func(ctx *sqls.TxContext) error {
 		conversation := repositories.ConversationRepository.Get(ctx.Tx, conversationID)
 		if conversation == nil {
-			return errorsx.InvalidParam("会话不存在")
+			return errorsx.InvalidParamI18n("error.e0116")
 		}
 		if err := repositories.ConversationRepository.Updates(ctx.Tx, conversationID, map[string]any{
 			"status":              enums.IMConversationStatusPending,

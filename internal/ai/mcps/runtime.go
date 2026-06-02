@@ -39,18 +39,18 @@ func (s *RuntimeService) ListTools(ctx context.Context, serverCode string) ([]To
 func (s *RuntimeService) resolveServer(serverCode string) (ServerConfig, error) {
 	cfg := config.Current()
 	if !cfg.MCP.Enabled {
-		return ServerConfig{}, errorsx.InvalidParam("MCP未启用")
+		return ServerConfig{}, errorsx.InvalidParamI18n("error.e0035")
 	}
 	serverCode = strings.TrimSpace(serverCode)
 	if serverCode == "" {
-		return ServerConfig{}, errorsx.InvalidParam("serverCode不能为空")
+		return ServerConfig{}, errorsx.InvalidParamI18n("error.e0070")
 	}
 	server, ok := cfg.MCP.Servers[serverCode]
 	if !ok {
-		return ServerConfig{}, errorsx.InvalidParam("MCP服务配置不存在")
+		return ServerConfig{}, errorsx.InvalidParamI18n("error.e0034")
 	}
 	if !server.Enabled {
-		return ServerConfig{}, errorsx.InvalidParam("MCP服务未启用")
+		return ServerConfig{}, errorsx.InvalidParamI18n("error.e0033")
 	}
 	return ServerConfig{
 		Code:      serverCode,

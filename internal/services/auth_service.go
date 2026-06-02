@@ -70,11 +70,11 @@ func (s *authService) RequirePermission(ctx *gin.Context, permission constants.P
 	}
 
 	if principal == nil {
-		return nil, errorsx.Forbidden("无权限执行该操作")
+		return nil, errorsx.ForbiddenI18n("error.e0225")
 	}
 
 	if !s.HasPermission(ctx, permission.Code) {
-		return principal, errorsx.Forbidden("无权限执行该操作")
+		return principal, errorsx.ForbiddenI18n("error.e0225")
 	}
 	return principal, nil
 }
@@ -84,22 +84,22 @@ func (s *authService) Login(req request.LoginRequest, authCfg config.AuthConfig,
 	principal := normalizeLoginPrincipal(username)
 	password := req.Password
 	if username == "" || strings.TrimSpace(password) == "" {
-		return nil, errorsx.InvalidParam("用户名和密码不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0258")
 	}
 
 	if s.isCredentialLocked(principal, authCfg) {
 		_ = s.createLoginCredentialLog(principal, 0, false, clientIP, userAgent, "credential locked")
-		return nil, errorsx.CredentialLocked("登录失败次数过多，请稍后再试")
+		return nil, errorsx.CredentialLockedI18n("error.e0270")
 	}
 
 	user := UserService.GetByUsername(username)
 	if user == nil || user.Status != enums.StatusOk {
 		_ = s.createLoginCredentialLog(principal, 0, false, clientIP, userAgent, "user not found")
-		return nil, errorsx.InvalidAccount("用户名或密码错误")
+		return nil, errorsx.InvalidAccountI18n("error.e0260")
 	}
 	if strs.IsBlank(user.Password) || bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)) != nil {
 		_ = s.createLoginCredentialLog(principal, user.ID, false, clientIP, userAgent, "password mismatch")
-		return nil, errorsx.InvalidAccount("用户名或密码错误")
+		return nil, errorsx.InvalidAccountI18n("error.e0260")
 	}
 
 	var ret *response.LoginResponse
@@ -153,7 +153,7 @@ func (s *authService) Authenticate(ctx *gin.Context) (*dto.AuthPrincipal, error)
 		token = strings.TrimSpace(ctx.Query("accessToken"))
 	}
 	if token == "" {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 
 	session, err := s.validateSessionToken(token)
@@ -163,7 +163,7 @@ func (s *authService) Authenticate(ctx *gin.Context) (*dto.AuthPrincipal, error)
 
 	user := UserService.Get(session.UserID)
 	if user == nil || user.Status != enums.StatusOk {
-		return nil, errorsx.Unauthorized("用户不存在或已被禁用")
+		return nil, errorsx.UnauthorizedI18n("error.e0256")
 	}
 
 	roles, permissions, err := s.loadUserAuthScope(sqls.DB(), user.ID)
@@ -276,17 +276,17 @@ func (s *authService) resolveTokenTTL(authCfg config.AuthConfig) time.Duration {
 
 func (s *authService) validateSessionToken(token string) (*models.LoginSession, error) {
 	if strings.TrimSpace(token) == "" {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	session := LoginSessionService.FindOne(sqls.NewCnd().Eq("token", token))
 	if session == nil {
-		return nil, errorsx.InvalidToken("登录凭证无效")
+		return nil, errorsx.InvalidTokenI18n("error.e0269")
 	}
 	if session.RevokedAt != nil {
-		return nil, errorsx.InvalidToken("登录凭证已失效")
+		return nil, errorsx.InvalidTokenI18n("error.e0267")
 	}
 	if time.Now().After(session.ExpiredAt) {
-		return nil, errorsx.InvalidToken("登录凭证已过期")
+		return nil, errorsx.InvalidTokenI18n("error.e0268")
 	}
 	return session, nil
 }

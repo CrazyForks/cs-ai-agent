@@ -13,7 +13,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mlogclub/simple/sqls"
-	"github.com/mlogclub/simple/web"
 )
 
 func AgentTeamAnyList(ctx *gin.Context) {
@@ -61,7 +60,7 @@ func AgentTeamGetBy(ctx *gin.Context) {
 	}
 	item := services.AgentTeamService.Get(id)
 	if item == nil || item.Status == enums.StatusDeleted {
-		httpx.WriteJSON(ctx, web.JsonErrorMsg("客服组不存在"))
+		httpx.WriteJSON(ctx, httpx.JsonErrorMsg(ctx, "error.e0169"))
 		return
 	}
 	httpx.WriteJSON(ctx, buildAgentTeamResponse(item))

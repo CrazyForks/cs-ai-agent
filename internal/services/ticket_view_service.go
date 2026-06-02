@@ -41,21 +41,21 @@ func (s *ticketViewService) ListByUser(userID int64) []models.TicketView {
 
 func (s *ticketViewService) Save(req request.SaveTicketViewRequest, operator *dto.AuthPrincipal) (*models.TicketView, error) {
 	if operator == nil {
-		return nil, errorsx.Unauthorized("未登录或登录已过期")
+		return nil, errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
-		return nil, errorsx.InvalidParam("视图名称不能为空")
+		return nil, errorsx.InvalidParamI18n("error.e0303")
 	}
 	filtersJSON, err := json.Marshal(req.Filters)
 	if err != nil {
-		return nil, errorsx.InvalidParam("视图筛选条件格式不正确")
+		return nil, errorsx.InvalidParamI18n("error.e0304")
 	}
 	now := time.Now()
 	if req.ID > 0 {
 		item := repositories.TicketViewRepository.Get(sqls.DB(), req.ID)
 		if item == nil || item.UserID != operator.UserID {
-			return nil, errorsx.InvalidParam("视图不存在")
+			return nil, errorsx.InvalidParamI18n("error.e0302")
 		}
 		if err := repositories.TicketViewRepository.Updates(sqls.DB(), req.ID, map[string]any{
 			"name":             name,
@@ -82,11 +82,11 @@ func (s *ticketViewService) Save(req request.SaveTicketViewRequest, operator *dt
 
 func (s *ticketViewService) Delete(id int64, operator *dto.AuthPrincipal) error {
 	if operator == nil {
-		return errorsx.Unauthorized("未登录或登录已过期")
+		return errorsx.UnauthorizedI18n("error.auth.expired")
 	}
 	item := repositories.TicketViewRepository.Get(sqls.DB(), id)
 	if item == nil || item.UserID != operator.UserID {
-		return errorsx.InvalidParam("视图不存在")
+		return errorsx.InvalidParamI18n("error.e0302")
 	}
 	return repositories.TicketViewRepository.Delete(sqls.DB(), id)
 }
