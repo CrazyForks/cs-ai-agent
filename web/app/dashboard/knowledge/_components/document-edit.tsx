@@ -7,6 +7,7 @@ import { z } from "zod/v4"
 
 import { ProjectDialog } from "@/components/project-dialog"
 import { ContentEditor } from "@/components/content-editor"
+import { OptionCombobox } from "@/components/option-combobox"
 import { Button } from "@/components/ui/button"
 import {
   Field,
@@ -18,7 +19,9 @@ import { Input } from "@/components/ui/input"
 import {
   type KnowledgeDocument,
   type CreateKnowledgeDocumentPayload,
+  type KnowledgeDirectory,
   fetchKnowledgeDocument,
+  fetchKnowledgeDirectories,
 } from "@/lib/api/admin"
 import {
   KnowledgeDocumentContentType,
@@ -30,11 +33,13 @@ type DocumentEditDialogProps = {
   saving: boolean
   itemId: number | null
   knowledgeBaseId: number | null
+  initialDirectoryId?: number
   onOpenChange: (open: boolean) => void
   onSubmit: (payload: CreateKnowledgeDocumentPayload) => Promise<void>
 }
 
 const emptyForm: EditForm = {
+  directoryId: "0",
   title: "",
   contentType: KnowledgeDocumentContentType.Markdown,
   content: "",
@@ -44,6 +49,7 @@ type TFunction = (key: string, values?: Record<string, string | number>) => stri
 
 function createKnowledgeDocumentFormSchema(t: TFunction) {
   return z.object({
+  directoryId: z.string().trim(),
   title: z.string().trim().min(1, t("knowledge.documentTitleRequired")).max(255, t("knowledge.documentTitleMax")),
   contentType: z.string().trim().min(1, t("knowledge.contentTypeRequired")),
   content: z.string().trim().min(1, t("knowledge.contentRequired")),
@@ -51,17 +57,28 @@ function createKnowledgeDocumentFormSchema(t: TFunction) {
 }
 
 type EditForm = {
+  directoryId: string
   title: string
   contentType: string
   content: string
 }
 
-function buildForm(item: KnowledgeDocument | null): EditForm {
+type DirectoryOption = { value: string; label: string }
+
+function flattenDirectoryOptions(items: KnowledgeDirectory[], depth = 0): DirectoryOption[] {
+  return items.flatMap((item) => [
+    { value: String(item.id), label: `${depth > 0 ? "  " : ""}${item.name}` },
+    ...flattenDirectoryOptions(item.children || [], depth + 1),
+  ])
+}
+
+function buildForm(item: KnowledgeDocument | null, initialDirectoryId = 0): EditForm {
   if (!item) {
-    return emptyForm
+    return { ...emptyForm, directoryId: String(initialDirectoryId) }
   }
 
   return {
+    directoryId: String(item.directoryId || 0),
     title: item.title,
     contentType: item.contentType || KnowledgeDocumentContentType.Markdown,
     content: item.content || "",
@@ -71,6 +88,7 @@ function buildForm(item: KnowledgeDocument | null): EditForm {
 function buildPayload(form: EditForm, knowledgeBaseId: number): CreateKnowledgeDocumentPayload {
   return {
     knowledgeBaseId,
+    directoryId: Number(form.directoryId),
     title: form.title.trim(),
     contentType: form.contentType,
     content: form.content.trim(),
@@ -82,6 +100,7 @@ export function DocumentEditDialog({
   saving,
   itemId,
   knowledgeBaseId,
+  initialDirectoryId = 0,
   onOpenChange,
   onSubmit,
 }: DocumentEditDialogProps) {
@@ -94,6 +113,7 @@ export function DocumentEditDialog({
       key={itemId ? `edit-${itemId}` : "create"}
       itemId={itemId}
       knowledgeBaseId={knowledgeBaseId}
+      initialDirectoryId={initialDirectoryId}
       saving={saving}
       onOpenChange={onOpenChange}
       onSubmit={onSubmit}
@@ -105,6 +125,7 @@ type DocumentFormDialogBodyProps = {
   saving: boolean
   itemId: number | null
   knowledgeBaseId: number
+  initialDirectoryId: number
   onOpenChange: (open: boolean) => void
   onSubmit: (payload: CreateKnowledgeDocumentPayload) => Promise<void>
 }
@@ -113,12 +134,14 @@ function DocumentFormDialogBody({
   saving,
   itemId,
   knowledgeBaseId,
+  initialDirectoryId,
   onOpenChange,
   onSubmit,
 }: DocumentFormDialogBodyProps) {
   const t = useI18n()
   const formId = "knowledge-document-edit-form"
   const [loading, setLoading] = useState(false)
+  const [directories, setDirectories] = useState<KnowledgeDirectory[]>([])
   const knowledgeDocumentFormSchema = useMemo(() => createKnowledgeDocumentFormSchema(t), [t])
   const editFormResolver = useMemo(
     () => zodResolver(knowledgeDocumentFormSchema) as Resolver<EditForm>,
@@ -140,11 +163,18 @@ function DocumentFormDialogBody({
 
   const contentType = watch("contentType")
   const content = watch("content")
+  const directoryOptions = useMemo(
+    () => [
+      { value: "0", label: t("knowledge.rootContent") },
+      ...flattenDirectoryOptions(directories),
+    ],
+    [directories, t],
+  )
 
   useEffect(() => {
     async function loadDetail() {
       if (!itemId) {
-        reset(emptyForm)
+        reset(buildForm(null, initialDirectoryId))
         return
       }
       setLoading(true)
@@ -158,7 +188,25 @@ function DocumentFormDialogBody({
       }
     }
     void loadDetail()
-  }, [itemId, reset])
+  }, [itemId, initialDirectoryId, reset])
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadDirectories() {
+      try {
+        const data = await fetchKnowledgeDirectories(knowledgeBaseId)
+        if (!cancelled) {
+          setDirectories(data)
+        }
+      } catch (error) {
+        console.error("Failed to load knowledge directories:", error)
+      }
+    }
+    void loadDirectories()
+    return () => {
+      cancelled = true
+    }
+  }, [knowledgeBaseId])
 
   async function onFormSubmit(values: EditForm) {
     const payload = buildPayload({ ...values, contentType, content }, knowledgeBaseId)
@@ -194,6 +242,27 @@ function DocumentFormDialogBody({
         </div>
       ) : (
         <form id={formId} onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
+          <Field data-invalid={!!errors.directoryId}>
+            <FieldLabel>{t("knowledge.directory")}</FieldLabel>
+            <FieldContent>
+              <Controller
+                control={control}
+                name="directoryId"
+                render={({ field }) => (
+                  <OptionCombobox
+                    value={field.value}
+                    onChange={(value) => field.onChange(value ?? "0")}
+                    options={directoryOptions}
+                    placeholder={t("knowledge.selectDirectory")}
+                    searchPlaceholder={t("knowledge.searchDirectory")}
+                    emptyText={t("knowledge.emptyDirectory")}
+                  />
+                )}
+              />
+              <FieldError errors={[errors.directoryId]} />
+            </FieldContent>
+          </Field>
+
           <Field data-invalid={!!errors.title}>
             <FieldLabel htmlFor="doc-title">{t("knowledge.documentTitle")}</FieldLabel>
             <FieldContent>

@@ -1,0 +1,451 @@
+"use client";
+
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+  FolderIcon,
+  FolderPlusIcon,
+  LayersIcon,
+  MoreHorizontalIcon,
+  PencilIcon,
+  PlusIcon,
+  Trash2Icon,
+} from "lucide-react";
+import type { ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+
+import { OptionCombobox } from "@/components/option-combobox";
+import { ProjectDialog } from "@/components/project-dialog";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  createKnowledgeDirectory,
+  deleteKnowledgeDirectory,
+  fetchKnowledgeDirectories,
+  updateKnowledgeDirectory,
+  type KnowledgeDirectory,
+} from "@/lib/api/admin";
+import { useI18n } from "@/i18n/provider";
+import { cn } from "@/lib/utils";
+
+type KnowledgeDirectoryPanelProps = {
+  knowledgeBaseId: number;
+  selectedDirectoryId: number | null;
+  onSelectDirectory: (directoryId: number | null) => void;
+  onChanged?: () => void;
+};
+
+type DirectoryDialogState = {
+  open: boolean;
+  id: number | null;
+  parentId: number;
+  name: string;
+  remark: string;
+};
+
+type DirectoryOption = { value: string; label: string };
+
+function rootDirectoryOptions(items: KnowledgeDirectory[]): DirectoryOption[] {
+  return items.map((item) => ({ value: String(item.id), label: item.name }));
+}
+
+function collectExpandedIds(items: KnowledgeDirectory[]) {
+  const ids = new Set<number>();
+  const walk = (nodes: KnowledgeDirectory[]) => {
+    for (const node of nodes) {
+      ids.add(node.id);
+      walk(node.children || []);
+    }
+  };
+  walk(items);
+  return ids;
+}
+
+export function KnowledgeDirectoryPanel({
+  knowledgeBaseId,
+  selectedDirectoryId,
+  onSelectDirectory,
+  onChanged,
+}: KnowledgeDirectoryPanelProps) {
+  const t = useI18n();
+  const [directories, setDirectories] = useState<KnowledgeDirectory[]>([]);
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [dialog, setDialog] = useState<DirectoryDialogState>({
+    open: false,
+    id: null,
+    parentId: 0,
+    name: "",
+    remark: "",
+  });
+  const parentOptions = useMemo(
+    () => [
+      { value: "0", label: t("knowledge.rootDirectory") },
+      ...rootDirectoryOptions(directories).filter((item) => item.value !== String(dialog.id ?? "")),
+    ],
+    [directories, dialog.id, t],
+  );
+
+  const loadDirectories = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await fetchKnowledgeDirectories(knowledgeBaseId);
+      setDirectories(data);
+      setExpandedIds(collectExpandedIds(data));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("knowledge.loadDirectoriesFailed"));
+    } finally {
+      setLoading(false);
+    }
+  }, [knowledgeBaseId, t]);
+
+  useEffect(() => {
+    void loadDirectories();
+  }, [loadDirectories]);
+
+  function toggleDirectory(id: number) {
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function openCreate(parentId = 0) {
+    setDialog({ open: true, id: null, parentId, name: "", remark: "" });
+  }
+
+  function openEdit(item: KnowledgeDirectory) {
+    setDialog({
+      open: true,
+      id: item.id,
+      parentId: item.parentId,
+      name: item.name,
+      remark: item.remark || "",
+    });
+  }
+
+  async function handleSubmit() {
+    const name = dialog.name.trim();
+    if (!name) {
+      toast.error(t("knowledge.directoryNameRequired"));
+      return;
+    }
+    setSaving(true);
+    try {
+      if (dialog.id) {
+        await updateKnowledgeDirectory({
+          id: dialog.id,
+          knowledgeBaseId,
+          parentId: dialog.parentId,
+          name,
+          remark: dialog.remark.trim(),
+        });
+        toast.success(t("knowledge.directoryUpdated", { name }));
+      } else {
+        await createKnowledgeDirectory({
+          knowledgeBaseId,
+          parentId: dialog.parentId,
+          name,
+          remark: dialog.remark.trim(),
+        });
+        toast.success(t("knowledge.directoryCreated", { name }));
+      }
+      setDialog((current) => ({ ...current, open: false }));
+      await loadDirectories();
+      onChanged?.();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("knowledge.directorySaveFailed"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete(item: KnowledgeDirectory) {
+    setSaving(true);
+    try {
+      await deleteKnowledgeDirectory(item.id);
+      if (selectedDirectoryId === item.id) {
+        onSelectDirectory(null);
+      }
+      toast.success(t("knowledge.directoryDeleted", { name: item.name }));
+      await loadDirectories();
+      onChanged?.();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("knowledge.directoryDeleteFailed"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="flex h-full min-h-0 w-56 shrink-0 flex-col border-r bg-muted/20">
+        <div className="flex items-center justify-between border-b bg-background px-3 py-2">
+          <div className="text-sm font-medium">{t("knowledge.directory")}</div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7"
+            disabled={loading || saving}
+            onClick={() => openCreate(0)}
+            aria-label={t("knowledge.createDirectory")}
+          >
+            <FolderPlusIcon className="size-4" />
+          </Button>
+        </div>
+        <ScrollArea className="flex-1">
+          <div className="py-1">
+            <DirectoryStaticRow
+              icon={<LayersIcon className="size-4 text-muted-foreground" />}
+              label={t("knowledge.allContent")}
+              selected={selectedDirectoryId === null}
+              onClick={() => onSelectDirectory(null)}
+            />
+            <DirectoryStaticRow
+              icon={<FolderIcon className="size-4 text-muted-foreground" />}
+              label={t("knowledge.rootContent")}
+              selected={selectedDirectoryId === 0}
+              onClick={() => onSelectDirectory(0)}
+            />
+            {directories.map((item) => (
+              <DirectoryNode
+                key={item.id}
+                item={item}
+                depth={0}
+                expandedIds={expandedIds}
+                selectedDirectoryId={selectedDirectoryId}
+                saving={saving}
+                onToggle={toggleDirectory}
+                onSelect={onSelectDirectory}
+                onCreate={openCreate}
+                onEdit={openEdit}
+                onDelete={(directory) => void handleDelete(directory)}
+                t={t}
+              />
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
+      <ProjectDialog
+        open={dialog.open}
+        onOpenChange={(open) => setDialog((current) => ({ ...current, open }))}
+        title={dialog.id ? t("knowledge.editDirectory") : t("knowledge.createDirectory")}
+        size="sm"
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDialog((current) => ({ ...current, open: false }))}
+              disabled={saving}
+            >
+              {t("knowledge.cancel")}
+            </Button>
+            <Button type="button" onClick={() => void handleSubmit()} disabled={saving}>
+              {saving ? t("knowledge.saving") : t("knowledge.save")}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <Field>
+            <FieldLabel>{t("knowledge.parentDirectory")}</FieldLabel>
+            <FieldContent>
+              <OptionCombobox
+                value={String(dialog.parentId)}
+                onChange={(value) =>
+                  setDialog((current) => ({ ...current, parentId: Number(value ?? 0) }))
+                }
+                options={parentOptions}
+                placeholder={t("knowledge.selectDirectory")}
+                searchPlaceholder={t("knowledge.searchDirectory")}
+                emptyText={t("knowledge.emptyDirectory")}
+              />
+            </FieldContent>
+          </Field>
+          <Field>
+            <FieldLabel>{t("knowledge.directoryName")}</FieldLabel>
+            <FieldContent>
+              <Input
+                value={dialog.name}
+                onChange={(event) =>
+                  setDialog((current) => ({ ...current, name: event.target.value }))
+                }
+                placeholder={t("knowledge.directoryNamePlaceholder")}
+              />
+            </FieldContent>
+          </Field>
+          <Field>
+            <FieldLabel>{t("knowledge.remark")}</FieldLabel>
+            <FieldContent>
+              <Textarea
+                value={dialog.remark}
+                onChange={(event) =>
+                  setDialog((current) => ({ ...current, remark: event.target.value }))
+                }
+                rows={3}
+                placeholder={t("knowledge.remarkPlaceholder")}
+              />
+            </FieldContent>
+          </Field>
+        </div>
+      </ProjectDialog>
+    </>
+  );
+}
+
+type DirectoryStaticRowProps = {
+  icon: ReactNode;
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+};
+
+function DirectoryStaticRow({ icon, label, selected, onClick }: DirectoryStaticRowProps) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        "flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-accent",
+        selected && "bg-accent text-accent-foreground",
+      )}
+      onClick={onClick}
+    >
+      <span className="size-5" />
+      {icon}
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+    </button>
+  );
+}
+
+type DirectoryNodeProps = {
+  item: KnowledgeDirectory;
+  depth: number;
+  expandedIds: Set<number>;
+  selectedDirectoryId: number | null;
+  saving: boolean;
+  onToggle: (id: number) => void;
+  onSelect: (id: number) => void;
+  onCreate: (parentId: number) => void;
+  onEdit: (item: KnowledgeDirectory) => void;
+  onDelete: (item: KnowledgeDirectory) => void;
+  t: TFunction;
+};
+
+type TFunction = (key: string, values?: Record<string, string | number>) => string;
+
+function DirectoryNode({
+  item,
+  depth,
+  expandedIds,
+  selectedDirectoryId,
+  saving,
+  onToggle,
+  onSelect,
+  onCreate,
+  onEdit,
+  onDelete,
+  t,
+}: DirectoryNodeProps) {
+  const expanded = expandedIds.has(item.id);
+  const hasChildren = (item.children || []).length > 0;
+
+  return (
+    <div>
+      <div
+        className={cn(
+          "group flex items-center gap-1 px-2 py-1.5 text-sm hover:bg-accent",
+          selectedDirectoryId === item.id && "bg-accent text-accent-foreground",
+        )}
+        style={{ paddingLeft: 8 + depth * 16 }}
+      >
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-5 shrink-0"
+          disabled={!hasChildren}
+          onClick={() => onToggle(item.id)}
+          aria-label={expanded ? t("knowledge.collapseDirectory") : t("knowledge.expandDirectory")}
+        >
+          {expanded ? <ChevronDownIcon className="size-3.5" /> : <ChevronRightIcon className="size-3.5" />}
+        </Button>
+        <FolderIcon className="size-4 shrink-0 text-muted-foreground" />
+        <button
+          type="button"
+          className="min-w-0 flex-1 truncate text-left"
+          onClick={() => onSelect(item.id)}
+        >
+          {item.name}
+        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6 opacity-0 group-hover:opacity-100"
+                disabled={saving}
+              />
+            }
+            aria-label={t("knowledge.moreActions", { name: item.name })}
+          >
+            <MoreHorizontalIcon className="size-3.5" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40 min-w-40">
+            {item.parentId === 0 ? (
+              <DropdownMenuItem onClick={() => onCreate(item.id)}>
+                <PlusIcon className="mr-2 size-3.5" />
+                {t("knowledge.createSubDirectory")}
+              </DropdownMenuItem>
+            ) : null}
+            <DropdownMenuItem onClick={() => onEdit(item)}>
+              <PencilIcon className="mr-2 size-3.5" />
+              {t("knowledge.edit")}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => onDelete(item)}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2Icon className="mr-2 size-3.5" />
+              {t("knowledge.delete")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      {expanded
+        ? (item.children || []).map((child) => (
+            <DirectoryNode
+              key={child.id}
+              item={child}
+              depth={depth + 1}
+              expandedIds={expandedIds}
+              selectedDirectoryId={selectedDirectoryId}
+              saving={saving}
+              onToggle={onToggle}
+              onSelect={onSelect}
+              onCreate={onCreate}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              t={t}
+            />
+          ))
+        : null}
+    </div>
+  );
+}

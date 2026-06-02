@@ -14,6 +14,7 @@ import (
 func buildFAQChunkModel(knowledgeBase models.KnowledgeBase, faq models.KnowledgeFAQ, content string) (models.KnowledgeChunk, string) {
 	chunkID := buildKnowledgeFAQChunkVectorID(knowledgeBase.ID, faq.ID, 0)
 	now := time.Now()
+	sectionPath := loadKnowledgeDirectoryPath(faq.DirectoryID)
 	return models.KnowledgeChunk{
 		KnowledgeBaseID: knowledgeBase.ID,
 		FaqID:           faq.ID,
@@ -24,6 +25,7 @@ func buildFAQChunkModel(knowledgeBase models.KnowledgeBase, faq models.Knowledge
 		CharCount:       len([]rune(content)),
 		TokenCount:      len([]rune(content)) / 2,
 		ChunkType:       string(enums.KnowledgeChunkTypeFAQ),
+		SectionPath:     sectionPath,
 		Provider:        string(enums.KnowledgeChunkProviderFAQ),
 		VectorID:        chunkID,
 		Status:          enums.StatusOk,
@@ -39,6 +41,7 @@ func (s *index) prepareFAQVector(ctx context.Context, knowledgeBase models.Knowl
 	}
 
 	chunkModel, chunkID := buildFAQChunkModel(knowledgeBase, faq, content)
+	sectionPath := chunkModel.SectionPath
 	vector := vectordb.Vector{
 		ID:     chunkID,
 		Vector: embeddingResult.Vector,
@@ -48,6 +51,7 @@ func (s *index) prepareFAQVector(ctx context.Context, knowledgeBase models.Knowl
 			FaqQuestion:     faq.Question,
 			ChunkNo:         0,
 			ChunkType:       string(enums.KnowledgeChunkTypeFAQ),
+			SectionPath:     sectionPath,
 			Content:         content,
 			Title:           faq.Question,
 			Provider:        string(enums.KnowledgeChunkProviderFAQ),

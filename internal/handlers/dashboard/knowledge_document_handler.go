@@ -25,6 +25,10 @@ func KnowledgeDocumentAnyList(ctx *gin.Context) {
 		params.QueryFilter{ParamName: "knowledgeBaseId"},
 		params.QueryFilter{ParamName: "title", Op: params.Like},
 	).Desc("id")
+	knowledgeBaseID, _ := params.GetInt64(ctx, "knowledgeBaseId")
+	if directoryID, ok := params.GetInt64(ctx, "directoryId"); ok {
+		cnd.Where("directory_id = ?", directoryID)
+	}
 
 	if status, ok := params.GetInt64(ctx, "status"); ok {
 		cnd.Where("status = ?", status)
@@ -40,9 +44,12 @@ func KnowledgeDocumentAnyList(ctx *gin.Context) {
 	}
 
 	list, paging := services.KnowledgeDocumentService.FindPageListByCnd(cnd)
+	directoryPaths := services.KnowledgeDirectoryService.PathMap(knowledgeBaseID)
 	results := make([]response.KnowledgeDocumentListResponse, 0, len(list))
 	for _, item := range list {
-		results = append(results, builders.BuildKnowledgeDocumentList(&item))
+		resp := builders.BuildKnowledgeDocumentList(&item)
+		fillKnowledgeDocumentDirectory(&resp, directoryPaths)
+		results = append(results, resp)
 	}
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
 }
@@ -62,7 +69,20 @@ func KnowledgeDocumentGetBy(ctx *gin.Context) {
 		httpx.WriteJSON(ctx, web.JsonErrorMsg("文档不存在"))
 		return
 	}
-	httpx.WriteJSON(ctx, builders.BuildKnowledgeDocument(item))
+	resp := builders.BuildKnowledgeDocument(item)
+	fillKnowledgeDocumentDirectory(&resp, services.KnowledgeDirectoryService.PathMap(item.KnowledgeBaseID))
+	httpx.WriteJSON(ctx, resp)
+}
+
+func fillKnowledgeDocumentDirectory(resp any, directoryPaths map[int64]string) {
+	switch item := resp.(type) {
+	case *response.KnowledgeDocumentResponse:
+		item.DirectoryPath = directoryPaths[item.DirectoryID]
+		item.DirectoryName = item.DirectoryPath
+	case *response.KnowledgeDocumentListResponse:
+		item.DirectoryPath = directoryPaths[item.DirectoryID]
+		item.DirectoryName = item.DirectoryPath
+	}
 }
 
 func KnowledgeDocumentPostCreate(ctx *gin.Context) {

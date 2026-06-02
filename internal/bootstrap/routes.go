@@ -253,6 +253,14 @@ func registerDashboardKnowledgeBaseRoutes(group *gin.RouterGroup) {
 	group.POST("/update_sort", dashboard.KnowledgeBasePostUpdate_sort)
 }
 
+func registerDashboardKnowledgeDirectoryRoutes(group *gin.RouterGroup) {
+	group.GET("/list_all", dashboard.KnowledgeDirectoryGetList_all)
+	group.POST("/create", dashboard.KnowledgeDirectoryPostCreate)
+	group.POST("/delete", dashboard.KnowledgeDirectoryPostDelete)
+	group.POST("/update", dashboard.KnowledgeDirectoryPostUpdate)
+	group.POST("/update_sort", dashboard.KnowledgeDirectoryPostUpdate_sort)
+}
+
 func registerDashboardKnowledgeDocumentRoutes(group *gin.RouterGroup) {
 	group.GET("/:id", dashboard.KnowledgeDocumentGetBy)
 	group.POST("/create", dashboard.KnowledgeDocumentPostCreate)

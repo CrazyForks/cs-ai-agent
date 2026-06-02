@@ -35,6 +35,9 @@ type KnowledgeDocumentResponse struct {
 	ID                int64                              `json:"id"`
 	KnowledgeBaseID   int64                              `json:"knowledgeBaseId"`
 	KnowledgeBaseName string                             `json:"knowledgeBaseName,omitempty"`
+	DirectoryID       int64                              `json:"directoryId"`
+	DirectoryName     string                             `json:"directoryName,omitempty"`
+	DirectoryPath     string                             `json:"directoryPath,omitempty"`
 	Title             string                             `json:"title"`
 	ContentType       enums.KnowledgeDocumentContentType `json:"contentType"`
 	Content           string                             `json:"content"`
@@ -55,6 +58,9 @@ type KnowledgeDocumentListResponse struct {
 	ID                int64                              `json:"id"`
 	KnowledgeBaseID   int64                              `json:"knowledgeBaseId"`
 	KnowledgeBaseName string                             `json:"knowledgeBaseName,omitempty"`
+	DirectoryID       int64                              `json:"directoryId"`
+	DirectoryName     string                             `json:"directoryName,omitempty"`
+	DirectoryPath     string                             `json:"directoryPath,omitempty"`
 	Title             string                             `json:"title"`
 	ContentType       enums.KnowledgeDocumentContentType `json:"contentType"`
 	Status            enums.Status                       `json:"status"`
@@ -74,6 +80,9 @@ type KnowledgeFAQResponse struct {
 	ID                int64                              `json:"id"`
 	KnowledgeBaseID   int64                              `json:"knowledgeBaseId"`
 	KnowledgeBaseName string                             `json:"knowledgeBaseName,omitempty"`
+	DirectoryID       int64                              `json:"directoryId"`
+	DirectoryName     string                             `json:"directoryName,omitempty"`
+	DirectoryPath     string                             `json:"directoryPath,omitempty"`
 	Question          string                             `json:"question"`
 	Answer            string                             `json:"answer"`
 	SimilarQuestions  []string                           `json:"similarQuestions"`
@@ -88,6 +97,22 @@ type KnowledgeFAQResponse struct {
 	UpdatedAt         time.Time                          `json:"updatedAt"`
 	CreateUserName    string                             `json:"createUserName"`
 	UpdateUserName    string                             `json:"updateUserName"`
+}
+
+type KnowledgeDirectoryResponse struct {
+	ID              int64                        `json:"id"`
+	KnowledgeBaseID int64                        `json:"knowledgeBaseId"`
+	ParentID        int64                        `json:"parentId"`
+	Name            string                       `json:"name"`
+	SortNo          int                          `json:"sortNo"`
+	Status          enums.Status                 `json:"status"`
+	StatusName      string                       `json:"statusName"`
+	Remark          string                       `json:"remark"`
+	CreatedAt       time.Time                    `json:"createdAt"`
+	UpdatedAt       time.Time                    `json:"updatedAt"`
+	CreateUserName  string                       `json:"createUserName"`
+	UpdateUserName  string                       `json:"updateUserName"`
+	Children        []KnowledgeDirectoryResponse `json:"children"`
 }
 
 type KnowledgeFAQExportedFile struct {

@@ -26,8 +26,25 @@ type UpdateKnowledgeBaseRequest struct {
 	CreateKnowledgeBaseRequest
 }
 
+type CreateKnowledgeDirectoryRequest struct {
+	KnowledgeBaseID int64  `json:"knowledgeBaseId"`
+	ParentID        int64  `json:"parentId"`
+	Name            string `json:"name"`
+	Remark          string `json:"remark"`
+}
+
+type UpdateKnowledgeDirectoryRequest struct {
+	ID int64 `json:"id"`
+	CreateKnowledgeDirectoryRequest
+}
+
+type DeleteKnowledgeDirectoryRequest struct {
+	ID int64 `json:"id"`
+}
+
 type CreateKnowledgeDocumentRequest struct {
 	KnowledgeBaseID int64                              `json:"knowledgeBaseId"`
+	DirectoryID     int64                              `json:"directoryId"`
 	Title           string                             `json:"title"`
 	ContentType     enums.KnowledgeDocumentContentType `json:"contentType"`
 	Content         string                             `json:"content"`
@@ -40,6 +57,7 @@ type UpdateKnowledgeDocumentRequest struct {
 
 type CreateKnowledgeFAQRequest struct {
 	KnowledgeBaseID  int64    `json:"knowledgeBaseId"`
+	DirectoryID      int64    `json:"directoryId"`
 	Question         string   `json:"question"`
 	Answer           string   `json:"answer"`
 	SimilarQuestions []string `json:"similarQuestions"`

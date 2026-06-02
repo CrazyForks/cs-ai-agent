@@ -48,6 +48,7 @@ var Models = []any{
 	&AgentTeamSchedule{},
 	&AIConfig{},
 	&KnowledgeBase{},
+	&KnowledgeDirectory{},
 	&KnowledgeDocument{},
 	&KnowledgeFAQ{},
 	&KnowledgeChunk{},
@@ -681,10 +682,23 @@ type KnowledgeBase struct {
 	AuditFields
 }
 
+// KnowledgeDirectory 知识库内部目录表。
+type KnowledgeDirectory struct {
+	ID              int64        `gorm:"primaryKey;autoIncrement"`                                // ID 为目录主键。
+	KnowledgeBaseID int64        `gorm:"type:bigint;not null;index:idx_kb_parent_sort"`           // KnowledgeBaseID 为所属知识库 ID。
+	ParentID        int64        `gorm:"type:bigint;not null;default:0;index:idx_kb_parent_sort"` // ParentID 为父目录 ID，0 表示一级目录。
+	Name            string       `gorm:"type:varchar(100);not null;default:'';index"`             // Name 为目录名称。
+	SortNo          int          `gorm:"type:int;not null;default:0;index:idx_kb_parent_sort"`    // SortNo 为同级排序号。
+	Status          enums.Status `gorm:"type:int;not null;default:0;index"`                       // Status 为状态。
+	Remark          string       `gorm:"type:text"`                                               // Remark 为备注。
+	AuditFields
+}
+
 // KnowledgeDocument 知识文档主表。
 type KnowledgeDocument struct {
 	ID              int64                              `gorm:"primaryKey;autoIncrement"`                          // ID 为文档主键。
 	KnowledgeBaseID int64                              `gorm:"type:bigint;not null;index"`                        // KnowledgeBaseID 为所属知识库ID。
+	DirectoryID     int64                              `gorm:"type:bigint;not null;default:0;index"`              // DirectoryID 为所属知识库内部目录 ID，0 表示根目录。
 	Title           string                             `gorm:"type:varchar(255);not null;default:'';index"`       // Title 为文档标题。
 	ContentType     enums.KnowledgeDocumentContentType `gorm:"type:varchar(20);not null;default:'html'"`          // ContentType 为内容类型：html/markdown。
 	Content         string                             `gorm:"type:text"`                                         // Content 为文档内容。
@@ -700,6 +714,7 @@ type KnowledgeDocument struct {
 type KnowledgeFAQ struct {
 	ID               int64                              `gorm:"primaryKey;autoIncrement"`                          // ID 为 FAQ 主键。
 	KnowledgeBaseID  int64                              `gorm:"type:bigint;not null;index"`                        // KnowledgeBaseID 为所属 FAQ 知识库 ID。
+	DirectoryID      int64                              `gorm:"type:bigint;not null;default:0;index"`              // DirectoryID 为所属知识库内部目录 ID，0 表示根目录。
 	Question         string                             `gorm:"type:varchar(500);not null;default:'';index"`       // Question 为标准问题。
 	Answer           string                             `gorm:"type:text"`                                         // Answer 为标准答案。
 	SimilarQuestions string                             `gorm:"type:text"`                                         // SimilarQuestions 为相似问 JSON 数组。

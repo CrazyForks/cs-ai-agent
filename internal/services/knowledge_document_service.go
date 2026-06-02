@@ -94,6 +94,9 @@ func (s *knowledgeDocumentService) CreateKnowledgeDocument(req request.CreateKno
 	if kb.KnowledgeType == string(enums.KnowledgeBaseTypeFAQ) {
 		return nil, errorsx.InvalidParam("FAQ知识库不支持文档")
 	}
+	if _, err := KnowledgeDirectoryService.RequireUsableDirectory(req.KnowledgeBaseID, req.DirectoryID); err != nil {
+		return nil, err
+	}
 	item, err := s.buildKnowledgeDocumentModel(req)
 	if err != nil {
 		return nil, err
@@ -133,6 +136,9 @@ func (s *knowledgeDocumentService) UpdateKnowledgeDocument(req request.UpdateKno
 	if kb.KnowledgeType == string(enums.KnowledgeBaseTypeFAQ) {
 		return errorsx.InvalidParam("FAQ知识库不支持文档")
 	}
+	if _, err := KnowledgeDirectoryService.RequireUsableDirectory(req.KnowledgeBaseID, req.DirectoryID); err != nil {
+		return err
+	}
 	item, err := s.buildKnowledgeDocumentModel(req.CreateKnowledgeDocumentRequest)
 	if err != nil {
 		return err
@@ -140,6 +146,7 @@ func (s *knowledgeDocumentService) UpdateKnowledgeDocument(req request.UpdateKno
 	oldKnowledgeBaseID := current.KnowledgeBaseID
 	if err := repositories.KnowledgeDocumentRepository.Updates(sqls.DB(), req.ID, map[string]any{
 		"knowledge_base_id": item.KnowledgeBaseID,
+		"directory_id":      item.DirectoryID,
 		"title":             item.Title,
 		"content_type":      item.ContentType,
 		"content_hash":      item.ContentHash,
@@ -187,6 +194,7 @@ func (s *knowledgeDocumentService) buildKnowledgeDocumentModel(req request.Creat
 	plainText := rag.ExtractPlainText(req.Content, req.ContentType)
 	item := &models.KnowledgeDocument{
 		KnowledgeBaseID: req.KnowledgeBaseID,
+		DirectoryID:     req.DirectoryID,
 		Title:           req.Title,
 		ContentType:     req.ContentType,
 		Content:         req.Content,

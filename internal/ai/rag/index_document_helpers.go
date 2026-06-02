@@ -47,6 +47,7 @@ func (s *index) prepareDocumentVectors(ctx context.Context, knowledgeBase models
 	vectors := make([]vectordb.Vector, 0, len(chunks))
 	chunkModels := make([]models.KnowledgeChunk, 0, len(chunks))
 	dimension := 0
+	directoryPath := loadKnowledgeDirectoryPath(document.DirectoryID)
 
 	for i, chunk := range chunks {
 		embeddingResult, err := ai.Embedding.GenerateEmbedding(ctx, chunk.Content)
@@ -65,6 +66,7 @@ func (s *index) prepareDocumentVectors(ctx context.Context, knowledgeBase models
 				providerName = value
 			}
 		}
+		sectionPath := joinKnowledgeSectionPath(directoryPath, chunk.SectionPath)
 		now := time.Now()
 		chunkModels = append(chunkModels, models.KnowledgeChunk{
 			KnowledgeBaseID: knowledgeBase.ID,
@@ -76,7 +78,7 @@ func (s *index) prepareDocumentVectors(ctx context.Context, knowledgeBase models
 			CharCount:       chunk.CharCount,
 			TokenCount:      chunk.TokenCount,
 			ChunkType:       string(chunk.ChunkType),
-			SectionPath:     chunk.SectionPath,
+			SectionPath:     sectionPath,
 			Provider:        providerName,
 			VectorID:        chunkID,
 			Status:          enums.StatusOk,
@@ -93,7 +95,7 @@ func (s *index) prepareDocumentVectors(ctx context.Context, knowledgeBase models
 				DocumentTitle:   document.Title,
 				ChunkNo:         chunk.ChunkNo,
 				ChunkType:       string(chunk.ChunkType),
-				SectionPath:     chunk.SectionPath,
+				SectionPath:     sectionPath,
 				Content:         chunk.Content,
 				Title:           chunk.Title,
 				Provider:        providerName,

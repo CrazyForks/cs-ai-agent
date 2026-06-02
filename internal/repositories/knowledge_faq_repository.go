@@ -46,6 +46,10 @@ func (r *knowledgeFAQRepository) FindPageByParams(db *gorm.DB, queryParams *para
 	return r.FindPageByCnd(db, &queryParams.Cnd)
 }
 
+func (r *knowledgeFAQRepository) Count(db *gorm.DB, cnd *sqls.Cnd) int64 {
+	return cnd.Count(db, &models.KnowledgeFAQ{})
+}
+
 func (r *knowledgeFAQRepository) Create(db *gorm.DB, t *models.KnowledgeFAQ) error {
 	return db.Create(t).Error
 }

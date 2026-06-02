@@ -1321,6 +1321,9 @@ export type KnowledgeDocument = {
   id: number
   knowledgeBaseId: number
   knowledgeBaseName?: string
+  directoryId: number
+  directoryName?: string
+  directoryPath?: string
   title: string
   contentType: string
   content: string
@@ -1343,6 +1346,9 @@ export type KnowledgeFAQ = {
   id: number
   knowledgeBaseId: number
   knowledgeBaseName?: string
+  directoryId: number
+  directoryName?: string
+  directoryPath?: string
   question: string
   answer: string
   similarQuestions: string[]
@@ -1503,6 +1509,7 @@ export type KnowledgeAnswerPayload = KnowledgeSearchPayload & {
 
 export type CreateKnowledgeDocumentPayload = {
   knowledgeBaseId: number
+  directoryId: number
   title: string
   contentType: string
   content: string
@@ -1514,6 +1521,7 @@ export type UpdateKnowledgeDocumentPayload = CreateKnowledgeDocumentPayload & {
 
 export type CreateKnowledgeFAQPayload = {
   knowledgeBaseId: number
+  directoryId: number
   question: string
   answer: string
   similarQuestions: string[]
@@ -1521,6 +1529,33 @@ export type CreateKnowledgeFAQPayload = {
 }
 
 export type UpdateKnowledgeFAQPayload = CreateKnowledgeFAQPayload & {
+  id: number
+}
+
+export type KnowledgeDirectory = {
+  id: number
+  knowledgeBaseId: number
+  parentId: number
+  name: string
+  sortNo: number
+  status: number
+  statusName: string
+  remark: string
+  createdAt: string
+  updatedAt: string
+  createUserName: string
+  updateUserName: string
+  children: KnowledgeDirectory[]
+}
+
+export type CreateKnowledgeDirectoryPayload = {
+  knowledgeBaseId: number
+  parentId: number
+  name: string
+  remark: string
+}
+
+export type UpdateKnowledgeDirectoryPayload = CreateKnowledgeDirectoryPayload & {
   id: number
 }
 
@@ -1590,6 +1625,33 @@ export function updateKnowledgeBaseSort(ids: number[]) {
 
 export function rebuildKnowledgeBaseIndex(id: number) {
   return request<void>("/api/dashboard/knowledge-base/rebuild_index", {
+    method: "POST",
+    body: JSON.stringify({ id }),
+  })
+}
+
+export function fetchKnowledgeDirectories(knowledgeBaseId: number) {
+  return request<KnowledgeDirectory[]>(
+    `/api/dashboard/knowledge-directory/list_all${toQueryString({ knowledgeBaseId })}`
+  )
+}
+
+export function createKnowledgeDirectory(payload: CreateKnowledgeDirectoryPayload) {
+  return request<KnowledgeDirectory>("/api/dashboard/knowledge-directory/create", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+export function updateKnowledgeDirectory(payload: UpdateKnowledgeDirectoryPayload) {
+  return request<void>("/api/dashboard/knowledge-directory/update", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+export function deleteKnowledgeDirectory(id: number) {
+  return request<void>("/api/dashboard/knowledge-directory/delete", {
     method: "POST",
     body: JSON.stringify({ id }),
   })

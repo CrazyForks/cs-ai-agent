@@ -101,10 +101,17 @@ func KnowledgeFAQAnyList(ctx *gin.Context) {
 		params.QueryFilter{ParamName: "question", Op: params.Like},
 		params.QueryFilter{ParamName: "indexStatus"},
 	).Desc("id")
+	knowledgeBaseID, _ := params.GetInt64(ctx, "knowledgeBaseId")
+	if directoryID, ok := params.GetInt64(ctx, "directoryId"); ok {
+		cnd.Where("directory_id = ?", directoryID)
+	}
 	list, paging := services.KnowledgeFAQService.FindPageByCnd(cnd)
+	directoryPaths := services.KnowledgeDirectoryService.PathMap(knowledgeBaseID)
 	results := make([]response.KnowledgeFAQResponse, 0, len(list))
 	for _, item := range list {
-		results = append(results, builders.BuildKnowledgeFAQ(&item))
+		resp := builders.BuildKnowledgeFAQ(&item)
+		fillKnowledgeFAQDirectory(&resp, directoryPaths)
+		results = append(results, resp)
 	}
 	httpx.WriteJSON(ctx, &web.PageResult{Results: results, Page: paging})
 }
@@ -124,7 +131,9 @@ func KnowledgeFAQGetBy(ctx *gin.Context) {
 		httpx.WriteJSON(ctx, web.JsonErrorMsg("FAQ不存在"))
 		return
 	}
-	httpx.WriteJSON(ctx, builders.BuildKnowledgeFAQ(item))
+	resp := builders.BuildKnowledgeFAQ(item)
+	fillKnowledgeFAQDirectory(&resp, services.KnowledgeDirectoryService.PathMap(item.KnowledgeBaseID))
+	httpx.WriteJSON(ctx, resp)
 }
 
 func KnowledgeFAQPostCreate(ctx *gin.Context) {
@@ -187,4 +196,9 @@ func writeKnowledgeFAQExcelFile(ctx *gin.Context, file *response.KnowledgeFAQExp
 	ctx.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, file.Filename))
 	ctx.Header("Cache-Control", "no-store")
 	ctx.Data(http.StatusOK, file.ContentType, file.Data)
+}
+
+func fillKnowledgeFAQDirectory(resp *response.KnowledgeFAQResponse, directoryPaths map[int64]string) {
+	resp.DirectoryPath = directoryPaths[resp.DirectoryID]
+	resp.DirectoryName = resp.DirectoryPath
 }

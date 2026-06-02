@@ -31,6 +31,7 @@ import { useI18n } from "@/i18n/provider";
 import { formatDateTime } from "@/lib/utils";
 import { FAQEditDialog } from "./faq-edit";
 import { FAQImportDialog } from "./faq-import-dialog";
+import { KnowledgeDirectoryPanel } from "./knowledge-directory-panel";
 
 type FAQListProps = {
   knowledgeBaseId: number | null;
@@ -121,9 +122,14 @@ export function FAQList({
   const t = useI18n();
   const [importing, setImporting] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [selectedDirectoryId, setSelectedDirectoryId] = useState<number | null>(null);
   const [crudActionState, setCrudActionState] =
     useState<DashboardCrudActionState | null>(null);
   const indexStatusOptions = useMemo(() => getIndexStatusOptions(t), [t]);
+
+  useEffect(() => {
+    setSelectedDirectoryId(null);
+  }, [knowledgeBaseId]);
 
   useEffect(() => {
     if (!crudActionState) {
@@ -206,9 +212,16 @@ export function FAQList({
 
   return (
     <>
-      <div className="flex h-full flex-col gap-4 p-4">
+      <div className="flex h-full min-h-0">
+        <KnowledgeDirectoryPanel
+          knowledgeBaseId={knowledgeBaseId}
+          selectedDirectoryId={selectedDirectoryId}
+          onSelectDirectory={setSelectedDirectoryId}
+          onChanged={() => crudActionState?.onRefresh()}
+        />
+        <div className="min-w-0 flex-1 p-4">
         <DashboardCrudPage<KnowledgeFAQ, CreateKnowledgeFAQPayload>
-          key={knowledgeBaseId}
+          key={`${knowledgeBaseId}-${selectedDirectoryId ?? "all"}`}
           layout="fragment"
           showToolbarActions={false}
           filters={filters}
@@ -216,6 +229,8 @@ export function FAQList({
           fetchList={(query) =>
             fetchKnowledgeFAQs({
               knowledgeBaseId,
+              directoryId:
+                selectedDirectoryId === null ? undefined : selectedDirectoryId,
               question:
                 typeof query.question === "string" ? query.question : undefined,
               indexStatus:
@@ -264,6 +279,7 @@ export function FAQList({
               saving={saving}
               itemId={itemId}
               knowledgeBaseId={knowledgeBaseId}
+              initialDirectoryId={selectedDirectoryId ?? 0}
               onOpenChange={onOpenChange}
               onSubmit={onSubmit}
             />
@@ -289,6 +305,7 @@ export function FAQList({
             deleted: () => t("knowledge.faqDeleted"),
           }}
         />
+        </div>
       </div>
 
       <FAQImportDialog

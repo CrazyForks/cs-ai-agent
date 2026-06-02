@@ -40,12 +40,19 @@ func (s *knowledgeFAQService) FindPageByParams(queryParams *params.QueryParams) 
 	return repositories.KnowledgeFAQRepository.FindPageByParams(sqls.DB(), queryParams)
 }
 
+func (s *knowledgeFAQService) Count(cnd *sqls.Cnd) int64 {
+	return repositories.KnowledgeFAQRepository.Count(sqls.DB(), cnd)
+}
+
 func (s *knowledgeFAQService) CreateKnowledgeFAQ(req request.CreateKnowledgeFAQRequest, operator *dto.AuthPrincipal) (*models.KnowledgeFAQ, error) {
 	if operator == nil {
 		return nil, errorsx.Unauthorized("未登录或登录已过期")
 	}
 	kb, err := s.requireFAQKnowledgeBase(req.KnowledgeBaseID)
 	if err != nil {
+		return nil, err
+	}
+	if _, err := KnowledgeDirectoryService.RequireUsableDirectory(req.KnowledgeBaseID, req.DirectoryID); err != nil {
 		return nil, err
 	}
 	item, err := s.buildKnowledgeFAQModel(req)
@@ -78,12 +85,16 @@ func (s *knowledgeFAQService) UpdateKnowledgeFAQ(req request.UpdateKnowledgeFAQR
 	if _, err := s.requireFAQKnowledgeBase(req.KnowledgeBaseID); err != nil {
 		return err
 	}
+	if _, err := KnowledgeDirectoryService.RequireUsableDirectory(req.KnowledgeBaseID, req.DirectoryID); err != nil {
+		return err
+	}
 	item, err := s.buildKnowledgeFAQModel(req.CreateKnowledgeFAQRequest)
 	if err != nil {
 		return err
 	}
 	if err := repositories.KnowledgeFAQRepository.Updates(sqls.DB(), req.ID, map[string]any{
 		"knowledge_base_id": item.KnowledgeBaseID,
+		"directory_id":      item.DirectoryID,
 		"question":          item.Question,
 		"answer":            item.Answer,
 		"similar_questions": item.SimilarQuestions,
@@ -127,6 +138,7 @@ func (s *knowledgeFAQService) buildKnowledgeFAQModel(req request.CreateKnowledge
 	}
 	return &models.KnowledgeFAQ{
 		KnowledgeBaseID:  req.KnowledgeBaseID,
+		DirectoryID:      req.DirectoryID,
 		Question:         req.Question,
 		Answer:           req.Answer,
 		SimilarQuestions: string(similarQuestions),

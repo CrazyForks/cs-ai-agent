@@ -37,6 +37,7 @@ func BuildKnowledgeDocument(item *models.KnowledgeDocument) response.KnowledgeDo
 	return response.KnowledgeDocumentResponse{
 		ID:              item.ID,
 		KnowledgeBaseID: item.KnowledgeBaseID,
+		DirectoryID:     item.DirectoryID,
 		Title:           item.Title,
 		Status:          item.Status,
 		StatusName:      enums.GetStatusLabel(item.Status),
@@ -58,6 +59,7 @@ func BuildKnowledgeDocumentList(item *models.KnowledgeDocument) response.Knowled
 	return response.KnowledgeDocumentListResponse{
 		ID:              item.ID,
 		KnowledgeBaseID: item.KnowledgeBaseID,
+		DirectoryID:     item.DirectoryID,
 		Title:           item.Title,
 		Status:          item.Status,
 		StatusName:      enums.GetStatusLabel(item.Status),
@@ -78,6 +80,7 @@ func BuildKnowledgeFAQ(item *models.KnowledgeFAQ) response.KnowledgeFAQResponse 
 	return response.KnowledgeFAQResponse{
 		ID:               item.ID,
 		KnowledgeBaseID:  item.KnowledgeBaseID,
+		DirectoryID:      item.DirectoryID,
 		Question:         item.Question,
 		Answer:           item.Answer,
 		SimilarQuestions: parseSimilarQuestions(item.SimilarQuestions),
@@ -92,6 +95,24 @@ func BuildKnowledgeFAQ(item *models.KnowledgeFAQ) response.KnowledgeFAQResponse 
 		UpdatedAt:        item.UpdatedAt,
 		CreateUserName:   item.CreateUserName,
 		UpdateUserName:   item.UpdateUserName,
+	}
+}
+
+func BuildKnowledgeDirectory(item *models.KnowledgeDirectory) response.KnowledgeDirectoryResponse {
+	return response.KnowledgeDirectoryResponse{
+		ID:              item.ID,
+		KnowledgeBaseID: item.KnowledgeBaseID,
+		ParentID:        item.ParentID,
+		Name:            item.Name,
+		SortNo:          item.SortNo,
+		Status:          item.Status,
+		StatusName:      enums.GetStatusLabel(item.Status),
+		Remark:          item.Remark,
+		CreatedAt:       item.CreatedAt,
+		UpdatedAt:       item.UpdatedAt,
+		CreateUserName:  item.CreateUserName,
+		UpdateUserName:  item.UpdateUserName,
+		Children:        []response.KnowledgeDirectoryResponse{},
 	}
 }
 

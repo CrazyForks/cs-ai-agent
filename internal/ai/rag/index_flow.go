@@ -2,6 +2,7 @@ package rag
 
 import (
 	"fmt"
+	"strings"
 
 	"agent-desk/internal/models"
 	"agent-desk/internal/pkg/enums"
@@ -16,6 +17,35 @@ func (s *index) loadDocumentByID(documentID int64) (*models.KnowledgeDocument, e
 		return nil, fmt.Errorf("document not found: %d", documentID)
 	}
 	return document, nil
+}
+
+func loadKnowledgeDirectoryPath(directoryID int64) string {
+	if directoryID <= 0 {
+		return ""
+	}
+	item := repositories.KnowledgeDirectoryRepository.Get(sqls.DB(), directoryID)
+	if item == nil {
+		return ""
+	}
+	if item.ParentID <= 0 {
+		return item.Name
+	}
+	parent := repositories.KnowledgeDirectoryRepository.Get(sqls.DB(), item.ParentID)
+	if parent == nil {
+		return item.Name
+	}
+	return parent.Name + " / " + item.Name
+}
+
+func joinKnowledgeSectionPath(parts ...string) string {
+	ret := make([]string, 0, len(parts))
+	for _, item := range parts {
+		item = strings.TrimSpace(item)
+		if item != "" {
+			ret = append(ret, item)
+		}
+	}
+	return strings.Join(ret, " / ")
 }
 
 func (s *index) loadFAQByID(faqID int64) (*models.KnowledgeFAQ, error) {

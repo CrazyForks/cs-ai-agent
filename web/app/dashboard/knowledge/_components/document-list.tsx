@@ -55,6 +55,7 @@ import {
 } from "@/lib/generated/enums";
 import { cn, formatDateTime } from "@/lib/utils";
 import { DocumentEditDialog } from "./document-edit";
+import { KnowledgeDirectoryPanel } from "./knowledge-directory-panel";
 
 type DocumentListProps = {
   knowledgeBaseId: number | null;
@@ -140,6 +141,7 @@ const VIEW_MODE_STORAGE_KEY = "knowledge-document-view-mode";
 export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentListProps) {
   const t = useI18n();
   const [saving, setSaving] = useState(false);
+  const [selectedDirectoryId, setSelectedDirectoryId] = useState<number | null>(null);
   const [actionLoadingMap, setActionLoadingMap] = useState<Record<number, { rebuildIndex: boolean; delete: boolean }>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<KnowledgeDocumentListItem | null>(
@@ -152,6 +154,10 @@ export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentL
   });
   const statusOptions = useMemo(() => getStatusOptions(t), [t]);
   const indexStatusOptions = useMemo(() => getIndexStatusOptions(t), [t]);
+
+  useEffect(() => {
+    setSelectedDirectoryId(null);
+  }, [knowledgeBaseId]);
 
   const filters = useMemo<DashboardPagedListFilter[]>(() => [
     {
@@ -177,10 +183,11 @@ export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentL
       status: typeof query.status === "string" ? query.status : undefined,
       indexStatus: typeof query.indexStatus === "string" ? query.indexStatus : undefined,
       knowledgeBaseId: knowledgeBaseId ?? 0,
+      directoryId: selectedDirectoryId === null ? undefined : selectedDirectoryId,
       page: typeof query.page === "number" ? query.page : Number(query.page ?? 1),
       limit: typeof query.limit === "number" ? query.limit : Number(query.limit ?? 20),
     });
-  }, [knowledgeBaseId]);
+  }, [knowledgeBaseId, selectedDirectoryId]);
 
   const {
     draftFilters,
@@ -196,7 +203,7 @@ export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentL
     filters,
     fetchList,
     enabled: Boolean(knowledgeBaseId),
-    reloadKey: knowledgeBaseId,
+    reloadKey: `${knowledgeBaseId ?? 0}-${selectedDirectoryId ?? "all"}`,
     loadFailed: t("knowledge.loadDocumentsFailed"),
   });
 
@@ -322,7 +329,14 @@ export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentL
 
   return (
     <>
-      <div className="flex h-full min-h-0 flex-col">
+      <div className="flex h-full min-h-0">
+        <KnowledgeDirectoryPanel
+          knowledgeBaseId={knowledgeBaseId}
+          selectedDirectoryId={selectedDirectoryId}
+          onSelectDirectory={setSelectedDirectoryId}
+          onChanged={() => void loadData()}
+        />
+        <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex flex-col gap-2 border-b bg-background px-6 py-2">
           <div className="flex gap-2">
             <div className="relative flex-1">
@@ -528,12 +542,14 @@ export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentL
             onLimitChange={handleLimitChange}
           />
         </div>
+        </div>
       </div>
       <DocumentEditDialog
         open={dialogOpen}
         saving={saving}
         itemId={editingItem?.id ?? null}
         knowledgeBaseId={knowledgeBaseId}
+        initialDirectoryId={selectedDirectoryId ?? 0}
         onOpenChange={handleDialogOpenChange}
         onSubmit={handleSubmit}
       />
