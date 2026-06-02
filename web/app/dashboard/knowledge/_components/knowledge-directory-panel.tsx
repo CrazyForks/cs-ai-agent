@@ -19,6 +19,12 @@ import { OptionCombobox } from "@/components/option-combobox";
 import { ProjectDialog } from "@/components/project-dialog";
 import { Button } from "@/components/ui/button";
 import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -80,6 +86,7 @@ export function KnowledgeDirectoryPanel({
   const t = useI18n();
   const [directories, setDirectories] = useState<KnowledgeDirectory[]>([]);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+  const [contextMenuDirectoryId, setContextMenuDirectoryId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dialog, setDialog] = useState<DirectoryDialogState>({
@@ -230,9 +237,13 @@ export function KnowledgeDirectoryPanel({
                 depth={0}
                 expandedIds={expandedIds}
                 selectedDirectoryId={selectedDirectoryId}
+                contextMenuDirectoryId={contextMenuDirectoryId}
                 saving={saving}
                 onToggle={toggleDirectory}
                 onSelect={onSelectDirectory}
+                onContextMenuOpenChange={(directoryId, open) =>
+                  setContextMenuDirectoryId(open ? directoryId : null)
+                }
                 onCreate={openCreate}
                 onEdit={openEdit}
                 onDelete={(directory) => void handleDelete(directory)}
@@ -339,9 +350,11 @@ type DirectoryNodeProps = {
   depth: number;
   expandedIds: Set<number>;
   selectedDirectoryId: number | null;
+  contextMenuDirectoryId: number | null;
   saving: boolean;
   onToggle: (id: number) => void;
   onSelect: (id: number) => void;
+  onContextMenuOpenChange: (id: number, open: boolean) => void;
   onCreate: (parentId: number) => void;
   onEdit: (item: KnowledgeDirectory) => void;
   onDelete: (item: KnowledgeDirectory) => void;
@@ -355,9 +368,11 @@ function DirectoryNode({
   depth,
   expandedIds,
   selectedDirectoryId,
+  contextMenuDirectoryId,
   saving,
   onToggle,
   onSelect,
+  onContextMenuOpenChange,
   onCreate,
   onEdit,
   onDelete,
@@ -365,69 +380,93 @@ function DirectoryNode({
 }: DirectoryNodeProps) {
   const expanded = expandedIds.has(item.id);
   const hasChildren = (item.children || []).length > 0;
+  const active = selectedDirectoryId === item.id || contextMenuDirectoryId === item.id;
 
   return (
     <div>
-      <div
-        className={cn(
-          "group flex items-center gap-1 px-2 py-1.5 text-sm hover:bg-accent",
-          selectedDirectoryId === item.id && "bg-accent text-accent-foreground",
-        )}
-        style={{ paddingLeft: 8 + depth * 16 }}
-      >
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-5 shrink-0"
-          disabled={!hasChildren}
-          onClick={() => onToggle(item.id)}
-          aria-label={expanded ? t("knowledge.collapseDirectory") : t("knowledge.expandDirectory")}
-        >
-          {expanded ? <ChevronDownIcon className="size-3.5" /> : <ChevronRightIcon className="size-3.5" />}
-        </Button>
-        <FolderIcon className="size-4 shrink-0 text-muted-foreground" />
-        <button
-          type="button"
-          className="min-w-0 flex-1 truncate text-left"
-          onClick={() => onSelect(item.id)}
-        >
-          {item.name}
-        </button>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-6 opacity-0 group-hover:opacity-100"
-                disabled={saving}
-              />
-            }
-            aria-label={t("knowledge.moreActions", { name: item.name })}
+      <ContextMenu onOpenChange={(open) => onContextMenuOpenChange(item.id, open)}>
+        <ContextMenuTrigger className="block">
+          <div
+            className={cn(
+              "group flex items-center gap-1 px-2 py-1.5 text-sm hover:bg-accent",
+              active && "bg-accent text-accent-foreground",
+            )}
+            style={{ paddingLeft: 8 + depth * 16 }}
           >
-            <MoreHorizontalIcon className="size-3.5" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40 min-w-40">
-            {item.parentId === 0 ? (
-              <DropdownMenuItem onClick={() => onCreate(item.id)}>
-                <PlusIcon className="mr-2 size-3.5" />
-                {t("knowledge.createSubDirectory")}
-              </DropdownMenuItem>
-            ) : null}
-            <DropdownMenuItem onClick={() => onEdit(item)}>
-              <PencilIcon className="mr-2 size-3.5" />
-              {t("knowledge.edit")}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onDelete(item)}
-              className="text-destructive focus:text-destructive"
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-5 shrink-0"
+              disabled={!hasChildren}
+              onClick={() => onToggle(item.id)}
+              aria-label={expanded ? t("knowledge.collapseDirectory") : t("knowledge.expandDirectory")}
             >
-              <Trash2Icon className="mr-2 size-3.5" />
-              {t("knowledge.delete")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+              {expanded ? <ChevronDownIcon className="size-3.5" /> : <ChevronRightIcon className="size-3.5" />}
+            </Button>
+            <FolderIcon className="size-4 shrink-0 text-muted-foreground" />
+            <button
+              type="button"
+              className="min-w-0 flex-1 truncate text-left"
+              onClick={() => onSelect(item.id)}
+            >
+              {item.name}
+            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-6 opacity-0 group-hover:opacity-100"
+                    disabled={saving}
+                  />
+                }
+                aria-label={t("knowledge.moreActions", { name: item.name })}
+              >
+                <MoreHorizontalIcon className="size-3.5" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40 min-w-40">
+                {item.parentId === 0 ? (
+                  <DropdownMenuItem onClick={() => onCreate(item.id)}>
+                    <PlusIcon className="mr-2 size-3.5" />
+                    {t("knowledge.createSubDirectory")}
+                  </DropdownMenuItem>
+                ) : null}
+                <DropdownMenuItem onClick={() => onEdit(item)}>
+                  <PencilIcon className="mr-2 size-3.5" />
+                  {t("knowledge.edit")}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => onDelete(item)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2Icon className="mr-2 size-3.5" />
+                  {t("knowledge.delete")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-40">
+          {item.parentId === 0 ? (
+            <ContextMenuItem onClick={() => onCreate(item.id)}>
+              <PlusIcon className="mr-2 size-3.5" />
+              {t("knowledge.createSubDirectory")}
+            </ContextMenuItem>
+          ) : null}
+          <ContextMenuItem onClick={() => onEdit(item)}>
+            <PencilIcon className="mr-2 size-3.5" />
+            {t("knowledge.edit")}
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={() => onDelete(item)}
+            variant="destructive"
+          >
+            <Trash2Icon className="mr-2 size-3.5" />
+            {t("knowledge.delete")}
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
       {expanded
         ? (item.children || []).map((child) => (
             <DirectoryNode
@@ -436,9 +475,11 @@ function DirectoryNode({
               depth={depth + 1}
               expandedIds={expandedIds}
               selectedDirectoryId={selectedDirectoryId}
+              contextMenuDirectoryId={contextMenuDirectoryId}
               saving={saving}
               onToggle={onToggle}
               onSelect={onSelect}
+              onContextMenuOpenChange={onContextMenuOpenChange}
               onCreate={onCreate}
               onEdit={onEdit}
               onDelete={onDelete}
