@@ -388,31 +388,32 @@ function DirectoryNode({
         <ContextMenuTrigger className="block">
           <div
             className={cn(
-              "group flex items-center gap-1 px-2 py-1.5 text-sm hover:bg-accent",
+              "group flex cursor-pointer items-center gap-1 px-2 py-1.5 text-sm hover:bg-accent",
               active && "bg-accent text-accent-foreground",
             )}
             style={{ paddingLeft: 8 + depth * 16 }}
+            onClick={() => onSelect(item.id)}
           >
             <Button
               variant="ghost"
               size="icon"
               className="size-5 shrink-0"
               disabled={!hasChildren}
-              onClick={() => onToggle(item.id)}
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggle(item.id);
+              }}
               aria-label={expanded ? t("knowledge.collapseDirectory") : t("knowledge.expandDirectory")}
             >
               {expanded ? <ChevronDownIcon className="size-3.5" /> : <ChevronRightIcon className="size-3.5" />}
             </Button>
             <FolderIcon className="size-4 shrink-0 text-muted-foreground" />
-            <button
-              type="button"
-              className="min-w-0 flex-1 truncate text-left"
-              onClick={() => onSelect(item.id)}
-            >
+            <span className="min-w-0 flex-1 truncate text-left">
               {item.name}
-            </button>
+            </span>
             <DropdownMenu>
               <DropdownMenuTrigger
+                onClick={(event) => event.stopPropagation()}
                 render={
                   <Button
                     variant="ghost"
