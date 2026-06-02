@@ -137,7 +137,7 @@ export function RetrieveLogList({
 
   return (
     <>
-      <div className="flex h-full flex-col px-6 py-4">
+      <div className="flex h-full flex-col gap-4 px-6 py-4">
         <DashboardListPage<KnowledgeRetrieveLog>
           layout="fragment"
           filters={[
