@@ -287,7 +287,7 @@ export function KnowledgeDirectoryPanel({
             <FolderPlusIcon className="size-4" />
           </Button>
         </div>
-        <ScrollArea className="flex-1">
+        <ScrollArea className="min-h-0 flex-1 overflow-hidden">
           <div className="py-1">
             <DirectoryStaticRow
               icon={<LayersIcon className="size-4 text-muted-foreground" />}
