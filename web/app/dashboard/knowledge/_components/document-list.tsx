@@ -3,6 +3,7 @@
 import {
   FileTextIcon,
   FolderInputIcon,
+  EyeIcon,
   MoreHorizontalIcon,
   PencilIcon,
   SearchIcon,
@@ -61,6 +62,7 @@ import {
 } from "@/lib/generated/enums";
 import { cn, formatDateTime } from "@/lib/utils";
 import { DocumentEditDialog } from "./document-edit";
+import { KnowledgeContentDetailDialog } from "./knowledge-content-detail";
 import { KnowledgeBulkMoveDialog } from "./knowledge-bulk-move-dialog";
 import { KnowledgeDirectoryPanel } from "./knowledge-directory-panel";
 
@@ -154,6 +156,8 @@ export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentL
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [moveTargetIds, setMoveTargetIds] = useState<number[]>([]);
   const [contextMenuDocumentId, setContextMenuDocumentId] = useState<number | null>(null);
+  const [detailItemId, setDetailItemId] = useState<number | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [selectedDirectoryId, setSelectedDirectoryId] = useState<number | null>(null);
   const [actionLoadingMap, setActionLoadingMap] = useState<Record<number, { rebuildIndex: boolean; delete: boolean }>>({});
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -300,6 +304,11 @@ export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentL
   function openEditDialog(item: KnowledgeDocumentListItem) {
     setEditingItem(item);
     setDialogOpen(true);
+  }
+
+  function openDetailDialog(item: KnowledgeDocumentListItem) {
+    setDetailItemId(item.id);
+    setDetailOpen(true);
   }
 
   function handleDialogOpenChange(open: boolean) {
@@ -544,6 +553,10 @@ export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentL
                             <MoreHorizontalIcon className="size-3.5" />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-32 min-w-32">
+                            <DropdownMenuItem onClick={() => openDetailDialog(item)}>
+                              <EyeIcon className="mr-2 size-3.5" />
+                              {t("knowledge.view")}
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openEditDialog(item)}>
                               <PencilIcon className="mr-2 size-3.5" />
                               {t("knowledge.edit")}
@@ -569,6 +582,10 @@ export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentL
                     </div>
                   </ContextMenuTrigger>
                   <ContextMenuContent className="w-40">
+                    <ContextMenuItem onClick={() => openDetailDialog(item)}>
+                      <EyeIcon className="mr-2 size-3.5" />
+                      {t("knowledge.view")}
+                    </ContextMenuItem>
                     <ContextMenuItem onClick={() => openEditDialog(item)}>
                       <PencilIcon className="mr-2 size-3.5" />
                       {t("knowledge.edit")}
@@ -638,6 +655,10 @@ export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentL
                           <MoreHorizontalIcon className="size-3.5" />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-32 min-w-32">
+                          <DropdownMenuItem onClick={() => openDetailDialog(item)}>
+                            <EyeIcon className="mr-2 size-3.5" />
+                            {t("knowledge.view")}
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openEditDialog(item)}>
                             <PencilIcon className="mr-2 size-3.5" />
                             {t("knowledge.edit")}
@@ -662,6 +683,10 @@ export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentL
                     </div>
                   </ContextMenuTrigger>
                   <ContextMenuContent className="w-40">
+                    <ContextMenuItem onClick={() => openDetailDialog(item)}>
+                      <EyeIcon className="mr-2 size-3.5" />
+                      {t("knowledge.view")}
+                    </ContextMenuItem>
                     <ContextMenuItem onClick={() => openEditDialog(item)}>
                       <PencilIcon className="mr-2 size-3.5" />
                       {t("knowledge.edit")}
@@ -756,6 +781,17 @@ export function DocumentList({ knowledgeBaseId, onActionStateChange }: DocumentL
         initialDirectoryId={selectedDirectoryId ?? 0}
         onOpenChange={handleDialogOpenChange}
         onSubmit={handleSubmit}
+      />
+      <KnowledgeContentDetailDialog
+        open={detailOpen}
+        type="document"
+        itemId={detailItemId}
+        onOpenChange={(open) => {
+          setDetailOpen(open);
+          if (!open) {
+            setDetailItemId(null);
+          }
+        }}
       />
       <KnowledgeBulkMoveDialog
         open={bulkMoveOpen}

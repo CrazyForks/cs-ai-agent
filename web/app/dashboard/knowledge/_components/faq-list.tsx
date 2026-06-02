@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  EyeIcon,
   FolderInputIcon,
   MoreHorizontalIcon,
   PencilIcon,
@@ -58,6 +59,7 @@ import { useI18n } from "@/i18n/provider";
 import { cn, formatDateTime } from "@/lib/utils";
 import { FAQEditDialog } from "./faq-edit";
 import { FAQImportDialog } from "./faq-import-dialog";
+import { KnowledgeContentDetailDialog } from "./knowledge-content-detail";
 import { KnowledgeBulkMoveDialog } from "./knowledge-bulk-move-dialog";
 import { KnowledgeDirectoryPanel } from "./knowledge-directory-panel";
 
@@ -143,6 +145,8 @@ export function FAQList({
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [moveTargetIds, setMoveTargetIds] = useState<number[]>([]);
   const [contextMenuFAQId, setContextMenuFAQId] = useState<number | null>(null);
+  const [detailItemId, setDetailItemId] = useState<number | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [selectedDirectoryId, setSelectedDirectoryId] = useState<number | null>(null);
@@ -261,6 +265,11 @@ export function FAQList({
   function openEditDialog(item: KnowledgeFAQ) {
     setEditingItem(item);
     setDialogOpen(true);
+  }
+
+  function openDetailDialog(item: KnowledgeFAQ) {
+    setDetailItemId(item.id);
+    setDetailOpen(true);
   }
 
   function handleDialogOpenChange(open: boolean) {
@@ -475,6 +484,10 @@ export function FAQList({
                             <MoreHorizontalIcon className="size-3.5" />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-32 min-w-32">
+                            <DropdownMenuItem onClick={() => openDetailDialog(item)}>
+                              <EyeIcon className="mr-2 size-3.5" />
+                              {t("knowledge.view")}
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openEditDialog(item)}>
                               <PencilIcon className="mr-2 size-3.5" />
                               {t("knowledge.edit")}
@@ -499,6 +512,10 @@ export function FAQList({
                       </div>
                     </ContextMenuTrigger>
                     <ContextMenuContent className="w-40">
+                      <ContextMenuItem onClick={() => openDetailDialog(item)}>
+                        <EyeIcon className="mr-2 size-3.5" />
+                        {t("knowledge.view")}
+                      </ContextMenuItem>
                       <ContextMenuItem onClick={() => openEditDialog(item)}>
                         <PencilIcon className="mr-2 size-3.5" />
                         {t("knowledge.edit")}
@@ -593,6 +610,17 @@ export function FAQList({
         initialDirectoryId={selectedDirectoryId ?? 0}
         onOpenChange={handleDialogOpenChange}
         onSubmit={handleSubmit}
+      />
+      <KnowledgeContentDetailDialog
+        open={detailOpen}
+        type="faq"
+        itemId={detailItemId}
+        onOpenChange={(open) => {
+          setDetailOpen(open);
+          if (!open) {
+            setDetailItemId(null);
+          }
+        }}
       />
 
       <FAQImportDialog
