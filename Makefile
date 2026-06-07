@@ -74,7 +74,7 @@ help:
 	@echo "  make release              Build release binaries for common platforms"
 	@echo "  make run                  Build web SPA then run server"
 	@echo "  make run-go               Run server only, ensuring SPA exists"
-	@echo "  make dev                  Run Go server with dev tag and web dev server"
+	@echo "  make dev                  Run Go server with dev+lancedb tags and web dev server"
 	@echo "  make test                 Run Go tests, ensuring SPA exists"
 	@echo "  make check                Run Go tests, web typecheck, and web lint"
 	@echo "  make clean                Remove Go binaries"
@@ -118,8 +118,9 @@ run: web-build-spa
 run-go: ensure-spa
 	@$(GO) run $(MAIN)
 
-dev:
-	@$(GO) run -tags dev $(MAIN) & \
+dev: lancedb-check
+	@CGO_ENABLED=1 CGO_CFLAGS="$(LANCEDB_CGO_CFLAGS)" CGO_LDFLAGS="$(LANCEDB_CGO_LDFLAGS)" \
+		$(GO) run -tags "dev lancedb" $(MAIN) & \
 	server_pid=$$!; \
 	trap 'kill $$server_pid 2>/dev/null || true' EXIT INT TERM; \
 	echo "Waiting for server at $(DEV_SERVER_URL)..."; \
