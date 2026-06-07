@@ -1,6 +1,23 @@
 "use client";
 
 import {
+  DndContext,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   ChevronDownIcon,
   ChevronRightIcon,
   FolderIcon,
@@ -11,7 +28,7 @@ import {
   PlusIcon,
   Trash2Icon,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { toast } from "sonner";
 
@@ -39,10 +56,12 @@ import {
   deleteKnowledgeDirectory,
   fetchKnowledgeDirectories,
   updateKnowledgeDirectory,
+  updateKnowledgeDirectorySort,
   type KnowledgeDirectory,
 } from "@/lib/api/admin";
 import { useI18n } from "@/i18n/provider";
 import { cn } from "@/lib/utils";
+import { findDirectoryParentId, moveDirectoryWithinParent } from "./knowledge-directory-sort";
 
 type KnowledgeDirectoryPanelProps = {
   knowledgeBaseId: number;
@@ -106,6 +125,7 @@ export function KnowledgeDirectoryPanel({
   const [contextMenuDirectoryId, setContextMenuDirectoryId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [sorting, setSorting] = useState(false);
   const [dialog, setDialog] = useState<DirectoryDialogState>({
     open: false,
     id: null,
@@ -119,6 +139,17 @@ export function KnowledgeDirectoryPanel({
       ...rootDirectoryOptions(directories).filter((item) => item.value !== String(dialog.id ?? "")),
     ],
     [directories, dialog.id, t],
+  );
+  const sensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 150, tolerance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
 
   const loadDirectories = useCallback(async () => {
@@ -268,6 +299,48 @@ export function KnowledgeDirectoryPanel({
     }
   }
 
+  async function handleDirectoryDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id || sorting) {
+      return;
+    }
+    const activeId = Number(active.id);
+    const overId = Number(over.id);
+    if (!Number.isFinite(activeId) || !Number.isFinite(overId)) {
+      return;
+    }
+
+    const activeParentId = findDirectoryParentId(directories, activeId);
+    const overParentId = findDirectoryParentId(directories, overId);
+    if (activeParentId === null || overParentId === null || activeParentId !== overParentId) {
+      return;
+    }
+
+    const previousDirectories = directories;
+    const moved = moveDirectoryWithinParent(previousDirectories, activeParentId, activeId, overId);
+    if (!moved.changed) {
+      return;
+    }
+
+    setDirectories(moved.items);
+    setSorting(true);
+    try {
+      await updateKnowledgeDirectorySort({
+        knowledgeBaseId,
+        parentId: moved.parentId,
+        ids: moved.orderedIds,
+      });
+      toast.success(t("knowledge.directorySortUpdated"));
+      await loadDirectories();
+      onChanged?.();
+    } catch (error) {
+      setDirectories(previousDirectories);
+      toast.error(error instanceof Error ? error.message : t("knowledge.directorySortUpdateFailed"));
+    } finally {
+      setSorting(false);
+    }
+  }
+
   return (
     <>
       <div
@@ -301,26 +374,37 @@ export function KnowledgeDirectoryPanel({
               selected={selectedDirectoryId === 0}
               onClick={() => onSelectDirectory(0)}
             />
-            {directories.map((item) => (
-              <DirectoryNode
-                key={item.id}
-                item={item}
-                depth={0}
-                expandedIds={expandedIds}
-                selectedDirectoryId={selectedDirectoryId}
-                contextMenuDirectoryId={contextMenuDirectoryId}
-                saving={saving}
-                onToggle={toggleDirectory}
-                onSelect={onSelectDirectory}
-                onContextMenuOpenChange={(directoryId, open) =>
-                  setContextMenuDirectoryId(open ? directoryId : null)
-                }
-                onCreate={openCreate}
-                onEdit={openEdit}
-                onDelete={(directory) => void handleDelete(directory)}
-                t={t}
-              />
-            ))}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={(event) => void handleDirectoryDragEnd(event)}
+            >
+              <SortableContext
+                items={directories.map((item) => item.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {directories.map((item) => (
+                  <DirectoryNode
+                    key={item.id}
+                    item={item}
+                    depth={0}
+                    expandedIds={expandedIds}
+                    selectedDirectoryId={selectedDirectoryId}
+                    contextMenuDirectoryId={contextMenuDirectoryId}
+                    saving={saving || sorting}
+                    onToggle={toggleDirectory}
+                    onSelect={onSelectDirectory}
+                    onContextMenuOpenChange={(directoryId, open) =>
+                      setContextMenuDirectoryId(open ? directoryId : null)
+                    }
+                    onCreate={openCreate}
+                    onEdit={openEdit}
+                    onDelete={(directory) => void handleDelete(directory)}
+                    t={t}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
           </div>
         </ScrollArea>
         <div
@@ -459,21 +543,39 @@ function DirectoryNode({
   onDelete,
   t,
 }: DirectoryNodeProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: item.id,
+    disabled: saving,
+  });
   const expanded = expandedIds.has(item.id);
   const hasChildren = (item.children || []).length > 0;
   const active = selectedDirectoryId === item.id || contextMenuDirectoryId === item.id;
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
 
   return (
-    <div>
+    <div ref={setNodeRef} style={style}>
       <ContextMenu onOpenChange={(open) => onContextMenuOpenChange(item.id, open)}>
         <ContextMenuTrigger className="block">
           <div
             className={cn(
               "group flex cursor-pointer items-center gap-1 px-2 py-1.5 text-sm hover:bg-accent",
               active && "bg-accent text-accent-foreground",
+              isDragging && "bg-muted/60 shadow-sm opacity-80",
             )}
             style={{ paddingLeft: 8 + depth * 16 }}
             onClick={() => onSelect(item.id)}
+            {...attributes}
+            {...listeners}
           >
             <Button
               variant="ghost"
@@ -550,24 +652,31 @@ function DirectoryNode({
         </ContextMenuContent>
       </ContextMenu>
       {expanded
-        ? (item.children || []).map((child) => (
-            <DirectoryNode
-              key={child.id}
-              item={child}
-              depth={depth + 1}
-              expandedIds={expandedIds}
-              selectedDirectoryId={selectedDirectoryId}
-              contextMenuDirectoryId={contextMenuDirectoryId}
-              saving={saving}
-              onToggle={onToggle}
-              onSelect={onSelect}
-              onContextMenuOpenChange={onContextMenuOpenChange}
-              onCreate={onCreate}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              t={t}
-            />
-          ))
+        ? (
+            <SortableContext
+              items={(item.children || []).map((child) => child.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {(item.children || []).map((child) => (
+                <DirectoryNode
+                  key={child.id}
+                  item={child}
+                  depth={depth + 1}
+                  expandedIds={expandedIds}
+                  selectedDirectoryId={selectedDirectoryId}
+                  contextMenuDirectoryId={contextMenuDirectoryId}
+                  saving={saving}
+                  onToggle={onToggle}
+                  onSelect={onSelect}
+                  onContextMenuOpenChange={onContextMenuOpenChange}
+                  onCreate={onCreate}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  t={t}
+                />
+              ))}
+            </SortableContext>
+          )
         : null}
     </div>
   );

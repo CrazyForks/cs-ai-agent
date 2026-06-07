@@ -1804,6 +1804,8 @@
     "directoryDeleted": "Directory deleted: {name}",
     "directorySaveFailed": "Could not save the directory.",
     "directoryDeleteFailed": "Could not delete the directory.",
+    "directorySortUpdated": "Directory order updated.",
+    "directorySortUpdateFailed": "Could not update directory order.",
     "directoryNameRequired": "Directory name is required.",
     "rebuildStarted": "Knowledge base reindex started: {name}",
     "rebuildFailed": "Could not rebuild the knowledge base index.",

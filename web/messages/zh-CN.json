@@ -1804,6 +1804,8 @@
     "directoryDeleted": "已删除目录：{name}",
     "directorySaveFailed": "保存目录失败",
     "directoryDeleteFailed": "删除目录失败",
+    "directorySortUpdated": "目录排序已更新",
+    "directorySortUpdateFailed": "更新目录排序失败",
     "directoryNameRequired": "目录名称不能为空",
     "rebuildStarted": "已开始重建知识库索引：{name}",
     "rebuildFailed": "重建知识库索引失败",

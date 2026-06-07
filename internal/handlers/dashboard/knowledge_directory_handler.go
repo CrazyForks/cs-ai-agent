@@ -84,6 +84,10 @@ func KnowledgeDirectoryPostDelete(ctx *gin.Context) {
 }
 
 func KnowledgeDirectoryPostUpdate_sort(ctx *gin.Context) {
+	if _, err := services.AuthService.RequirePermission(ctx, constants.PermissionKnowledgeBaseUpdate); err != nil {
+		httpx.WriteJSON(ctx, err)
+		return
+	}
 	var req struct {
 		KnowledgeBaseID int64   `json:"knowledgeBaseId"`
 		ParentID        int64   `json:"parentId"`

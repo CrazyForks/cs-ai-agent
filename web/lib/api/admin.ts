@@ -1663,6 +1663,17 @@ export function deleteKnowledgeDirectory(id: number) {
   })
 }
 
+export function updateKnowledgeDirectorySort(payload: {
+  knowledgeBaseId: number
+  parentId: number
+  ids: number[]
+}) {
+  return request<void>("/api/dashboard/knowledge-directory/update_sort", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
 export function fetchKnowledgeDocuments(
   query?: Record<string, string | number | undefined>
 ) {
