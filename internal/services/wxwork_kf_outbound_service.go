@@ -49,10 +49,12 @@ func (s *wxWorkKFOutboundService) DispatchPendingOutbox() int {
 		count := s.doDispatchPendingOutbox(wxWorkKFOutboxBatchSize)
 
 		totalCount += count
-		slog.Info("wxwork kf outbound dispatch loop",
-			"batch_count", count,
-			"total_count", totalCount,
-		)
+		if count > 0 {
+			slog.Info("wxwork kf outbound dispatch loop",
+				"batch_count", count,
+				"total_count", totalCount,
+			)
+		}
 
 		if count == 0 {
 			break
