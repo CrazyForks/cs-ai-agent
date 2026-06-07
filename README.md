@@ -141,13 +141,6 @@ Start backend and frontend development servers together:
 make dev
 ```
 
-Or start them separately:
-
-```bash
-make run-go
-make web-dev
-```
-
 Default development URLs:
 
 - Admin dashboard: `http://localhost:3000/dashboard`
@@ -193,21 +186,11 @@ Default development URLs:
 ## Common Commands
 
 ```bash
-make dev            # start backend and frontend development servers
-make run            # build the frontend SPA, then start the backend
-make run-go         # start the backend and ensure the SPA has been built
-make web-dev        # start the frontend development server
-make build          # build the frontend SPA and current-platform Go binary
-make build-linux    # build the linux/amd64 binary
-make release        # build common release binaries
-make web-build-spa  # build the web static SPA and embeddable SDK
-make test           # run Go tests after ensuring the SPA is built
-make check          # run Go tests, frontend typecheck, and lint
-make generator      # run code generation
-make enums          # generate frontend enums
-make migration      # run migrations
-make testdata       # initialize Chinese demo/test data
-make testdata TESTDATA_LANG=en  # initialize English demo/test data
+make dev        # start backend and frontend development servers
+make build      # build the frontend SPA and current-platform Go binary into dist/
+make release    # build linux/darwin/windows release binaries into dist/
+make generator  # run code generation
+make enums      # generate frontend enums
 ```
 
 ## AI Agent Workflow
