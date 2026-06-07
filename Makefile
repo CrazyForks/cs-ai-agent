@@ -8,12 +8,59 @@ PNPM ?= pnpm
 GOOS ?= $(shell $(GO) env GOOS)
 GOARCH ?= $(shell $(GO) env GOARCH)
 DEV_SERVER_URL ?= http://127.0.0.1:8083
+LANCEDB_VERSION ?= v0.1.2
+LANCEDB_DOWNLOAD_SCRIPT ?= https://raw.githubusercontent.com/lancedb/lancedb-go/main/scripts/download-artifacts.sh
+LANCEDB_TEST_PKGS ?= ./internal/ai/rag/vectordb
+
+UNAME_S := $(shell uname -s)
+UNAME_M := $(shell uname -m)
+
+ifeq ($(UNAME_M),x86_64)
+	LANCEDB_ARCH := amd64
+else ifeq ($(UNAME_M),amd64)
+	LANCEDB_ARCH := amd64
+else ifeq ($(UNAME_M),arm64)
+	LANCEDB_ARCH := arm64
+else ifeq ($(UNAME_M),aarch64)
+	LANCEDB_ARCH := arm64
+else
+	LANCEDB_ARCH := unsupported
+endif
+
+ifeq ($(UNAME_S),Darwin)
+	LANCEDB_PLATFORM := darwin
+	LANCEDB_SYSTEM_LDFLAGS := -framework Security -framework CoreFoundation
+else ifeq ($(UNAME_S),Linux)
+	LANCEDB_PLATFORM := linux
+	LANCEDB_SYSTEM_LDFLAGS := -lm -ldl -lpthread
+else ifneq (,$(findstring MINGW,$(UNAME_S)))
+	LANCEDB_PLATFORM := windows
+	LANCEDB_ARCH := amd64
+	LANCEDB_SYSTEM_LDFLAGS :=
+else ifneq (,$(findstring MSYS,$(UNAME_S)))
+	LANCEDB_PLATFORM := windows
+	LANCEDB_ARCH := amd64
+	LANCEDB_SYSTEM_LDFLAGS :=
+else ifneq (,$(findstring CYGWIN,$(UNAME_S)))
+	LANCEDB_PLATFORM := windows
+	LANCEDB_ARCH := amd64
+	LANCEDB_SYSTEM_LDFLAGS :=
+else
+	LANCEDB_PLATFORM := unsupported
+	LANCEDB_SYSTEM_LDFLAGS :=
+endif
+
+LANCEDB_PLATFORM_ARCH := $(LANCEDB_PLATFORM)_$(LANCEDB_ARCH)
+LANCEDB_NATIVE_LIB := $(CURDIR)/lib/$(LANCEDB_PLATFORM_ARCH)/liblancedb_go.a
+LANCEDB_CGO_CFLAGS := -I$(CURDIR)/include
+LANCEDB_CGO_LDFLAGS := $(LANCEDB_NATIVE_LIB) $(LANCEDB_SYSTEM_LDFLAGS)
 
 .DEFAULT_GOAL := help
 
 .PHONY: all help build build-go build-linux release run run-go dev test check clean clean-web \
 	web-install web-dev web-build-spa ensure-spa build-spa web-build-ssr web-typecheck web-lint \
-	generator enums migration testdata
+	generator enums migration testdata lancedb-platform-info lancedb-artifacts lancedb-check \
+	build-lancedb test-lancedb clean-lancedb-artifacts
 
 all: build
 
@@ -39,6 +86,9 @@ help:
 	@echo "  make enums                Generate frontend enums"
 	@echo "  make migration            Run migration command"
 	@echo "  make testdata             Run testdata generator"
+	@echo "  make lancedb-artifacts    Download LanceDB native libraries for this platform"
+	@echo "  make build-lancedb        Build Go binary with LanceDB provider enabled"
+	@echo "  make test-lancedb         Run LanceDB provider tests with native libraries"
 
 build: web-build-spa
 	@$(MAKE) build-go
@@ -128,3 +178,47 @@ migration:
 
 testdata:
 	@$(GO) run ./cmd/testdata -lang $(or $(TESTDATA_LANG),zh)
+
+lancedb-platform-info:
+	@echo "LanceDB platform information:"
+	@echo "  OS/arch:          $(UNAME_S)/$(UNAME_M)"
+	@echo "  platform-arch:    $(LANCEDB_PLATFORM_ARCH)"
+	@echo "  version:          $(LANCEDB_VERSION)"
+	@echo "  CGO_CFLAGS:       $(LANCEDB_CGO_CFLAGS)"
+	@echo "  CGO_LDFLAGS:      $(LANCEDB_CGO_LDFLAGS)"
+	@echo "  native library:   $(LANCEDB_NATIVE_LIB)"
+
+lancedb-artifacts:
+	@if [ "$(LANCEDB_PLATFORM)" = "unsupported" ] || [ "$(LANCEDB_ARCH)" = "unsupported" ]; then \
+		echo "Unsupported LanceDB platform: $(UNAME_S)/$(UNAME_M)"; \
+		exit 1; \
+	fi
+	@if [ -f "$(LANCEDB_NATIVE_LIB)" ] && [ -f "$(CURDIR)/include/lancedb.h" ]; then \
+		echo "LanceDB native artifacts already exist for $(LANCEDB_PLATFORM_ARCH)."; \
+	else \
+		echo "Downloading LanceDB native artifacts $(LANCEDB_VERSION) for $(LANCEDB_PLATFORM_ARCH)..."; \
+		curl -sSL "$(LANCEDB_DOWNLOAD_SCRIPT)" | bash -s "$(LANCEDB_VERSION)"; \
+	fi
+
+lancedb-check: lancedb-artifacts
+	@if [ ! -f "$(LANCEDB_NATIVE_LIB)" ]; then \
+		echo "Missing LanceDB native library: $(LANCEDB_NATIVE_LIB)"; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(CURDIR)/include/lancedb.h" ]; then \
+		echo "Missing LanceDB header: $(CURDIR)/include/lancedb.h"; \
+		exit 1; \
+	fi
+
+build-lancedb: ensure-spa lancedb-check
+	@echo "Building $(APP) with LanceDB provider enabled..."
+	@CGO_ENABLED=1 CGO_CFLAGS="$(LANCEDB_CGO_CFLAGS)" CGO_LDFLAGS="$(LANCEDB_CGO_LDFLAGS)" \
+		$(GO) build -tags lancedb -v -o $(APP) $(MAIN)
+
+test-lancedb: lancedb-check
+	@echo "Running LanceDB tests with native libraries..."
+	@CGO_ENABLED=1 CGO_CFLAGS="$(LANCEDB_CGO_CFLAGS)" CGO_LDFLAGS="$(LANCEDB_CGO_LDFLAGS)" \
+		$(GO) test -tags lancedb $(LANCEDB_TEST_PKGS)
+
+clean-lancedb-artifacts:
+	@rm -rf lib include
