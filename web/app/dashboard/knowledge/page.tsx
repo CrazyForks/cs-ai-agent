@@ -22,7 +22,7 @@ import {
   RefreshCwIcon,
   UploadIcon,
 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState, type PointerEvent } from "react"
 import { toast } from "sonner"
 import { DebugPanel } from "./_components/debug-panel"
 import { DocumentList, type DocumentListActionState } from "./_components/document-list"
@@ -30,16 +30,71 @@ import { FAQList, type FAQListActionState } from "./_components/faq-list"
 import { KnowledgeBaseList } from "./_components/knowledge-base-list"
 import { RetrieveLogList } from "./_components/retrieve-log-list"
 
+const KNOWLEDGE_BASE_LIST_WIDTH_STORAGE_KEY = "knowledge-base-list-width"
+const KNOWLEDGE_BASE_LIST_MIN_WIDTH = 240
+const KNOWLEDGE_BASE_LIST_MAX_WIDTH = 520
+const KNOWLEDGE_BASE_LIST_DEFAULT_WIDTH = 320
+
 export default function DashboardKnowledgeDocumentsPage() {
   const t = useI18n()
   const [selectedKnowledgeBase, setSelectedKnowledgeBase] = useState<KnowledgeBase | null>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [sidebarResizing, setSidebarResizing] = useState(false)
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    if (typeof window === "undefined") {
+      return KNOWLEDGE_BASE_LIST_DEFAULT_WIDTH
+    }
+    const saved = Number(localStorage.getItem(KNOWLEDGE_BASE_LIST_WIDTH_STORAGE_KEY))
+    if (!Number.isFinite(saved)) {
+      return KNOWLEDGE_BASE_LIST_DEFAULT_WIDTH
+    }
+    return Math.min(
+      KNOWLEDGE_BASE_LIST_MAX_WIDTH,
+      Math.max(KNOWLEDGE_BASE_LIST_MIN_WIDTH, saved),
+    )
+  })
   const [debugPanelOpen, setDebugPanelOpen] = useState(false)
   const [activeTab, setActiveTab] = useState("documents")
   const [documentActionState, setDocumentActionState] = useState<DocumentListActionState | null>(null)
   const [faqActionState, setFAQActionState] = useState<FAQListActionState | null>(null)
   const [exportingFAQ, setExportingFAQ] = useState(false)
   const isFAQKnowledgeBase = selectedKnowledgeBase?.knowledgeType === "faq"
+
+  useEffect(() => {
+    localStorage.setItem(KNOWLEDGE_BASE_LIST_WIDTH_STORAGE_KEY, String(sidebarWidth))
+  }, [sidebarWidth])
+
+  function handleSidebarResizePointerDown(event: PointerEvent<HTMLDivElement>) {
+    event.preventDefault()
+    const startX = event.clientX
+    const startWidth = sidebarWidth
+
+    function handlePointerMove(moveEvent: globalThis.PointerEvent) {
+      const nextWidth = startWidth + moveEvent.clientX - startX
+      setSidebarWidth(
+        Math.min(
+          KNOWLEDGE_BASE_LIST_MAX_WIDTH,
+          Math.max(KNOWLEDGE_BASE_LIST_MIN_WIDTH, nextWidth),
+        ),
+      )
+    }
+
+    function handlePointerEnd() {
+      window.removeEventListener("pointermove", handlePointerMove)
+      window.removeEventListener("pointerup", handlePointerEnd)
+      window.removeEventListener("pointercancel", handlePointerEnd)
+      document.body.style.cursor = ""
+      document.body.style.userSelect = ""
+      setSidebarResizing(false)
+    }
+
+    setSidebarResizing(true)
+    document.body.style.cursor = "col-resize"
+    document.body.style.userSelect = "none"
+    window.addEventListener("pointermove", handlePointerMove)
+    window.addEventListener("pointerup", handlePointerEnd)
+    window.addEventListener("pointercancel", handlePointerEnd)
+  }
 
   async function handleExportFAQ() {
     if (!selectedKnowledgeBase || exportingFAQ) {
@@ -59,14 +114,24 @@ export default function DashboardKnowledgeDocumentsPage() {
   return (
     <div className="flex h-full min-h-0 overflow-hidden">
       <div
-        className={`shrink-0 overflow-hidden transition-[width] duration-200 ${
-          sidebarCollapsed ? "w-0" : "w-80"
+        className={`relative shrink-0 overflow-hidden ${
+          sidebarResizing ? "" : "transition-[width] duration-200"
         }`}
+        style={{ width: sidebarCollapsed ? 0 : sidebarWidth }}
       >
         <KnowledgeBaseList
           selectedKnowledgeBaseId={selectedKnowledgeBase?.id ?? null}
           onSelectKnowledgeBase={setSelectedKnowledgeBase}
         />
+        {!sidebarCollapsed ? (
+          <div
+            className="absolute top-0 right-[-3px] z-20 h-full w-1.5 cursor-col-resize transition-colors hover:bg-primary/30"
+            onPointerDown={handleSidebarResizePointerDown}
+            role="separator"
+            aria-orientation="vertical"
+            aria-label={t("knowledge.resizeList")}
+          />
+        ) : null}
       </div>
       <div className="relative shrink-0 bg-background">
         <Button

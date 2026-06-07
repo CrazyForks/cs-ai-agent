@@ -1769,6 +1769,7 @@
     "retrieveLogs": "检索日志",
     "expandList": "展开知识库列表",
     "collapseList": "折叠知识库列表",
+    "resizeList": "调整知识库列表宽度",
     "refreshDocuments": "刷新文档",
     "listLayout": "列表布局",
     "gridLayout": "网格布局",

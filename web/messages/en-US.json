@@ -1768,6 +1768,7 @@
     "retrieveLogs": "Retrieval Logs",
     "expandList": "Expand knowledge base list",
     "collapseList": "Collapse knowledge base list",
+    "resizeList": "Resize knowledge base list",
     "refreshDocuments": "Refresh documents",
     "listLayout": "List layout",
     "gridLayout": "Grid layout",
