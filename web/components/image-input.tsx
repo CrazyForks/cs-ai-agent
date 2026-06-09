@@ -81,7 +81,7 @@ export function ImageInput({
   const isDisabled = disabled || uploading
 
   return (
-    <div className={cn("relative", className)}>
+    <div className="relative w-fit">
       <input
         ref={fileInputRef}
         type="file"
@@ -96,7 +96,8 @@ export function ImageInput({
           "group relative flex size-24 cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-input bg-muted transition-colors",
           "hover:border-primary hover:bg-muted/50",
           "focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none",
-          isDisabled && "cursor-not-allowed opacity-50"
+          isDisabled && "cursor-not-allowed opacity-50",
+          className
         )}
         tabIndex={isDisabled ? -1 : 0}
         onKeyDown={(e) => {

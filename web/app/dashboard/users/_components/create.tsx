@@ -15,6 +15,7 @@ import { useAppLocale, useI18n } from "@/i18n/provider"
 import { Status } from "@/lib/generated/enums"
 import { getRoleDisplayName } from "@/lib/role-i18n"
 import { cn } from "@/lib/utils"
+import { ImageInput } from "@/components/image-input"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -119,13 +120,7 @@ function CreateUserDrawerBody({
       z.object({
         username: z.string().trim().min(1, t("user.usernameRequired")),
         nickname: z.string().trim(),
-        avatar: z
-          .string()
-          .trim()
-          .refine(
-            (value) => value.length === 0 || /^https?:\/\/\S+$/i.test(value),
-            t("user.avatarInvalid")
-          ),
+        avatar: z.string().trim(),
         mobile: z
           .string()
           .trim()
@@ -233,14 +228,22 @@ function CreateUserDrawerBody({
               <FieldError errors={[errors.nickname]} />
             </FieldContent>
           </Field>
-          <Field data-invalid={!!errors.avatar}>
-            <FieldLabel htmlFor="create-avatar">{t("user.avatar")}</FieldLabel>
+          <Field className="min-h-32" data-invalid={!!errors.avatar}>
+            <FieldLabel>{t("user.avatar")}</FieldLabel>
             <FieldContent>
-              <Input
-                id="create-avatar"
-                placeholder={t("user.avatarCreatePlaceholder")}
-                aria-invalid={!!errors.avatar}
-                {...register("avatar")}
+              <Controller
+                control={control}
+                name="avatar"
+                render={({ field }) => (
+                  <ImageInput
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={saving}
+                    prefix="avatar"
+                    placeholder={t("user.avatarCreatePlaceholder")}
+                    className="size-16 rounded-full"
+                  />
+                )}
               />
               <FieldError errors={[errors.avatar]} />
             </FieldContent>

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Resolver, useForm } from "react-hook-form"
+import { Controller, Resolver, useForm } from "react-hook-form"
 import { z } from "zod/v4"
 
 import {
@@ -11,6 +11,7 @@ import {
   fetchUserDetail,
 } from "@/lib/api/admin"
 import { useI18n } from "@/i18n/provider"
+import { ImageInput } from "@/components/image-input"
 import { Button } from "@/components/ui/button"
 import {
   Drawer,
@@ -121,13 +122,7 @@ function UserEditDrawerBody({
     () =>
       z.object({
         nickname: z.string().trim().min(1, t("user.nicknameRequired")),
-        avatar: z
-          .string()
-          .trim()
-          .refine(
-            (value) => value.length === 0 || /^https?:\/\/\S+$/i.test(value),
-            t("user.avatarInvalid")
-          ),
+        avatar: z.string().trim(),
         mobile: z
           .string()
           .trim()
@@ -155,6 +150,7 @@ function UserEditDrawerBody({
     defaultValues: emptyForm,
   })
   const {
+    control,
     handleSubmit,
     reset,
     register,
@@ -220,14 +216,22 @@ function UserEditDrawerBody({
                 <FieldError errors={[errors.nickname]} />
               </FieldContent>
             </Field>
-            <Field data-invalid={!!errors.avatar}>
-              <FieldLabel htmlFor="user-avatar">{t("user.avatar")}</FieldLabel>
+            <Field className="min-h-32" data-invalid={!!errors.avatar}>
+              <FieldLabel>{t("user.avatar")}</FieldLabel>
               <FieldContent>
-                <Input
-                  id="user-avatar"
-                  placeholder={t("user.avatarPlaceholder")}
-                  aria-invalid={!!errors.avatar}
-                  {...register("avatar")}
+                <Controller
+                  control={control}
+                  name="avatar"
+                  render={({ field }) => (
+                    <ImageInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      disabled={saving || loading}
+                      prefix="avatar"
+                      placeholder={t("user.avatarPlaceholder")}
+                      className="size-16 rounded-full"
+                    />
+                  )}
                 />
                 <FieldError errors={[errors.avatar]} />
               </FieldContent>
