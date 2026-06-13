@@ -67,35 +67,52 @@ test.describe("support workbench", () => {
     await screenshot(page, "03-workbench-initial");
 
     await expect(page.getByText(/客服工作台|Support Workbench/).first()).toBeVisible();
-    await expect(page.getByRole("link", { name: /会话|Conversations/ }).first()).toHaveAttribute(
+    const conversationsEntry = page.getByRole("link", { name: /会话|Conversations/ }).first();
+    const ticketsEntry = page.getByRole("link", { name: /工单|Tickets/ }).first();
+    await expect(conversationsEntry).toHaveAttribute(
       "href",
       "/workbench/",
     );
-    await expect(page.getByRole("link", { name: /工单|Tickets/ }).first()).toHaveAttribute(
+    await expect(ticketsEntry).toHaveAttribute(
       "href",
       "/workbench/tickets/",
     );
+    await expect(conversationsEntry).toHaveClass(/bg-sidebar-primary/);
+    await expect(ticketsEntry).not.toHaveClass(/bg-sidebar-primary/);
+    await conversationsEntry.hover();
+    await expect(page.getByText(/会话|Conversations/).last()).toBeVisible();
+    await screenshot(page, "04-workbench-rail-tooltip");
     await page.getByRole("button", { name: /贝壳AGENT|Agent Desk/i }).first().click();
     await expect(page.getByText(/切换工作区|Switch workspace/)).toBeVisible();
     await expect(page.getByRole("menuitem", { name: /管理后台|Admin Dashboard/ })).toBeVisible();
     await page.waitForTimeout(300);
-    await screenshot(page, "04-workbench-switcher-open");
+    await screenshot(page, "05-workbench-switcher-open");
 
     await page.getByRole("menuitem", { name: /管理后台|Admin Dashboard/ }).click();
     await page.waitForURL(/\/dashboard\/?$/, { timeout: 15000 });
     await page.waitForLoadState("networkidle");
-    await screenshot(page, "05-dashboard-after-switch");
+    await screenshot(page, "06-dashboard-after-switch");
     await expect(page.getByText(/管理后台|Admin Dashboard/).first()).toBeVisible();
 
     await page.getByRole("button", { name: /贝壳AGENT|Agent Desk/i }).first().click();
     await expect(page.getByRole("menuitem", { name: /客服工作台|Support Workbench/ })).toBeVisible();
     await page.waitForTimeout(300);
-    await screenshot(page, "06-dashboard-switcher-open");
+    await screenshot(page, "07-dashboard-switcher-open");
     await page.getByRole("menuitem", { name: /客服工作台|Support Workbench/ }).click();
     await page.waitForURL(/\/workbench\/?$/, { timeout: 15000 });
     await page.waitForLoadState("networkidle");
-    await screenshot(page, "07-workbench-after-return");
+    await screenshot(page, "08-workbench-after-return");
     await expect(page.getByText(/客服工作台|Support Workbench/).first()).toBeVisible();
+
+    const returnedConversationsEntry = page.getByRole("link", { name: /会话|Conversations/ }).first();
+    const returnedTicketsEntry = page.getByRole("link", { name: /工单|Tickets/ }).first();
+    await returnedTicketsEntry.click();
+    await page.waitForURL(/\/workbench\/tickets\/?$/, { timeout: 15000 });
+    await page.waitForLoadState("networkidle");
+    await expect(returnedTicketsEntry).toHaveClass(/bg-sidebar-primary/);
+    await expect(returnedConversationsEntry).not.toHaveClass(/bg-sidebar-primary/);
+    await page.mouse.move(640, 360);
+    await screenshot(page, "09-workbench-tickets-active");
 
     expect(runtimeErrors).toEqual([]);
   });

@@ -39,7 +39,7 @@ export const workspaceOptions: WorkspaceOption[] = [
 
 type WorkspaceSwitcherProps = {
   currentWorkspace: WorkspaceKey
-  variant?: "sidebar" | "header"
+  variant?: "sidebar" | "header" | "rail"
   className?: string
   trigger?: ReactElement
 }
@@ -58,26 +58,43 @@ export function WorkspaceSwitcher({
     variant === "header" &&
       "h-9 rounded-md border border-border/70 bg-background px-2.5 shadow-xs hover:bg-muted",
     variant === "sidebar" && "data-[slot=sidebar-menu-button]:p-1.5!",
+    variant === "rail" &&
+      "relative size-11 rounded-lg border-0 bg-transparent p-0 shadow-none hover:bg-sidebar-accent",
     className
   )
-  const triggerContent = (
-    <>
-      <img
-        src="/images/logo.svg"
-        alt={t("app.brand")}
-        width="32"
-        height="32"
-        className="size-7 shrink-0 object-contain"
-      />
-      <div className="grid min-w-0 flex-1 text-left leading-tight">
-        <span className="truncate text-sm font-semibold">{t("app.brand")}</span>
-        <span className="truncate text-xs text-muted-foreground">
-          {t(currentOption.labelKey)}
+  const triggerContent =
+    variant === "rail" ? (
+      <>
+        <img
+          src="/images/logo.svg"
+          alt={t("app.brand")}
+          width="32"
+          height="32"
+          className="size-7 shrink-0 object-contain"
+        />
+        <span className="sr-only">
+          {t("workspace.switchWorkspace")} - {t(currentOption.labelKey)}
         </span>
-      </div>
-      <ChevronsUpDownIcon className="ml-auto size-4 shrink-0 text-muted-foreground" />
-    </>
-  )
+        <ChevronsUpDownIcon className="absolute bottom-0.5 right-0.5 size-3 rounded-full bg-sidebar text-sidebar-foreground/70" />
+      </>
+    ) : (
+      <>
+        <img
+          src="/images/logo.svg"
+          alt={t("app.brand")}
+          width="32"
+          height="32"
+          className="size-7 shrink-0 object-contain"
+        />
+        <div className="grid min-w-0 flex-1 text-left leading-tight">
+          <span className="truncate text-sm font-semibold">{t("app.brand")}</span>
+          <span className="truncate text-xs text-muted-foreground">
+            {t(currentOption.labelKey)}
+          </span>
+        </div>
+        <ChevronsUpDownIcon className="ml-auto size-4 shrink-0 text-muted-foreground" />
+      </>
+    )
 
   return (
     <DropdownMenu>
@@ -90,7 +107,7 @@ export function WorkspaceSwitcher({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
-        side={variant === "sidebar" ? "right" : "bottom"}
+        side={variant === "sidebar" || variant === "rail" ? "right" : "bottom"}
         sideOffset={8}
         className="w-60 min-w-60"
       >
