@@ -1,6 +1,6 @@
 "use client"
 
-import { FileTextIcon, MessageSquareTextIcon } from "lucide-react"
+import { MessagesSquareIcon, TicketCheckIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -18,13 +18,13 @@ const workbenchRailItems = [
     key: "conversations",
     titleKey: "nav.conversations",
     href: "/workbench",
-    icon: MessageSquareTextIcon,
+    icon: MessagesSquareIcon,
   },
   {
     key: "tickets",
     titleKey: "nav.tickets",
     href: "/workbench/tickets",
-    icon: FileTextIcon,
+    icon: TicketCheckIcon,
   },
 ]
 
