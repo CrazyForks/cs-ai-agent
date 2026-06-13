@@ -32,6 +32,7 @@ func TestNewServerRegistersGinRoutes(t *testing.T) {
 
 	expected := []string{
 		http.MethodPost + " /api/auth/login",
+		http.MethodGet + " /api/health",
 		http.MethodGet + " /api/auth/oidc_login",
 		http.MethodGet + " /api/auth/oidc_callback",
 		http.MethodPost + " /api/auth/oidc_exchange",
@@ -47,6 +48,45 @@ func TestNewServerRegistersGinRoutes(t *testing.T) {
 		if !routes[route] {
 			t.Fatalf("expected route %s to be registered", route)
 		}
+	}
+}
+
+func TestNewServerHealthEndpointIsPublic(t *testing.T) {
+	config.SetCurrent(&config.Config{
+		Storage: config.StorageConfig{
+			Local: config.LocalStorageConfig{
+				Root:    "storage",
+				BaseURL: "/storage",
+			},
+		},
+	})
+
+	app, err := NewServer()
+	if err != nil {
+		t.Fatalf("NewServer() error = %v", err)
+	}
+
+	rec := httptest.NewRecorder()
+	app.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/health", nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d want %d, body=%s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+
+	var body struct {
+		Success bool `json:"success"`
+		Data    struct {
+			Status string `json:"status"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if !body.Success {
+		t.Fatalf("success=false, body=%s", rec.Body.String())
+	}
+	if body.Data.Status != "ok" {
+		t.Fatalf("status=%q want ok", body.Data.Status)
 	}
 }
 

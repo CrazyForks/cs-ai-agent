@@ -8,6 +8,7 @@ import (
 
 	"agent-desk/internal/ai/mcps"
 	_ "agent-desk/internal/ai/runtime"
+	"agent-desk/internal/handlers/api"
 	"agent-desk/internal/middleware"
 	"agent-desk/internal/pkg/config"
 	"agent-desk/internal/pkg/ginx"
@@ -154,6 +155,7 @@ func addRouter(app *gin.Engine) {
 	app.Any("/api/mcp", gin.WrapH(mcps.NewHTTPHandler()))
 
 	apiGroup := app.Group("/api")
+	apiGroup.GET("/health", api.Health)
 	registerApiAuthRoutes(apiGroup.Group("/auth"))
 	registerApiChannelRoutes(apiGroup.Group("/channel"))
 	registerApiCustomerRoutes(apiGroup.Group("/customer"))
