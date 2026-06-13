@@ -34,7 +34,10 @@ export function WorkbenchHeader() {
     <header className="flex h-(--header-height) shrink-0 items-center border-b border-border/70 bg-background/88 backdrop-blur supports-[backdrop-filter]:bg-background/76">
       <div className="flex w-full min-w-0 items-center justify-between gap-3 px-3 lg:px-4">
         <div className="min-w-0">
-          <WorkspaceSwitcher currentWorkspace="workbench" />
+          <WorkspaceSwitcher
+            currentWorkspace="workbench"
+            className="h-10 border-0 bg-transparent px-1.5 shadow-none hover:bg-muted"
+          />
         </div>
         <div className="flex min-w-0 items-center justify-end gap-2">
           <div className="hidden sm:block">

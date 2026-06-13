@@ -17,7 +17,7 @@ const workbenchRailItems = [
   {
     key: "tickets",
     titleKey: "nav.tickets",
-    href: "/dashboard/tickets",
+    href: "/workbench/tickets",
     icon: FileTextIcon,
   },
 ]
