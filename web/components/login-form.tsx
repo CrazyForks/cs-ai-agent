@@ -20,7 +20,7 @@ import {
   FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { KeyRoundIcon } from "lucide-react"
+import { KeyRoundIcon, Loader2Icon, TriangleAlertIcon } from "lucide-react"
 
 function detectWxWorkEnvironment() {
   if (typeof navigator === "undefined") {
@@ -41,6 +41,7 @@ export function LoginForm({
   const [isPending, setIsPending] = useState(false)
   const [isWxWorkEnv, setIsWxWorkEnv] = useState(false)
   const [authOptions, setAuthOptions] = useState<AuthOptions | null>(null)
+  const [authOptionsError, setAuthOptionsError] = useState<string | null>(null)
   const nextPath = searchParams.get("next")
   const wxworkError = searchParams.get("wxworkError")
   const oidcError = searchParams.get("oidcError")
@@ -78,11 +79,13 @@ export function LoginForm({
       .then((options) => {
         if (!cancelled) {
           setAuthOptions(options)
+          setAuthOptionsError(null)
         }
       })
-      .catch(() => {
+      .catch((error) => {
         if (!cancelled) {
-          setAuthOptions({ wxworkEnabled: false, oidcEnabled: false })
+          setAuthOptions(null)
+          setAuthOptionsError(error instanceof Error ? error.message : "")
         }
       })
 
@@ -112,8 +115,35 @@ export function LoginForm({
     }
   }
 
+  if (authOptionsError) {
+    return (
+      <div className={cn("flex flex-col gap-6", className)} {...props}>
+        <Card className="overflow-hidden p-0">
+          <CardContent className="flex min-h-80 flex-col items-center justify-center gap-3 p-8 text-center">
+            <TriangleAlertIcon className="size-8 text-destructive" />
+            <div className="space-y-1">
+              <h1 className="text-lg font-semibold">{t("auth.optionsLoadFailed")}</h1>
+              <p className="text-sm text-muted-foreground">
+                {authOptionsError || t("api.requestFailed")}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   if (!authOptions) {
-    return null
+    return (
+      <div className={cn("flex flex-col gap-6", className)} {...props}>
+        <Card className="overflow-hidden p-0">
+          <CardContent className="flex min-h-80 flex-col items-center justify-center gap-3 p-8 text-center">
+            <Loader2Icon className="size-7 animate-spin text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">{t("auth.loadingOptions")}</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (

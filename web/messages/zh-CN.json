@@ -108,6 +108,8 @@
     "syncingProfile": "将自动同步当前管理员信息与权限数据",
     "loginSuccess": "登录成功，正在进入系统",
     "loginFailed": "登录失败",
+    "loadingOptions": "正在加载登录配置...",
+    "optionsLoadFailed": "加载登录配置失败",
     "welcome": "欢迎回来",
     "loginDescription": "登录你的 {brand} 账号",
     "username": "用户名",

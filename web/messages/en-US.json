@@ -108,6 +108,8 @@
     "syncingProfile": "Syncing your admin profile and permissions",
     "loginSuccess": "Signed in. Taking you to the dashboard.",
     "loginFailed": "Sign-in failed",
+    "loadingOptions": "Loading sign-in options...",
+    "optionsLoadFailed": "Could not load sign-in options.",
     "welcome": "Welcome back",
     "loginDescription": "Login to your {brand} account",
     "username": "Username",
