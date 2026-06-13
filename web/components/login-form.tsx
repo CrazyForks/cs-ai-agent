@@ -40,17 +40,14 @@ export function LoginForm({
   const { session } = useAuth()
   const [isPending, setIsPending] = useState(false)
   const [isWxWorkEnv, setIsWxWorkEnv] = useState(false)
-  const [authOptions, setAuthOptions] = useState<AuthOptions>({
-    wxworkEnabled: false,
-    oidcEnabled: false,
-  })
+  const [authOptions, setAuthOptions] = useState<AuthOptions | null>(null)
   const nextPath = searchParams.get("next")
   const wxworkError = searchParams.get("wxworkError")
   const oidcError = searchParams.get("oidcError")
   const redirectPath =
     nextPath && nextPath.startsWith("/") ? nextPath : "/dashboard"
   const enabledProviderCount =
-    Number(authOptions.wxworkEnabled) + Number(authOptions.oidcEnabled)
+    Number(authOptions?.wxworkEnabled) + Number(authOptions?.oidcEnabled)
 
   useEffect(() => {
     if (session) {
@@ -113,6 +110,10 @@ export function LoginForm({
     } finally {
       setIsPending(false)
     }
+  }
+
+  if (!authOptions) {
+    return null
   }
 
   return (
