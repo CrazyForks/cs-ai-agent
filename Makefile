@@ -173,7 +173,7 @@ _web-build-spa:
 	@cd $(WEB_DIR) && $(PNPM) build:sdk && $(PNPM) build
 
 _web-dev:
-	@cd $(WEB_DIR) && NEXT_PUBLIC_API_BASE_URL="$(DEV_API_BASE_URL)" $(PNPM) dev
+	@cd $(WEB_DIR) && NEXT_PUBLIC_API_BASE_URL="" NEXT_API_BASE_URL="$(DEV_API_BASE_URL)" $(PNPM) dev
 
 _prepare-dist:
 	@mkdir -p $(DIST_DIR)
