@@ -26,9 +26,9 @@ const geistMono = Geist_Mono({
 const paletteScript = `
 try {
   var palette = window.localStorage.getItem("dashboard_palette");
-  document.documentElement.dataset.palette = palette === "blue" || palette === "gray" ? palette : "green";
+  document.documentElement.dataset.palette = palette === "plain" || palette === "blue" || palette === "green" || palette === "gray" ? palette : "plain";
 } catch (_) {
-  document.documentElement.dataset.palette = "green";
+  document.documentElement.dataset.palette = "plain";
 }
 `
 

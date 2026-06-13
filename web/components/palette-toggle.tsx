@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { DropletsIcon, PaletteIcon } from "lucide-react"
+import { CircleIcon, DropletsIcon, PaletteIcon } from "lucide-react"
 
 import { useI18n } from "@/i18n/provider"
 import { Button } from "@/components/ui/button"
@@ -13,16 +13,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-type PaletteMode = "blue" | "green" | "gray"
+type PaletteMode = "plain" | "blue" | "green" | "gray"
 
 const PALETTE_STORAGE_KEY = "dashboard_palette"
-const DEFAULT_PALETTE: PaletteMode = "green"
+const DEFAULT_PALETTE: PaletteMode = "plain"
 
 const paletteOptions: Array<{
   value: PaletteMode
   labelKey: string
   swatch: string
 }> = [
+  {
+    value: "plain",
+    labelKey: "palette.plain",
+    swatch: "bg-zinc-700",
+  },
   {
     value: "green",
     labelKey: "palette.green",
@@ -46,7 +51,10 @@ function readPalette(): PaletteMode {
   }
 
   const stored = window.localStorage.getItem(PALETTE_STORAGE_KEY)
-  return stored === "blue" || stored === "green" || stored === "gray"
+  return stored === "plain" ||
+    stored === "blue" ||
+    stored === "green" ||
+    stored === "gray"
     ? stored
     : DEFAULT_PALETTE
 }
@@ -68,12 +76,19 @@ export function PaletteToggle() {
 
   function handleChange(value: string) {
     const nextPalette: PaletteMode =
-      value === "blue" || value === "gray" ? value : "green"
+      value === "blue" || value === "green" || value === "gray"
+        ? value
+        : "plain"
     setPalette(nextPalette)
     applyPalette(nextPalette)
   }
 
-  const ActiveIcon = palette === "green" ? DropletsIcon : PaletteIcon
+  const ActiveIcon =
+    palette === "plain"
+      ? CircleIcon
+      : palette === "green"
+        ? DropletsIcon
+        : PaletteIcon
 
   return (
     <DropdownMenu>

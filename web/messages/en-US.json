@@ -2364,6 +2364,7 @@
   },
   "palette": {
     "toggle": "Change accent color",
+    "plain": "Default",
     "green": "Service Green",
     "gray": "Neutral Gray",
     "blue": "Clear Blue"
