@@ -446,7 +446,7 @@ export function ConversationWorkbench() {
             onResize={(panelSize: { asPercentage: number }) => {
               setSidebarCollapsed(panelSize.asPercentage <= 1);
             }}
-            className="min-h-0 border-r border-border/80 bg-card"
+            className="min-h-0 bg-card"
           >
             <div className="flex h-full min-h-0 flex-col overflow-hidden bg-card text-card-foreground">
               {renderConversationSidebar()}
@@ -469,7 +469,7 @@ export function ConversationWorkbench() {
             onResize={(panelSize: { asPercentage: number }) => {
               setInfoPanelCollapsed(panelSize.asPercentage <= 1);
             }}
-            className="min-h-0 border-l border-border/80 bg-card"
+            className="min-h-0 bg-card"
           >
             <ConversationInfoPanel conversation={conversation} className="h-full" />
           </ResizablePanel>
