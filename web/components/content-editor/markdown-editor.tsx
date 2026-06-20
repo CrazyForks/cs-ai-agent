@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  type ComponentProps,
   forwardRef,
   useId,
   useImperativeHandle,
@@ -35,6 +36,8 @@ type MarkdownEditorProps = {
   height: string
 }
 
+type MdEditorToolbars = NonNullable<ComponentProps<typeof MdEditor>["toolbars"]>
+
 export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(
   function MarkdownEditor(
     {
@@ -61,10 +64,10 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
       () => {
         const fullscreenToolbar = (
           <NormalToolbar
-          key="toggle-fullscreen"
-          title={fullscreen ? t("editor.exitFullscreen") : t("editor.fullscreen")}
-          disabled={disabled}
-          onClick={onToggleFullscreen}
+            key="toggle-fullscreen"
+            title={fullscreen ? t("editor.exitFullscreen") : t("editor.fullscreen")}
+            disabled={disabled}
+            onClick={onToggleFullscreen}
           >
             {fullscreen ? (
               <Minimize2Icon className="h-[16px] w-[16px]" />
@@ -112,10 +115,9 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
         "revoke",
         "next",
         showModeSwitch ? 1 : 0,
-        "=",
         "preview",
         "previewOnly",
-      ],
+      ] as MdEditorToolbars,
       [showModeSwitch]
     )
 
