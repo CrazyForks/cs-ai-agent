@@ -818,37 +818,34 @@ type KnowledgeFeedback struct {
 
 // SkillDefinition 表示可由后台配置并参与运行时路由的 Skill 定义。
 type SkillDefinition struct {
-	ID            int64        `gorm:"primaryKey;autoIncrement"`                          // ID 为 Skill 主键。
-	Code          string       `gorm:"type:varchar(100);not null;default:'';uniqueIndex"` // Code 为 Skill 的稳定唯一编码，供程序内部引用和路由判断使用，例如 refund_skill。
-	Name          string       `gorm:"type:varchar(100);not null;default:'';index"`       // Name 为 Skill 的展示名称，用于后台列表、配置页和人工选择场景。
-	Description   string       `gorm:"type:varchar(255);not null;default:''"`             // Description 为 Skill 的简要说明，用于描述该 Skill 的适用场景和职责边界。
-	Instruction   string       `gorm:"type:longtext"`                                     // Instruction 为 Skill 的主体说明文档存储字段，使用 Markdown 编写，供 Agent 理解任务目标、步骤和工具使用要求。
-	Examples      string       `gorm:"type:text"`                                         // Examples 为示例问法 JSON 数组字符串。
-	ToolWhitelist string       `gorm:"type:text"`                                         // ToolWhitelist 为允许使用的工具编码 JSON 数组字符串。
-	Status        enums.Status `gorm:"type:int;not null;default:0;index"`                 // Status 为 Skill 当前状态，使用全局通用状态：0启用 1禁用 2删除。
-	Remark        string       `gorm:"type:text"`                                         // Remark 为后台备注，用于记录配置说明、维护信息或内部协作信息。
+	ID            int64        `gorm:"primaryKey;autoIncrement"`                    // ID 为 Skill 主键。
+	Name          string       `gorm:"type:varchar(100);not null;default:'';index"` // Name 为 Skill 的展示名称，用于后台列表、配置页和人工选择场景。
+	Description   string       `gorm:"type:varchar(255);not null;default:''"`       // Description 为 Skill 的简要说明，用于描述该 Skill 的适用场景和职责边界。
+	Instruction   string       `gorm:"type:longtext"`                               // Instruction 为 Skill 的主体说明文档存储字段，使用 Markdown 编写，供 Agent 理解任务目标、步骤和工具使用要求。
+	Examples      string       `gorm:"type:text"`                                   // Examples 为示例问法 JSON 数组字符串。
+	ToolWhitelist string       `gorm:"type:text"`                                   // ToolWhitelist 为允许使用的工具编码 JSON 数组字符串。
+	Status        enums.Status `gorm:"type:int;not null;default:0;index"`           // Status 为 Skill 当前状态，使用全局通用状态：0启用 1禁用 2删除。
+	Remark        string       `gorm:"type:text"`                                   // Remark 为后台备注，用于记录配置说明、维护信息或内部协作信息。
 	AuditFields
 }
 
 // SkillRunLog 表示一次 Skill 运行过程的审计日志。
 type SkillRunLog struct {
-	ID                int64            `gorm:"primaryKey;autoIncrement"`                    // ID 为 Skill 运行日志主键。
-	ConversationID    int64            `gorm:"type:bigint;not null;default:0;index"`        // ConversationID 为关联会话ID，无会话上下文时为0。
-	AIAgentID         int64            `gorm:"type:bigint;not null;default:0;index"`        // AIAgentID 为本次运行所属的 AI Agent ID。
-	AIConfigID        int64            `gorm:"type:bigint;not null;default:0;index"`        // AIConfigID 为本次运行实际使用的 AI 配置ID。
-	SkillDefinitionID int64            `gorm:"type:bigint;not null;default:0;index"`        // SkillDefinitionID 为最终命中的 Skill 定义ID，未命中时为0。
-	SkillCode         string           `gorm:"type:varchar(100);not null;default:'';index"` // SkillCode 为最终命中的 Skill 编码，未命中时为空。
-	ManualSkillCode   string           `gorm:"type:varchar(100);not null;default:'';index"` // ManualSkillCode 为本次请求显式指定的 Skill 编码。
-	IntentCode        string           `gorm:"type:varchar(100);not null;default:'';index"` // IntentCode 为上游传入的意图编码。
-	UserMessage       string           `gorm:"type:longtext"`                               // UserMessage 为本次请求的用户输入内容。
-	Matched           bool             `gorm:"not null;default:false;index"`                // Matched 表示本次请求是否命中了 Skill。
-	MatchReason       string           `gorm:"type:varchar(500);not null;default:''"`       // MatchReason 为命中或未命中的原因说明。
-	FinalSelected     bool             `gorm:"not null;default:false;index"`                // FinalSelected 表示该日志记录的 Skill 是否为最终选中的执行 Skill。
-	UsedModel         string           `gorm:"type:varchar(100);not null;default:''"`       // UsedModel 为本次实际调用的模型名称。
-	UsedProvider      enums.AIProvider `gorm:"type:varchar(50);not null;default:''"`        // UsedProvider 为本次实际调用的模型供应商。
-	ErrorMessage      string           `gorm:"type:text"`                                   // ErrorMessage 为运行过程中的错误信息。
-	TraceData         string           `gorm:"type:text"`                                   // TraceData 为 Skill 执行链路追踪数据JSON。
-	CreatedAt         time.Time        `gorm:"type:datetime;not null;index"`                // CreatedAt 为运行日志创建时间。
+	ID                int64            `gorm:"primaryKey;autoIncrement"`              // ID 为 Skill 运行日志主键。
+	ConversationID    int64            `gorm:"type:bigint;not null;default:0;index"`  // ConversationID 为关联会话ID，无会话上下文时为0。
+	AIAgentID         int64            `gorm:"type:bigint;not null;default:0;index"`  // AIAgentID 为本次运行所属的 AI Agent ID。
+	AIConfigID        int64            `gorm:"type:bigint;not null;default:0;index"`  // AIConfigID 为本次运行实际使用的 AI 配置ID。
+	SkillDefinitionID int64            `gorm:"type:bigint;not null;default:0;index"`  // SkillDefinitionID 为最终命中的 Skill 定义ID，未命中时为0。
+	ManualSkillID     int64            `gorm:"type:bigint;not null;default:0;index"`  // ManualSkillID 为本次请求显式指定的 Skill 定义ID。
+	UserMessage       string           `gorm:"type:longtext"`                         // UserMessage 为本次请求的用户输入内容。
+	Matched           bool             `gorm:"not null;default:false;index"`          // Matched 表示本次请求是否命中了 Skill。
+	MatchReason       string           `gorm:"type:varchar(500);not null;default:''"` // MatchReason 为命中或未命中的原因说明。
+	FinalSelected     bool             `gorm:"not null;default:false;index"`          // FinalSelected 表示该日志记录的 Skill 是否为最终选中的执行 Skill。
+	UsedModel         string           `gorm:"type:varchar(100);not null;default:''"` // UsedModel 为本次实际调用的模型名称。
+	UsedProvider      enums.AIProvider `gorm:"type:varchar(50);not null;default:''"`  // UsedProvider 为本次实际调用的模型供应商。
+	ErrorMessage      string           `gorm:"type:text"`                             // ErrorMessage 为运行过程中的错误信息。
+	TraceData         string           `gorm:"type:text"`                             // TraceData 为 Skill 执行链路追踪数据JSON。
+	CreatedAt         time.Time        `gorm:"type:datetime;not null;index"`          // CreatedAt 为运行日志创建时间。
 }
 
 // AgentRunLog 表示一次客服 Agent 自动运行的总链路日志。
@@ -861,7 +858,7 @@ type AgentRunLog struct {
 	AIConfigID       int64     `gorm:"type:bigint;not null;default:0;index"`
 	UserMessage      string    `gorm:"type:longtext"`
 	PlannedAction    string    `gorm:"type:varchar(30);not null;default:'';index"`
-	PlannedSkillCode string    `gorm:"type:varchar(100);not null;default:'';index"`
+	PlannedSkillID   int64     `gorm:"type:bigint;not null;default:0;index"`
 	PlannedSkillName string    `gorm:"type:varchar(100);not null;default:''"`
 	SkillRouteTrace  string    `gorm:"type:text"`
 	ToolSearchTrace  string    `gorm:"type:text"`

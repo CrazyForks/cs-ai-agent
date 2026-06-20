@@ -11,12 +11,11 @@ import (
 func TestBuildRunLogMatchedPlan(t *testing.T) {
 	log := BuildRunLog(
 		RuntimeContext{
-			AIAgent:         models.AIAgent{ID: 22},
-			AIConfig:        models.AIConfig{ID: 33},
-			ConversationID:  11,
-			ManualSkillCode: "manual_refund",
-			IntentCode:      "refund",
-			UserMessage:     "我要退款",
+			AIAgent:                 models.AIAgent{ID: 22},
+			AIConfig:                models.AIConfig{ID: 33},
+			ConversationID:          11,
+			ManualSkillDefinitionID: 44,
+			UserMessage:             "我要退款",
 		},
 		&ExecutionPlan{
 			AIAgent: models.AIAgent{ID: 22},
@@ -25,10 +24,7 @@ func TestBuildRunLogMatchedPlan(t *testing.T) {
 				ModelName: "gpt-test",
 				Provider:  enums.AIProviderOpenAI,
 			},
-			Skill: &models.SkillDefinition{
-				ID:   44,
-				Code: "refund_skill",
-			},
+			Skill:       &models.SkillDefinition{ID: 44},
 			MatchReason: "llm_route",
 		},
 		&ExecutionTrace{Status: "ok"},
@@ -41,7 +37,7 @@ func TestBuildRunLogMatchedPlan(t *testing.T) {
 	if log.ConversationID != 11 || log.AIAgentID != 22 || log.AIConfigID != 33 {
 		t.Fatalf("unexpected ids in run log: %#v", log)
 	}
-	if !log.Matched || !log.FinalSelected || log.SkillCode != "refund_skill" {
+	if !log.Matched || !log.FinalSelected || log.SkillDefinitionID != 44 {
 		t.Fatalf("expected matched skill log, got %#v", log)
 	}
 	if log.MatchReason != "llm_route" {

@@ -3,6 +3,7 @@ package callbacks
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"strings"
 	"time"
 
@@ -142,17 +143,19 @@ func (h *RuntimeTraceHandler) tryActivateSkill(argumentsInJSON string) {
 	if err := json.Unmarshal([]byte(strings.TrimSpace(argumentsInJSON)), &args); err != nil {
 		return
 	}
-	code := strings.TrimSpace(args.Skill)
-	if code == "" {
+	skillKey := strings.TrimSpace(args.Skill)
+	if skillKey == "" {
 		return
 	}
-	meta, ok := h.skillMetadataBy[code]
+	meta, ok := h.skillMetadataBy[skillKey]
 	if !ok {
-		meta = SkillMetadata{Code: code}
+		if id, err := strconv.ParseInt(skillKey, 10, 64); err == nil {
+			meta = SkillMetadata{ID: id}
+		}
 	}
 	buf, err := json.Marshal(map[string]any{
-		"source": "eino_skill_tool",
-		"skill":  code,
+		"source":  "eino_skill_tool",
+		"skillId": skillKey,
 	})
 	routeTrace := ""
 	if err == nil {

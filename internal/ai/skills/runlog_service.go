@@ -19,13 +19,12 @@ type RunLogService struct{}
 // Build 根据执行计划与运行结果构建 Skill 运行日志。
 func (s *RunLogService) Build(ctx RuntimeContext, plan *ExecutionPlan, trace *ExecutionTrace, err error) *models.SkillRunLog {
 	log := &models.SkillRunLog{
-		ConversationID:  ctx.ConversationID,
-		AIAgentID:       ctx.AIAgent.ID,
-		ManualSkillCode: ctx.ManualSkillCode,
-		IntentCode:      ctx.IntentCode,
-		UserMessage:     ctx.UserMessage,
-		TraceData:       s.buildTraceData(trace),
-		CreatedAt:       time.Now(),
+		ConversationID: ctx.ConversationID,
+		AIAgentID:      ctx.AIAgent.ID,
+		ManualSkillID:  ctx.ManualSkillDefinitionID,
+		UserMessage:    ctx.UserMessage,
+		TraceData:      s.buildTraceData(trace),
+		CreatedAt:      time.Now(),
 	}
 	if plan != nil {
 		log.AIConfigID = plan.AIConfig.ID
@@ -34,7 +33,6 @@ func (s *RunLogService) Build(ctx RuntimeContext, plan *ExecutionPlan, trace *Ex
 
 		if plan.Skill != nil {
 			log.SkillDefinitionID = plan.Skill.ID
-			log.SkillCode = plan.Skill.Code
 			log.Matched = true
 			log.FinalSelected = true
 			log.MatchReason = plan.MatchReason

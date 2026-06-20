@@ -33,7 +33,7 @@ type RunResult struct {
 	RunID                 string
 	Status                string
 	ReplyText             string
-	SelectedSkillCode     string
+	SelectedSkillID       int64
 	SelectedSkillName     string
 	SkillRouteReason      string
 	SkillRouteTrace       string

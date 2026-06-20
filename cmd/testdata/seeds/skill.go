@@ -5,10 +5,7 @@ import (
 	"agent-desk/internal/pkg/enums"
 )
 
-const AfterSalesEscalationSkillCode = "after_sales_escalation_skill"
-
 type SkillDefinitionSeed struct {
-	Code          string
 	Name          string
 	Description   string
 	Instruction   string
@@ -22,7 +19,6 @@ func SkillDefinitionSeeds(lang seedlang.Language) []SkillDefinitionSeed {
 	if lang == seedlang.English {
 		return []SkillDefinitionSeed{
 			{
-				Code:        AfterSalesEscalationSkillCode,
 				Name:        "After-sales Escalation",
 				Description: "Handles incidents, complaints, after-sales follow-up, ticket creation, and human handoff requests. Match only when the user clearly needs after-sales intervention or escalation; do not match ordinary greetings, product introductions, or general inquiries.",
 				Instruction: `You are the dedicated "After-sales Escalation" skill responsible for customer support requests that require escalation.
@@ -65,7 +61,6 @@ Response requirements:
 	}
 	return []SkillDefinitionSeed{
 		{
-			Code:        AfterSalesEscalationSkillCode,
 			Name:        "售后升级处理",
 			Description: "处理报障、投诉、售后跟进、建单、转人工等升级诉求。只在用户明确需要售后介入或问题升级处理时命中，不处理普通问候、产品介绍或泛咨询。",
 			Instruction: `你是“售后升级处理”专项 Skill，负责承接需要升级处理的客服诉求。

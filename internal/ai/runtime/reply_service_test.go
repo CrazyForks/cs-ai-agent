@@ -72,8 +72,8 @@ func TestResolveReplyTimeout(t *testing.T) {
 
 func TestBuildRunLogPlan(t *testing.T) {
 	summary := &applicationruntime.Summary{
-		PlannedSkillCode: "faq_router",
-		PlanReason:       "manual",
+		PlannedSkillID: 44,
+		PlanReason:     "manual",
 	}
 	action, toolCode, reason := buildRunLogPlan(summary)
 	if action != "skill" || toolCode != "" || reason != "manual" {

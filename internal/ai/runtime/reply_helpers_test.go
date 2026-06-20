@@ -26,7 +26,7 @@ func TestSummaryPrimaryToolCodePrefersToolSearchTarget(t *testing.T) {
 }
 
 func TestToRunLogFinalAction(t *testing.T) {
-	if got := toRunLogFinalAction(&applicationruntime.Summary{PlannedSkillCode: "refund", ReplyText: "ok"}); got != "skill" {
+	if got := toRunLogFinalAction(&applicationruntime.Summary{PlannedSkillID: 44, ReplyText: "ok"}); got != "skill" {
 		t.Fatalf("expected skill final action, got %q", got)
 	}
 

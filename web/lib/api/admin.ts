@@ -232,7 +232,7 @@ export type AIAgent = {
   knowledgeIds: number[]
   knowledgeBaseNames: string[]
   skillIds: number[]
-  skills: { id: number; code: string; name: string }[]
+  skills: { id: number; name: string }[]
   directTools: {
     toolCode: string
     serverCode: string
@@ -292,7 +292,6 @@ export type UpdateAdminQuickReplyPayload = CreateAdminQuickReplyPayload & {
 
 export type SkillDefinition = {
   id: number
-  code: string
   name: string
   description: string
   instruction: string
@@ -308,7 +307,6 @@ export type SkillDefinition = {
 }
 
 export type CreateSkillDefinitionPayload = {
-  code: string
   name: string
   description: string
   instruction: string
@@ -324,7 +322,7 @@ export type UpdateSkillDefinitionPayload = CreateSkillDefinitionPayload & {
 export type SkillDebugRunPayload = {
   aiAgentId: number
   conversationId?: number
-  skillCode: string
+  skillDefinitionId: number
   userMessage: string
 }
 
@@ -336,7 +334,7 @@ export type SkillDebugResumePayload = {
 }
 
 export type SkillDebugRunResult = {
-  skillCode: string
+  skillDefinitionId: number
   skillName: string
   replyText: string
   planReason: string
@@ -415,7 +413,7 @@ export type AgentRunLog = {
   aiConfigId: number
   userMessage: string
   plannedAction: string
-  plannedSkillCode: string
+  plannedSkillId: number
   plannedSkillName: string
   skillRouteTrace: string
   toolSearchTrace: string

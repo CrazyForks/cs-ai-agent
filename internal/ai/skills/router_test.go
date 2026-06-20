@@ -18,7 +18,7 @@ func TestParseSkillExamples(t *testing.T) {
 }
 
 func TestNormalizeRouteDecision(t *testing.T) {
-	if got := normalizeRouteDecision("```refund_skill```\n补充说明"); got != "refund_skill" {
+	if got := normalizeRouteDecision("```44```\n补充说明"); got != "44" {
 		t.Fatalf("unexpected normalized decision: %q", got)
 	}
 	if got := normalizeRouteDecision(" none "); got != "NONE" {
@@ -29,20 +29,20 @@ func TestNormalizeRouteDecision(t *testing.T) {
 func TestBuildSkillRoutePrompt(t *testing.T) {
 	prompt := buildSkillRoutePrompt("我要申请退款", []models.SkillDefinition{
 		{
-			Code:        "refund_skill",
+			ID:          44,
 			Name:        "退款处理",
 			Description: "负责退款和退货相关问题",
 			Examples:    `["退款进度","退货运费"]`,
 		},
 	})
 
-	if !strings.Contains(prompt, "skillCode=refund_skill") {
-		t.Fatalf("expected prompt to include skill code, got %q", prompt)
+	if !strings.Contains(prompt, "skillId=44") {
+		t.Fatalf("expected prompt to include skill id, got %q", prompt)
 	}
 	if !strings.Contains(prompt, "examples=退款进度 | 退货运费") {
 		t.Fatalf("expected prompt to include examples, got %q", prompt)
 	}
-	if !strings.Contains(prompt, "请只输出一个 skillCode 或 NONE。") {
+	if !strings.Contains(prompt, "请只输出一个 skillId 或 NONE。") {
 		t.Fatalf("expected prompt to include output constraint, got %q", prompt)
 	}
 }

@@ -16,7 +16,7 @@ func BuildSelectedSkillActivationInstruction(skill *models.SkillDefinition) stri
 	}
 	lines := []string{
 		"当前命中的专项技能：",
-		fmt.Sprintf("- code: %s", strings.TrimSpace(skill.Code)),
+		fmt.Sprintf("- id: %d", skill.ID),
 		fmt.Sprintf("- name: %s", strings.TrimSpace(skill.Name)),
 	}
 	if desc := strings.TrimSpace(skill.Description); desc != "" {
@@ -36,7 +36,7 @@ func BuildSkillDocument(skill *models.SkillDefinition, toolDefinitions []runtime
 	}
 	lines := []string{
 		"当前命中的专项技能：",
-		fmt.Sprintf("- code: %s", strings.TrimSpace(skill.Code)),
+		fmt.Sprintf("- id: %d", skill.ID),
 		fmt.Sprintf("- name: %s", strings.TrimSpace(skill.Name)),
 	}
 	if desc := strings.TrimSpace(skill.Description); desc != "" {

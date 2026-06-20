@@ -215,7 +215,6 @@ func buildAIAgentResponseWithLocale(item *models.AIAgent, locale string) respons
 		if skill := services.SkillDefinitionService.Get(id); skill != nil {
 			ret.Skills = append(ret.Skills, response.AIAgentSkillResponse{
 				ID:   skill.ID,
-				Code: skill.Code,
 				Name: skill.Name,
 			})
 		}

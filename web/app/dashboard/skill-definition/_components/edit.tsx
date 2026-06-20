@@ -37,7 +37,6 @@ type SkillEditDialogProps = {
 };
 
 const emptyForm: EditForm = {
-  code: "",
   name: "",
   description: "",
   instruction: "",
@@ -47,21 +46,15 @@ const emptyForm: EditForm = {
 
 function createSkillFormSchema(t: TFunction) {
   return z.object({
-  code: z
-    .string()
-    .trim()
-    .min(1, t("skillDefinition.codeRequired"))
-    .regex(/^[a-zA-Z0-9_-]+$/, t("skillDefinition.codeInvalid")),
-  name: z.string().trim().min(1, t("skillDefinition.nameRequired")),
-  description: z.string().trim(),
-  instruction: z.string().trim().min(1, t("skillDefinition.instructionRequired")),
-  examplesText: z.string().trim(),
-  remark: z.string().trim(),
+    name: z.string().trim().min(1, t("skillDefinition.nameRequired")),
+    description: z.string().trim(),
+    instruction: z.string().trim().min(1, t("skillDefinition.instructionRequired")),
+    examplesText: z.string().trim(),
+    remark: z.string().trim(),
   });
 }
 
 type EditForm = {
-  code: string;
   name: string;
   description: string;
   instruction: string;
@@ -75,7 +68,6 @@ function buildForm(item: SkillDefinition | null): EditForm {
   }
 
   return {
-    code: item.code,
     name: item.name,
     description: item.description ?? "",
     instruction: item.instruction ?? "",
@@ -89,7 +81,6 @@ function buildPayload(
   toolWhitelist: string[],
 ): CreateSkillDefinitionPayload {
   return {
-    code: form.code.trim(),
     name: form.name.trim(),
     description: form.description.trim(),
     instruction: form.instruction.trim(),
@@ -276,32 +267,18 @@ function SkillEditDialogBody({
           onSubmit={handleSubmit(onFormSubmit)}
           className="space-y-4"
         >
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field data-invalid={!!errors.code}>
-              <FieldLabel htmlFor="skill-code">{t("skillDefinition.code")}</FieldLabel>
-              <FieldContent>
-                <Input
-                  id="skill-code"
-                  placeholder={t("skillDefinition.codePlaceholder")}
-                  aria-invalid={!!errors.code}
-                  {...register("code")}
-                />
-                <FieldError errors={[errors.code]} />
-              </FieldContent>
-            </Field>
-            <Field data-invalid={!!errors.name}>
-              <FieldLabel htmlFor="skill-name">{t("skillDefinition.name")}</FieldLabel>
-              <FieldContent>
-                <Input
-                  id="skill-name"
-                  placeholder={t("skillDefinition.namePlaceholder")}
-                  aria-invalid={!!errors.name}
-                  {...register("name")}
-                />
-                <FieldError errors={[errors.name]} />
-              </FieldContent>
-            </Field>
-          </div>
+         <Field data-invalid={!!errors.name}>
+            <FieldLabel htmlFor="skill-name">{t("skillDefinition.name")}</FieldLabel>
+            <FieldContent>
+              <Input
+                id="skill-name"
+                placeholder={t("skillDefinition.namePlaceholder")}
+                aria-invalid={!!errors.name}
+                {...register("name")}
+              />
+              <FieldError errors={[errors.name]} />
+            </FieldContent>
+          </Field>
 
           <Field data-invalid={!!errors.description}>
             <FieldLabel htmlFor="skill-description">{t("skillDefinition.description")}</FieldLabel>

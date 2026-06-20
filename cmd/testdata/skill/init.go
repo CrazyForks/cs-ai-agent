@@ -6,12 +6,11 @@ import (
 	"agent-desk/internal/models"
 	"agent-desk/internal/repositories"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/mlogclub/simple/sqls"
 )
-
-const AfterSalesEscalationSkillCode = seeds.AfterSalesEscalationSkillCode
 
 type InitResult struct {
 	Created int
@@ -24,7 +23,7 @@ func Init(lang seedlang.Language) (*InitResult, error) {
 	for _, item := range seedItems {
 		itemCopy := item
 		if err := sqls.WithTransaction(func(ctx *sqls.TxContext) error {
-			existing := repositories.SkillDefinitionRepository.Take(ctx.Tx, "code = ?", itemCopy.Code)
+			existing := repositories.SkillDefinitionRepository.Take(ctx.Tx, "name = ?", strings.TrimSpace(itemCopy.Name))
 			if existing != nil {
 				if err := ctx.Tx.Model(existing).Updates(&itemCopy).Error; err != nil {
 					return err
@@ -50,7 +49,6 @@ func buildModels(lang seedlang.Language) []models.SkillDefinition {
 	items := make([]models.SkillDefinition, 0, len(seedItems))
 	for _, seed := range seedItems {
 		items = append(items, models.SkillDefinition{
-			Code:          seed.Code,
 			Name:          seed.Name,
 			Description:   seed.Description,
 			Instruction:   seed.Instruction,

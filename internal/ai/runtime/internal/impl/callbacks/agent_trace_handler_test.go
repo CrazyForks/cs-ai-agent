@@ -42,18 +42,18 @@ func TestTryActivateSkill(t *testing.T) {
 	handler := &RuntimeTraceHandler{
 		collector: collector,
 		skillMetadataBy: map[string]SkillMetadata{
-			"after_sales_escalation_skill": {
-				Code:             "after_sales_escalation_skill",
+			"44": {
+				ID:               44,
 				Name:             "售后升级",
 				AllowedToolCodes: []string{"graph/handoff_to_human"},
 			},
 		},
 	}
 
-	handler.tryActivateSkill(`{"skill":"after_sales_escalation_skill"}`)
+	handler.tryActivateSkill(`{"skill":"44"}`)
 
-	if collector.Data.Skill.Code != "after_sales_escalation_skill" {
-		t.Fatalf("unexpected skill code: %#v", collector.Data.Skill)
+	if collector.Data.Skill.ID != 44 {
+		t.Fatalf("unexpected skill id: %#v", collector.Data.Skill)
 	}
 	if collector.Data.Skill.Name != "售后升级" {
 		t.Fatalf("unexpected skill name: %#v", collector.Data.Skill)

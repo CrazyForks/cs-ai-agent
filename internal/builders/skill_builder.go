@@ -19,7 +19,6 @@ func BuildSkillDefinitionResponse(item *models.SkillDefinition) response.SkillDe
 	}
 	return response.SkillDefinitionResponse{
 		ID:             item.ID,
-		Code:           item.Code,
 		Name:           item.Name,
 		Description:    item.Description,
 		Instruction:    item.Instruction,

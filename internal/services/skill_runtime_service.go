@@ -24,7 +24,7 @@ func (s *skillRuntimeService) DebugRun(ctx context.Context, req request.SkillDeb
 	if req.AIAgentID <= 0 {
 		return nil, errorsx.InvalidParamI18n("error.e0061")
 	}
-	if strings.TrimSpace(req.SkillCode) == "" {
+	if req.SkillDefinitionID <= 0 {
 		return nil, errorsx.InvalidParamI18n("error.e0071")
 	}
 	if strings.TrimSpace(req.UserMessage) == "" {

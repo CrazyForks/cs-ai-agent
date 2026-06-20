@@ -152,7 +152,7 @@ type RuntimeTraceData struct {
 }
 
 type SkillTraceData struct {
-	Code               string   `json:"code,omitempty"`
+	ID                 int64    `json:"id,omitempty"`
 	Name               string   `json:"name,omitempty"`
 	Description        string   `json:"description,omitempty"`
 	RouteReason        string   `json:"routeReason,omitempty"`
@@ -161,7 +161,7 @@ type SkillTraceData struct {
 	FilteredToolCodes  []string `json:"filteredToolCodes,omitempty"`
 	MiddlewareEnabled  bool     `json:"middlewareEnabled,omitempty"`
 	MiddlewareToolName string   `json:"middlewareToolName,omitempty"`
-	VisibleCodes       []string `json:"visibleCodes,omitempty"`
+	VisibleIDs         []int64  `json:"visibleIds,omitempty"`
 }
 
 type InterruptTraceContext struct {

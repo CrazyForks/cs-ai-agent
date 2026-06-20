@@ -13,7 +13,7 @@ func toSummary(summary *executor.RunResult) *Summary {
 		RunID:                 summary.RunID,
 		Status:                summary.Status,
 		ReplyText:             summary.ReplyText,
-		PlannedSkillCode:      strings.TrimSpace(summary.SelectedSkillCode),
+		PlannedSkillID:        summary.SelectedSkillID,
 		PlannedSkillName:      strings.TrimSpace(summary.SelectedSkillName),
 		PlanReason:            strings.TrimSpace(summary.SkillRouteReason),
 		SkillRouteTrace:       strings.TrimSpace(summary.SkillRouteTrace),

@@ -33,7 +33,7 @@ import { useI18n } from "@/i18n/provider"
 
 type DebugDialogProps = {
   open: boolean
-  skillCode: string
+  skillDefinitionId: number
   skillName: string
   onOpenChange: (open: boolean) => void
 }
@@ -96,7 +96,7 @@ function ResultBlock({
 
 export function DebugDialog({
   open,
-  skillCode,
+  skillDefinitionId,
   skillName,
   onOpenChange,
 }: DebugDialogProps) {
@@ -106,9 +106,9 @@ export function DebugDialog({
 
   return (
     <DebugDialogBody
-      key={skillCode}
+      key={skillDefinitionId}
       open={open}
-      skillCode={skillCode}
+      skillDefinitionId={skillDefinitionId}
       skillName={skillName}
       onOpenChange={onOpenChange}
     />
@@ -117,12 +117,12 @@ export function DebugDialog({
 
 function DebugDialogBody({
   open,
-  skillCode,
+  skillDefinitionId,
   skillName,
   onOpenChange,
 }: DebugDialogProps) {
   const t = useI18n()
-  const formId = `skill-debug-form-${skillCode}`
+  const formId = `skill-debug-form-${skillDefinitionId}`
   const [running, setRunning] = useState(false)
   const [resuming, setResuming] = useState(false)
   const [aiAgents, setAiAgents] = useState<AIAgent[]>([])
@@ -198,7 +198,7 @@ function DebugDialogBody({
   async function onSubmit(values: DebugForm) {
     const payload: SkillDebugRunPayload = {
       aiAgentId: Number(values.aiAgentId),
-      skillCode,
+      skillDefinitionId,
       userMessage: values.userMessage.trim(),
     }
     const conversationId = Number(values.conversationId)
@@ -256,7 +256,7 @@ function DebugDialogBody({
     <ProjectDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={t("skillDefinition.debugTitle", { name: skillName || skillCode })}
+      title={t("skillDefinition.debugTitle", { name: skillName })}
       description={t("skillDefinition.debugDescription")}
       size="xl"
       allowFullscreen
@@ -322,7 +322,7 @@ function DebugDialogBody({
                 <Field>
                   <FieldLabel>Skill</FieldLabel>
                   <FieldContent>
-                    <Input value={skillCode} disabled />
+                    <Input value={skillName} disabled />
                   </FieldContent>
                 </Field>
                 <Field>
@@ -359,7 +359,7 @@ function DebugDialogBody({
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div className="flex flex-wrap gap-2">
-                <Badge variant="outline">{result?.skillCode || skillCode}</Badge>
+                <Badge variant="outline">{result?.skillName || skillName}</Badge>
                 {result?.graphToolCode ? (
                   <Badge variant="secondary">{result.graphToolCode}</Badge>
                 ) : null}
@@ -522,7 +522,7 @@ function DebugDialogBody({
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline">{resumeResult.skillCode || skillCode}</Badge>
+                  <Badge variant="outline">{resumeResult.skillName || skillName}</Badge>
                   {resumeResult.graphToolCode ? (
                     <Badge variant="secondary">{resumeResult.graphToolCode}</Badge>
                   ) : null}

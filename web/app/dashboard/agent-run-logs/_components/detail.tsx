@@ -122,7 +122,7 @@ export function AgentRunLogDetailDialog({
             title={t("agentRunLog.planningStage")}
             lines={[
               `plannedAction: ${activeLog.plannedAction || "-"}`,
-              `plannedSkillCode: ${activeLog.plannedSkillCode || "-"}`,
+              `plannedSkillId: ${activeLog.plannedSkillId || "-"}`,
               `plannedSkillName: ${activeLog.plannedSkillName || "-"}`,
               `graphToolCode: ${activeLog.graphToolCode || "-"}`,
               `recommendedAction: ${activeLog.recommendedAction || "-"}`,

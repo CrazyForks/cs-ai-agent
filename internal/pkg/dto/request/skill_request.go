@@ -2,12 +2,10 @@ package request
 
 type SkillDefinitionListRequest struct {
 	Name   string `json:"name"`
-	Code   string `json:"code"`
 	Status int    `json:"status"`
 }
 
 type CreateSkillDefinitionRequest struct {
-	Code          string   `json:"code"`
 	Name          string   `json:"name"`
 	Description   string   `json:"description"`
 	Instruction   string   `json:"instruction"`
@@ -35,10 +33,10 @@ type UpdateSkillDefinitionStatusRequest struct {
 }
 
 type SkillDebugRunRequest struct {
-	AIAgentID      int64  `json:"aiAgentId"`
-	ConversationID int64  `json:"conversationId"`
-	SkillCode      string `json:"skillCode"`
-	UserMessage    string `json:"userMessage"`
+	AIAgentID         int64  `json:"aiAgentId"`
+	ConversationID    int64  `json:"conversationId"`
+	SkillDefinitionID int64  `json:"skillDefinitionId"`
+	UserMessage       string `json:"userMessage"`
 }
 
 type SkillDebugResumeRequest struct {

@@ -16,8 +16,11 @@ var newCandidateLoader = func() *candidateLoader {
 type candidateLoader struct {
 }
 
-func (l *candidateLoader) findManualSkillDefinition(skillCode string) *models.SkillDefinition {
-	return repositories.SkillDefinitionRepository.GetByCode(sqls.DB(), skillCode)
+func (l *candidateLoader) findManualSkillDefinition(skillDefinitionID int64) *models.SkillDefinition {
+	if skillDefinitionID <= 0 {
+		return nil
+	}
+	return repositories.SkillDefinitionRepository.Get(sqls.DB(), skillDefinitionID)
 }
 
 func (l *candidateLoader) loadCandidateSkills(aiAgent models.AIAgent) []models.SkillDefinition {

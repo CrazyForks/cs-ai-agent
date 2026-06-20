@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 
 	runtimeinstruction "agent-desk/internal/ai/runtime/instruction"
@@ -17,7 +18,7 @@ import (
 )
 
 type runtimeSkillMetadata struct {
-	Code             string
+	ID               int64
 	Name             string
 	Description      string
 	AllowedToolCodes []string
@@ -25,7 +26,7 @@ type runtimeSkillMetadata struct {
 
 type databaseSkillBackend struct {
 	toolDefinitions []runtimetooling.MCPToolDefinition
-	skillsByCode    map[string]models.SkillDefinition
+	skillsByID      map[string]models.SkillDefinition
 	order           []string
 }
 
@@ -36,18 +37,18 @@ func newDatabaseSkillBackend(aiAgent models.AIAgent, toolDefinitions []runtimeto
 	}
 	ret := &databaseSkillBackend{
 		toolDefinitions: append([]runtimetooling.MCPToolDefinition(nil), toolDefinitions...),
-		skillsByCode:    make(map[string]models.SkillDefinition, len(visibleSkills)),
+		skillsByID:      make(map[string]models.SkillDefinition, len(visibleSkills)),
 		order:           make([]string, 0, len(visibleSkills)),
 	}
 	for _, item := range visibleSkills {
-		code := strings.TrimSpace(item.Code)
-		if code == "" {
+		id := strconv.FormatInt(item.ID, 10)
+		if id == "" {
 			continue
 		}
-		ret.skillsByCode[code] = item
-		ret.order = append(ret.order, code)
+		ret.skillsByID[id] = item
+		ret.order = append(ret.order, id)
 	}
-	if len(ret.skillsByCode) == 0 {
+	if len(ret.skillsByID) == 0 {
 		return nil, fmt.Errorf("no visible skills available")
 	}
 	return ret, nil
@@ -58,13 +59,13 @@ func (b *databaseSkillBackend) List(_ context.Context) ([]einoskill.FrontMatter,
 		return nil, nil
 	}
 	ret := make([]einoskill.FrontMatter, 0, len(b.order))
-	for _, code := range b.order {
-		item, ok := b.skillsByCode[code]
+	for _, id := range b.order {
+		item, ok := b.skillsByID[id]
 		if !ok {
 			continue
 		}
 		ret = append(ret, einoskill.FrontMatter{
-			Name:        strings.TrimSpace(item.Code),
+			Name:        strconv.FormatInt(item.ID, 10),
 			Description: skillListDescription(item),
 		})
 	}
@@ -79,13 +80,13 @@ func (b *databaseSkillBackend) Get(_ context.Context, name string) (einoskill.Sk
 	if name == "" {
 		return einoskill.Skill{}, fmt.Errorf("skill name is empty")
 	}
-	item, ok := b.skillsByCode[name]
+	item, ok := b.skillsByID[name]
 	if !ok {
 		return einoskill.Skill{}, fmt.Errorf("skill %q not found", name)
 	}
 	return einoskill.Skill{
 		FrontMatter: einoskill.FrontMatter{
-			Name:        strings.TrimSpace(item.Code),
+			Name:        strconv.FormatInt(item.ID, 10),
 			Description: skillListDescription(item),
 		},
 		Content:       runtimeinstruction.BuildSkillDocument(&item, filterSkillToolDefinitions(b.toolDefinitions, &item)),
@@ -105,7 +106,7 @@ func loadVisibleSkills(aiAgent models.AIAgent) []models.SkillDefinition {
 	ret := make([]models.SkillDefinition, 0, len(ids))
 	for _, id := range ids {
 		item, ok := byID[id]
-		if !ok || item.Status != enums.StatusOk || strings.TrimSpace(item.Code) == "" {
+		if !ok || item.Status != enums.StatusOk || item.ID <= 0 {
 			continue
 		}
 		ret = append(ret, item)
@@ -120,12 +121,12 @@ func buildRuntimeSkillMetadataMap(aiAgent models.AIAgent) map[string]runtimeSkil
 	}
 	ret := make(map[string]runtimeSkillMetadata, len(visibleSkills))
 	for _, item := range visibleSkills {
-		code := strings.TrimSpace(item.Code)
-		if code == "" {
+		if item.ID <= 0 {
 			continue
 		}
-		ret[code] = runtimeSkillMetadata{
-			Code:             code,
+		id := strconv.FormatInt(item.ID, 10)
+		ret[id] = runtimeSkillMetadata{
+			ID:               item.ID,
 			Name:             strings.TrimSpace(item.Name),
 			Description:      skillListDescription(item),
 			AllowedToolCodes: parseSkillToolWhitelist(item.ToolWhitelist),
@@ -145,7 +146,7 @@ func skillListDescription(item models.SkillDefinition) string {
 	if name := strings.TrimSpace(item.Name); name != "" {
 		return name
 	}
-	return strings.TrimSpace(item.Code)
+	return fmt.Sprintf("Skill %d", item.ID)
 }
 
 func parseSkillToolWhitelist(raw string) []string {

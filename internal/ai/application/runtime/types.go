@@ -33,7 +33,7 @@ type Summary struct {
 	RunID                 string
 	Status                string
 	ReplyText             string
-	PlannedSkillCode      string
+	PlannedSkillID        int64
 	PlannedSkillName      string
 	PlanReason            string
 	SkillRouteTrace       string

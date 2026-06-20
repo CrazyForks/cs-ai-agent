@@ -213,7 +213,7 @@ func syncSkillSummaryFromCollector(summary *RunResult, collector *callbacks.Runt
 		return
 	}
 	trace := collector.Data.Skill
-	summary.SelectedSkillCode = strings.TrimSpace(trace.Code)
+	summary.SelectedSkillID = trace.ID
 	summary.SelectedSkillName = strings.TrimSpace(trace.Name)
 	summary.SkillRouteReason = strings.TrimSpace(trace.RouteReason)
 	summary.SkillRouteTrace = strings.TrimSpace(trace.RouteTrace)

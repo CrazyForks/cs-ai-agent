@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -13,10 +14,10 @@ import (
 	"github.com/mlogclub/simple/common/strs"
 )
 
-const routeSkillSystemPrompt = `你是客服技能路由器。你只能在候选 Skill 中选择一个最合适的 skillCode，或者返回 NONE。
+const routeSkillSystemPrompt = `你是客服技能路由器。你只能在候选 Skill 中选择一个最合适的 skillId，或者返回 NONE。
 只有当用户问题与 Skill 的职责边界明确匹配时才选择；
 如果不明确、信息不足、多个 Skill 都不够确定，就返回 NONE。
-输出只能是 skillCode 或 NONE，不能输出其他内容。`
+输出只能是 skillId 或 NONE，不能输出其他内容。`
 
 func routeSkillWithLLM(ctx context.Context, runtimeCtx RuntimeContext, candidates []models.SkillDefinition) (*models.SkillDefinition, *RouteTrace, error) {
 	trace := &RouteTrace{Status: "started"}
@@ -43,10 +44,16 @@ func routeSkillWithLLM(ctx context.Context, runtimeCtx RuntimeContext, candidate
 		trace.Status = "not_matched"
 		return nil, trace, nil
 	}
+	selectedID, parseErr := strconv.ParseInt(decision, 10, 64)
+	if parseErr != nil || selectedID <= 0 {
+		trace.Status = "invalid_decision"
+		trace.Error = fmt.Sprintf("invalid route decision: %s", decision)
+		return nil, trace, nil
+	}
 	for _, item := range candidates {
-		if strings.EqualFold(item.Code, decision) {
+		if item.ID == selectedID {
 			trace.Status = "llm_selected"
-			trace.SelectedSkillCode = item.Code
+			trace.SelectedSkillID = item.ID
 			return &item, trace, nil
 		}
 	}
@@ -62,14 +69,14 @@ func buildSkillRoutePrompt(userMessage string, candidates []models.SkillDefiniti
 	lines = append(lines, "")
 	lines = append(lines, "候选 Skills：")
 	for _, item := range candidates {
-		line := fmt.Sprintf("- skillCode=%s; name=%s; description=%s", strings.TrimSpace(item.Code), strings.TrimSpace(item.Name), strings.TrimSpace(item.Description))
+		line := fmt.Sprintf("- skillId=%d; name=%s; description=%s", item.ID, strings.TrimSpace(item.Name), strings.TrimSpace(item.Description))
 		if examples := parseSkillExamples(item.Examples); len(examples) > 0 {
 			line += "; examples=" + strings.Join(examples, " | ")
 		}
 		lines = append(lines, line)
 	}
 	lines = append(lines, "")
-	lines = append(lines, "请只输出一个 skillCode 或 NONE。")
+	lines = append(lines, "请只输出一个 skillId 或 NONE。")
 	return strings.Join(lines, "\n")
 }
 

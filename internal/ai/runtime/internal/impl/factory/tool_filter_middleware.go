@@ -15,7 +15,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 )
 
-const activeSkillRunLocalKey = "runtime_active_skill_code"
+const activeSkillRunLocalKey = "runtime_active_skill_id"
 
 type RuntimeToolFilterMiddleware struct {
 	*adk.BaseChatModelAgentMiddleware
@@ -72,7 +72,7 @@ func (m *RuntimeToolFilterMiddleware) WrapInvokableToolCall(_ context.Context, e
 			return result, err
 		}
 		if strings.TrimSpace(metadata.ToolCode) == toolx.BuiltinSkill.Code {
-			_ = m.setActiveSkill(ctx, skillCodeFromArguments(argumentsInJSON))
+			_ = m.setActiveSkill(ctx, skillIDFromArguments(argumentsInJSON))
 			return result, nil
 		}
 		if strings.TrimSpace(metadata.ToolCode) == toolx.BuiltinToolSearch.Code {
@@ -90,7 +90,7 @@ func (m *RuntimeToolFilterMiddleware) WrapInvokableToolCall(_ context.Context, e
 }
 
 func (m *RuntimeToolFilterMiddleware) blockToolCall(metadata einocallbacks.ToolMetadata, argumentsInJSON string, activeSkill einocallbacks.SkillMetadata) error {
-	err := fmt.Errorf("tool %s is not allowed for active skill %s", strings.TrimSpace(metadata.ToolCode), strings.TrimSpace(activeSkill.Code))
+	err := fmt.Errorf("tool %s is not allowed for active skill %d", strings.TrimSpace(metadata.ToolCode), activeSkill.ID)
 	if m.collector != nil {
 		m.collector.AddToolItem(einocallbacks.ToolTraceItem{
 			ToolCode:      strings.TrimSpace(metadata.ToolCode),
@@ -106,12 +106,12 @@ func (m *RuntimeToolFilterMiddleware) blockToolCall(metadata einocallbacks.ToolM
 	return err
 }
 
-func (m *RuntimeToolFilterMiddleware) setActiveSkill(ctx context.Context, skillCode string) error {
-	skillCode = strings.TrimSpace(skillCode)
-	if skillCode == "" {
+func (m *RuntimeToolFilterMiddleware) setActiveSkill(ctx context.Context, skillID string) error {
+	skillID = strings.TrimSpace(skillID)
+	if skillID == "" {
 		return nil
 	}
-	return adk.SetRunLocalValue(ctx, activeSkillRunLocalKey, skillCode)
+	return adk.SetRunLocalValue(ctx, activeSkillRunLocalKey, skillID)
 }
 
 func (m *RuntimeToolFilterMiddleware) resolveActiveSkill(ctx context.Context) (einocallbacks.SkillMetadata, bool) {
@@ -122,15 +122,15 @@ func (m *RuntimeToolFilterMiddleware) resolveActiveSkill(ctx context.Context) (e
 	if err != nil || !found {
 		return einocallbacks.SkillMetadata{}, false
 	}
-	code, ok := value.(string)
+	skillID, ok := value.(string)
 	if !ok {
 		return einocallbacks.SkillMetadata{}, false
 	}
-	code = strings.TrimSpace(code)
-	if code == "" {
+	skillID = strings.TrimSpace(skillID)
+	if skillID == "" {
 		return einocallbacks.SkillMetadata{}, false
 	}
-	skill, ok := m.skillMetadataBy[code]
+	skill, ok := m.skillMetadataBy[skillID]
 	if !ok {
 		return einocallbacks.SkillMetadata{}, false
 	}
@@ -179,12 +179,12 @@ func resolveActiveSkillMetadata(ctx context.Context, skills map[string]einocallb
 	if err != nil || !found {
 		return einocallbacks.SkillMetadata{}, false
 	}
-	code, ok := value.(string)
+	skillID, ok := value.(string)
 	if !ok {
 		return einocallbacks.SkillMetadata{}, false
 	}
-	code = strings.TrimSpace(code)
-	skill, ok := skills[code]
+	skillID = strings.TrimSpace(skillID)
+	skill, ok := skills[skillID]
 	if !ok || len(skill.AllowedToolCodes) == 0 {
 		return skill, false
 	}
@@ -330,7 +330,7 @@ func resolveRuntimeToolMetadata(toolName string, toolMetadataByName map[string]e
 	return metadata, ok
 }
 
-func skillCodeFromArguments(argumentsInJSON string) string {
+func skillIDFromArguments(argumentsInJSON string) string {
 	var args struct {
 		Skill string `json:"skill"`
 	}

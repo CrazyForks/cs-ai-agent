@@ -38,19 +38,19 @@ func NewAgentHandlerService(skillMiddleware *SkillMiddlewareService) *AgentHandl
 
 func (s *AgentHandlerService) Build(ctx context.Context, input BuildAgentHandlersInput) ([]adk.ChatModelAgentMiddleware, error) {
 	handlers := make([]adk.ChatModelAgentMiddleware, 0, 4)
-	skillMetadataByCode := buildRuntimeSkillMetadataMap(input.AIAgent)
-	toolMetadataBy := buildRuntimeTraceToolMetadata(input.DynamicToolDefinitions, input.StaticToolMetadata, len(skillMetadataByCode) > 0)
-	traceSkillMetadata := make(map[string]einocallbacks.SkillMetadata, len(skillMetadataByCode))
-	for code, item := range skillMetadataByCode {
-		traceSkillMetadata[code] = einocallbacks.SkillMetadata{
-			Code:             item.Code,
+	skillMetadataByID := buildRuntimeSkillMetadataMap(input.AIAgent)
+	toolMetadataBy := buildRuntimeTraceToolMetadata(input.DynamicToolDefinitions, input.StaticToolMetadata, len(skillMetadataByID) > 0)
+	traceSkillMetadata := make(map[string]einocallbacks.SkillMetadata, len(skillMetadataByID))
+	for id, item := range skillMetadataByID {
+		traceSkillMetadata[id] = einocallbacks.SkillMetadata{
+			ID:               item.ID,
 			Name:             item.Name,
 			Description:      item.Description,
 			AllowedToolCodes: append([]string(nil), item.AllowedToolCodes...),
 		}
 	}
 	if input.Collector != nil {
-		if len(skillMetadataByCode) > 0 {
+		if len(skillMetadataByID) > 0 {
 			input.Collector.SetSkillMiddleware(true, toolx.BuiltinSkill.Name)
 		}
 		input.Collector.SetVisibleSkills(traceSkillMetadata)
@@ -66,7 +66,7 @@ func (s *AgentHandlerService) Build(ctx context.Context, input BuildAgentHandler
 		}
 		handlers = append(handlers, toolSearchHandler)
 	}
-	if len(skillMetadataByCode) > 0 {
+	if len(skillMetadataByID) > 0 {
 		skillHandler, err := s.skillMiddleware.Build(ctx, input.AIAgent, input.InstructionToolDefinitions)
 		if err != nil {
 			return nil, err

@@ -46,7 +46,7 @@ func (s *replyRunLogService) Write(input replyRunLogInput) {
 		AIConfigID:       input.AIAgent.AIConfigID,
 		UserMessage:      strings.TrimSpace(input.Question),
 		PlannedAction:    plannedAction,
-		PlannedSkillCode: strings.TrimSpace(summaryPlannedSkillCode(input.Summary)),
+		PlannedSkillID:   summaryPlannedSkillID(input.Summary),
 		PlannedSkillName: strings.TrimSpace(summaryPlannedSkillName(input.Summary)),
 		SkillRouteTrace:  strings.TrimSpace(summarySkillRouteTrace(input.Summary)),
 		ToolSearchTrace:  extractToolSearchTrace(input.Summary),
@@ -90,7 +90,7 @@ func buildRunLogPlan(summary *applicationruntime.Summary) (plannedAction, planne
 	if summary == nil {
 		return "", "", ""
 	}
-	if skillCode := strings.TrimSpace(summaryPlannedSkillCode(summary)); skillCode != "" {
+	if summaryPlannedSkillID(summary) > 0 {
 		reason := strings.TrimSpace(summary.PlanReason)
 		if reason == "" {
 			reason = "skill_selected"
@@ -138,7 +138,7 @@ func toRunLogFinalAction(summary *applicationruntime.Summary) string {
 	if summary == nil {
 		return ""
 	}
-	if skillCode := strings.TrimSpace(summaryPlannedSkillCode(summary)); skillCode != "" && strings.TrimSpace(summary.ReplyText) != "" {
+	if summaryPlannedSkillID(summary) > 0 && strings.TrimSpace(summary.ReplyText) != "" {
 		return "skill"
 	}
 	if graphToolCode := firstGraphToolCode(summary); graphToolCode != "" && strings.TrimSpace(summary.ReplyText) != "" {
@@ -167,11 +167,11 @@ func buildRunLogReplyText(summary *applicationruntime.Summary) string {
 	return strings.TrimSpace(summary.ReplyText)
 }
 
-func summaryPlannedSkillCode(summary *applicationruntime.Summary) string {
+func summaryPlannedSkillID(summary *applicationruntime.Summary) int64 {
 	if summary == nil {
-		return ""
+		return 0
 	}
-	return strings.TrimSpace(summary.PlannedSkillCode)
+	return summary.PlannedSkillID
 }
 
 func summaryPlannedSkillName(summary *applicationruntime.Summary) string {

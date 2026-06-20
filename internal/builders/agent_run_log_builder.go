@@ -22,7 +22,7 @@ func BuildAgentRunLog(item *models.AgentRunLog) response.AgentRunLogResponse {
 		AIConfigID:        item.AIConfigID,
 		UserMessage:       item.UserMessage,
 		PlannedAction:     item.PlannedAction,
-		PlannedSkillCode:  item.PlannedSkillCode,
+		PlannedSkillID:    item.PlannedSkillID,
 		PlannedSkillName:  item.PlannedSkillName,
 		SkillRouteTrace:   item.SkillRouteTrace,
 		ToolSearchTrace:   item.ToolSearchTrace,

@@ -25,7 +25,7 @@ func AgentRunLogAnyList(ctx *gin.Context) {
 		params.QueryFilter{ParamName: "requestId"},
 		params.QueryFilter{ParamName: "aiAgentId"},
 		params.QueryFilter{ParamName: "plannedAction"},
-		params.QueryFilter{ParamName: "plannedSkillCode", Op: params.Like},
+		params.QueryFilter{ParamName: "plannedSkillId"},
 		params.QueryFilter{ParamName: "graphToolCode"},
 		params.QueryFilter{ParamName: "interruptType"},
 		params.QueryFilter{ParamName: "resumeSource"},

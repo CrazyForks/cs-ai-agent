@@ -101,10 +101,6 @@ func (r *skillDefinitionRepository) Delete(db *gorm.DB, id int64) {
 	db.Delete(&models.SkillDefinition{}, "id = ?", id)
 }
 
-func (r *skillDefinitionRepository) GetByCode(db *gorm.DB, code string) *models.SkillDefinition {
-	return r.FindOne(db, sqls.NewCnd().Where("code = ?", code))
-}
-
 func (r *skillDefinitionRepository) GetByIDs(db *gorm.DB, ids []int64) map[int64]models.SkillDefinition {
 	if len(ids) == 0 {
 		return nil

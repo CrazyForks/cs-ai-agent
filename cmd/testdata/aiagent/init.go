@@ -142,14 +142,12 @@ func getDefaultTeamIDs() string {
 }
 
 func getDefaultSkillIDs() (string, error) {
-	skillItem := repositories.SkillDefinitionRepository.Take(
+	skillItem := repositories.SkillDefinitionRepository.FindOne(
 		sqls.DB(),
-		"code = ? AND status = ?",
-		skill.AfterSalesEscalationSkillCode,
-		enums.StatusOk,
+		sqls.NewCnd().Where("status = ?", enums.StatusOk).Desc("id"),
 	)
 	if skillItem == nil {
-		return "", fmt.Errorf("default test skill not found: %s", skill.AfterSalesEscalationSkillCode)
+		return "", fmt.Errorf("default test skill not found")
 	}
 	return utils.JoinInt64s([]int64{skillItem.ID}), nil
 }

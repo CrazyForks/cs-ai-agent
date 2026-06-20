@@ -76,10 +76,6 @@ func (s *skillDefinitionService) Delete(id int64) {
 	repositories.SkillDefinitionRepository.Delete(sqls.DB(), id)
 }
 
-func (s *skillDefinitionService) GetByCode(code string) *models.SkillDefinition {
-	return repositories.SkillDefinitionRepository.GetByCode(sqls.DB(), code)
-}
-
 func (s *skillDefinitionService) GetByIDs(ids []int64) map[int64]models.SkillDefinition {
 	return repositories.SkillDefinitionRepository.GetByIDs(sqls.DB(), ids)
 }
@@ -92,11 +88,7 @@ func (s *skillDefinitionService) CreateSkillDefinition(req request.CreateSkillDe
 	if err != nil {
 		return nil, err
 	}
-	if s.Take("code = ?", normalized.Code) != nil {
-		return nil, errorsx.InvalidParamI18n("error.e0058")
-	}
 	item := &models.SkillDefinition{
-		Code:          normalized.Code,
 		Name:          normalized.Name,
 		Description:   normalized.Description,
 		Instruction:   normalized.Instruction,
@@ -127,11 +119,7 @@ func (s *skillDefinitionService) UpdateSkillDefinition(req request.UpdateSkillDe
 	if err != nil {
 		return err
 	}
-	if exists := s.Take("code = ? AND id <> ?", normalized.Code, req.ID); exists != nil {
-		return errorsx.InvalidParamI18n("error.e0058")
-	}
 	return repositories.SkillDefinitionRepository.Updates(sqls.DB(), req.ID, map[string]any{
-		"code":             normalized.Code,
 		"name":             normalized.Name,
 		"description":      normalized.Description,
 		"instruction":      normalized.Instruction,
@@ -146,14 +134,10 @@ func (s *skillDefinitionService) UpdateSkillDefinition(req request.UpdateSkillDe
 
 func (s *skillDefinitionService) normalizeSkillDefinitionRequest(req request.CreateSkillDefinitionRequest) (*request.CreateSkillDefinitionRequest, error) {
 	normalized := &request.CreateSkillDefinitionRequest{
-		Code:        strings.TrimSpace(req.Code),
 		Name:        strings.TrimSpace(req.Name),
 		Description: strings.TrimSpace(req.Description),
 		Instruction: strings.TrimSpace(req.Instruction),
 		Remark:      strings.TrimSpace(req.Remark),
-	}
-	if normalized.Code == "" {
-		return nil, errorsx.InvalidParamI18n("error.e0057")
 	}
 	if normalized.Name == "" {
 		return nil, errorsx.InvalidParamI18n("error.e0055")

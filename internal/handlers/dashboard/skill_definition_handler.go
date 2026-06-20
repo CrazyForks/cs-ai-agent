@@ -28,7 +28,6 @@ func SkillDefinitionAnyList(ctx *gin.Context) {
 	cnd := params.NewPagedSqlCnd(ctx,
 		params.QueryFilter{ParamName: "status"},
 		params.QueryFilter{ParamName: "name", Op: params.Like},
-		params.QueryFilter{ParamName: "code", Op: params.Like},
 	).Desc("id")
 	if _, ok := params.Get(ctx, "status"); !ok {
 		cnd.Where("status <> ?", enums.StatusDeleted)

@@ -239,14 +239,19 @@ export default function DashboardAgentRunLogsPage() {
                     </div>
 
                     <div className="min-w-0 text-sm">
-                      {item.plannedSkillCode || item.graphToolCode || item.plannedToolCode ? (
+                      {item.plannedSkillId || item.graphToolCode || item.plannedToolCode ? (
                         <div className="min-w-0 space-y-1">
                           <div className="truncate font-medium">
-                            {item.plannedSkillCode || item.graphToolCode || item.plannedToolCode}
+                            {item.plannedSkillName ||
+                              (item.plannedSkillId
+                                ? `Skill #${item.plannedSkillId}`
+                                : "") ||
+                              item.graphToolCode ||
+                              item.plannedToolCode}
                           </div>
-                          {item.plannedSkillName ? (
+                          {item.plannedSkillId ? (
                             <div className="truncate text-xs text-muted-foreground">
-                              {item.plannedSkillName}
+                              Skill #{item.plannedSkillId}
                             </div>
                           ) : item.handoffReason ? (
                             <div className="truncate text-xs text-muted-foreground">

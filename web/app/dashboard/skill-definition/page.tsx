@@ -74,14 +74,6 @@ export default function DashboardSkillsPage() {
         className: "w-full sm:w-72",
       },
       {
-        name: "code",
-        label: t("skillDefinition.filterCode"),
-        placeholder: t("skillDefinition.filterCode"),
-        defaultValue: "",
-        trim: true,
-        className: "w-full sm:w-56",
-      },
-      {
         name: "status",
         label: t("skillDefinition.allStatus"),
         type: "select",
@@ -108,7 +100,6 @@ export default function DashboardSkillsPage() {
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <div className="font-medium">{item.name}</div>
-                <Badge variant="outline">{item.code}</Badge>
                 <Badge variant="secondary">
                   {t("skillDefinition.whitelistCount", {
                     count: item.toolWhitelist.length,
@@ -185,7 +176,6 @@ export default function DashboardSkillsPage() {
         fetchList={(query) =>
           fetchSkillDefinitions({
             name: typeof query.name === "string" ? query.name : undefined,
-            code: typeof query.code === "string" ? query.code : undefined,
             status: typeof query.status === "number" ? query.status : undefined,
             page: Number(query.page),
             limit: Number(query.limit),
@@ -252,7 +242,7 @@ export default function DashboardSkillsPage() {
       />
       <DebugDialog
         open={debugDialogOpen}
-        skillCode={debuggingItem?.code ?? ""}
+        skillDefinitionId={debuggingItem?.id ?? 0}
         skillName={debuggingItem?.name ?? ""}
         onOpenChange={(open) => {
           if (!open) setDebuggingItem(null);

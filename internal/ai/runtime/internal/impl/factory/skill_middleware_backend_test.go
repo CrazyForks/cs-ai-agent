@@ -19,7 +19,6 @@ func TestDatabaseSkillBackendListAndGet(t *testing.T) {
 	setupSkillBackendTestDB(t)
 	createSkillDefinitionForTest(t, models.SkillDefinition{
 		ID:            1,
-		Code:          "after_sales_escalation_skill",
 		Name:          "售后升级",
 		Description:   "处理转人工和升级诉求",
 		Instruction:   "请优先判断是否需要转人工。",
@@ -28,7 +27,6 @@ func TestDatabaseSkillBackendListAndGet(t *testing.T) {
 	})
 	createSkillDefinitionForTest(t, models.SkillDefinition{
 		ID:          2,
-		Code:        "disabled_skill",
 		Name:        "禁用技能",
 		Description: "不会被暴露",
 		Instruction: "noop",
@@ -47,15 +45,15 @@ func TestDatabaseSkillBackendListAndGet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("List returned error: %v", err)
 	}
-	if len(matters) != 1 || matters[0].Name != "after_sales_escalation_skill" {
+	if len(matters) != 1 || matters[0].Name != "1" {
 		t.Fatalf("unexpected matters: %#v", matters)
 	}
 
-	skill, err := backend.Get(context.Background(), "after_sales_escalation_skill")
+	skill, err := backend.Get(context.Background(), "1")
 	if err != nil {
 		t.Fatalf("Get returned error: %v", err)
 	}
-	if skill.Name != "after_sales_escalation_skill" {
+	if skill.Name != "1" {
 		t.Fatalf("unexpected skill name: %#v", skill)
 	}
 	if skill.Content == "" || !containsAll(skill.Content, "处理转人工和升级诉求", "graph/handoff_to_human") {
@@ -67,7 +65,6 @@ func TestHasVisibleSkills(t *testing.T) {
 	setupSkillBackendTestDB(t)
 	createSkillDefinitionForTest(t, models.SkillDefinition{
 		ID:          3,
-		Code:        "enabled_skill",
 		Name:        "启用技能",
 		Description: "可见",
 		Instruction: "noop",
@@ -75,7 +72,6 @@ func TestHasVisibleSkills(t *testing.T) {
 	})
 	createSkillDefinitionForTest(t, models.SkillDefinition{
 		ID:          4,
-		Code:        "deleted_skill",
 		Name:        "删除技能",
 		Description: "不可见",
 		Instruction: "noop",

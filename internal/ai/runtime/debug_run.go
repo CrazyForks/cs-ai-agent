@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	applicationruntime "agent-desk/internal/ai/application/runtime"
@@ -28,6 +29,12 @@ func DebugRunSkill(ctx context.Context, req request.SkillDebugRunRequest) (*resp
 	if aiConfig == nil {
 		return nil, errorsx.InvalidParamI18n("error.e0008")
 	}
+	skill := svc.SkillDefinitionService.Get(req.SkillDefinitionID)
+	if skill == nil || skill.Status != enums.StatusOk {
+		return nil, errorsx.InvalidParamI18n("error.e0054")
+	}
+	debugAgent := *aiAgent
+	debugAgent.SkillIDs = fmt.Sprintf("%d", skill.ID)
 	var conversation *models.Conversation
 	if req.ConversationID > 0 {
 		if conversation = svc.ConversationService.Get(req.ConversationID); conversation == nil {
@@ -45,13 +52,13 @@ func DebugRunSkill(ctx context.Context, req request.SkillDebugRunRequest) (*resp
 	summary, err := Service.Run(ctx, applicationruntime.Request{
 		Conversation: *conversation,
 		UserMessage:  message,
-		AIAgent:      *aiAgent,
+		AIAgent:      debugAgent,
 		AIConfig:     *aiConfig,
 	})
 	if err != nil {
-		return buildSkillDebugRunResponse(req, summary, nil), err
+		return buildSkillDebugRunResponse(req, summary, skill), err
 	}
-	return buildSkillDebugRunResponse(req, summary, nil), nil
+	return buildSkillDebugRunResponse(req, summary, skill), nil
 }
 
 func DebugResumeSkill(ctx context.Context, req request.SkillDebugResumeRequest) (*response.SkillDebugRunResponse, error) {
@@ -125,14 +132,14 @@ func buildSkillDebugRunResponse(req request.SkillDebugRunRequest, summary *appli
 		AIAgentID:      req.AIAgentID,
 	}
 	if skill != nil {
-		resp.SkillCode = skill.Code
+		resp.SkillDefinitionID = skill.ID
 		resp.SkillName = skill.Name
 	}
 	if summary == nil {
 		return resp
 	}
-	if resp.SkillCode == "" {
-		resp.SkillCode = strings.TrimSpace(summary.PlannedSkillCode)
+	if resp.SkillDefinitionID <= 0 {
+		resp.SkillDefinitionID = summary.PlannedSkillID
 	}
 	resp.ReplyText = summary.ReplyText
 	resp.PlanReason = summary.PlanReason
@@ -159,7 +166,7 @@ func buildSkillDebugResumeResponse(req request.SkillDebugResumeRequest, summary 
 	if summary == nil {
 		return resp
 	}
-	resp.SkillCode = strings.TrimSpace(summary.PlannedSkillCode)
+	resp.SkillDefinitionID = summary.PlannedSkillID
 	resp.SkillName = strings.TrimSpace(summary.PlannedSkillName)
 	resp.ReplyText = summary.ReplyText
 	resp.PlanReason = summary.PlanReason
