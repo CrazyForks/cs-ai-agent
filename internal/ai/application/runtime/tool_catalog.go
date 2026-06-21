@@ -82,6 +82,9 @@ func (c *toolCatalog) parseAgentAllowedToolCodes(aiAgent models.AIAgent) []strin
 			ret = append(ret, graphTools...)
 		}
 	}
+	if result, ok := resolveAgentWorkflow(aiAgent); ok {
+		ret = append(ret, result.ToolCodes...)
+	}
 	return toolx.NormalizeToolCodes(ret)
 }
 

@@ -242,6 +242,9 @@ export type AIAgent = {
     arguments?: Record<string, string>
   }[]
   graphTools: string[]
+  runtimeMode: number
+  runtimeModeName: string
+  workflowVersionId: number
   sortNo: number
   createdAt: string
   updatedAt: string
@@ -272,9 +275,95 @@ export type CreateAIAgentPayload = {
     arguments?: Record<string, string>
   }[]
   graphTools: string[]
+  runtimeMode: number
+  workflowVersionId: number
 }
 
 export type UpdateAIAgentPayload = CreateAIAgentPayload & {
+  id: number
+}
+
+export type AIWorkflowPosition = {
+  x: number
+  y: number
+}
+
+export type AIWorkflowDefinition = {
+  schemaVersion: number
+  entryNodeId: string
+  nodes: {
+    id: string
+    type: string
+    name: string
+    position: AIWorkflowPosition
+    config: Record<string, unknown>
+  }[]
+  edges: {
+    id: string
+    source: string
+    target: string
+    condition?: {
+      expression: string
+    }
+  }[]
+}
+
+export type AIWorkflow = {
+  id: number
+  name: string
+  description: string
+  ownerType: string
+  ownerId: number
+  status: number
+  draftDefinition: AIWorkflowDefinition
+  publishedVersionId: number
+  sortNo: number
+  createdAt: string
+  updatedAt: string
+  createUserName: string
+  updateUserName: string
+}
+
+export type AIWorkflowVersion = {
+  id: number
+  workflowId: number
+  version: number
+  status: number
+  definition: AIWorkflowDefinition
+  definitionHash: string
+  publishedAt: string
+  publishedById: number
+  publishedByName: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type AIWorkflowNodeSpec = {
+  type: string
+  title: string
+  description: string
+  riskLevel: "low" | "medium" | "high"
+  interruptible: boolean
+  requiresConfirmationPredecessor: boolean
+}
+
+export type AIWorkflowValidationResult = {
+  valid: boolean
+  errors: {
+    field: string
+    message: string
+  }[]
+}
+
+export type CreateAIWorkflowPayload = {
+  name: string
+  description: string
+  ownerType: string
+  ownerId: number
+  definition: AIWorkflowDefinition
+}
+
+export type UpdateAIWorkflowPayload = CreateAIWorkflowPayload & {
   id: number
 }
 
@@ -690,6 +779,69 @@ export function updateAIAgentStatus(id: number, status: number) {
     method: "POST",
     body: JSON.stringify({ id, status }),
   })
+}
+
+export function fetchAIWorkflows(
+  query?: Record<string, string | number | undefined>
+) {
+  return request<PageResult<AIWorkflow>>(
+    `/api/dashboard/ai-workflow/list${toQueryString(query)}`
+  )
+}
+
+export function fetchAIWorkflow(id: number) {
+  return request<AIWorkflow>(`/api/dashboard/ai-workflow/${id}`)
+}
+
+export function createAIWorkflow(payload: CreateAIWorkflowPayload) {
+  return request<AIWorkflow>("/api/dashboard/ai-workflow/create", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+export function updateAIWorkflow(payload: UpdateAIWorkflowPayload) {
+  return request<void>("/api/dashboard/ai-workflow/update", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+export function deleteAIWorkflow(id: number) {
+  return request<void>("/api/dashboard/ai-workflow/delete", {
+    method: "POST",
+    body: JSON.stringify({ id }),
+  })
+}
+
+export function fetchAIWorkflowNodeSpecs() {
+  return request<AIWorkflowNodeSpec[]>("/api/dashboard/ai-workflow/node-spec/list")
+}
+
+export function validateAIWorkflow(definition: AIWorkflowDefinition) {
+  return request<AIWorkflowValidationResult>("/api/dashboard/ai-workflow/validate", {
+    method: "POST",
+    body: JSON.stringify({ definition }),
+  })
+}
+
+export function publishAIWorkflow(workflowId: number, definition: AIWorkflowDefinition) {
+  return request<AIWorkflowVersion>("/api/dashboard/ai-workflow/publish", {
+    method: "POST",
+    body: JSON.stringify({ workflowId, definition }),
+  })
+}
+
+export function fetchAIWorkflowVersions(
+  query?: Record<string, string | number | undefined>
+) {
+  return request<PageResult<AIWorkflowVersion>>(
+    `/api/dashboard/ai-workflow/version/list${toQueryString(query)}`
+  )
+}
+
+export function fetchAIWorkflowVersion(id: number) {
+  return request<AIWorkflowVersion>(`/api/dashboard/ai-workflow/version/${id}`)
 }
 
 export function fetchUsers(query?: Record<string, string | number | undefined>) {
