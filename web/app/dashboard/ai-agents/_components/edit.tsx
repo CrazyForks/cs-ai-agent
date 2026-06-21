@@ -694,9 +694,7 @@ function EditDialogBody({
           onSubmit={handleSubmit(onFormSubmit)}
           className="space-y-6"
         >
-          <SectionCard
-            title={t("aiAgent.sectionBasic")}
-          >
+          <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
               <Field data-invalid={!!errors.name}>
                 <FieldLabel htmlFor="ai-agent-name">{t("aiAgent.name")}</FieldLabel>
@@ -781,7 +779,7 @@ function EditDialogBody({
                 <FieldError errors={[errors.systemPrompt]} />
               </FieldContent>
             </Field>
-          </SectionCard>
+          </div>
 
           <SectionCard
             title={t("aiAgent.sectionStrategy")}
