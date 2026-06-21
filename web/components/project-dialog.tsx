@@ -57,7 +57,7 @@ function ProjectDialog({
   bodyClassName,
   footerClassName,
   showCloseButton = true,
-  closeOnEsc = false,
+  closeOnEsc = true,
   allowFullscreen = false,
   defaultFullscreen = false,
   bodyScrollable = true,

@@ -117,7 +117,11 @@ function getMessageLayout(message: AdminMessage) {
   if (message.senderType === "customer") {
     return {
       rowClassName: "justify-start",
-      bubbleClassName: "bg-muted text-foreground border-border",
+      bubbleClassName: "border-border/70 bg-muted/60 text-foreground shadow-sm",
+      htmlClassName: "[&_a]:text-foreground [&_a]:underline [&_img]:rounded-md",
+      recalledBubbleClassName:
+        "border-dashed border-border/70 bg-muted/40 text-muted-foreground",
+      recalledHtmlClassName: "text-muted-foreground [&_p]:text-muted-foreground",
       metaClassName: "text-left",
     };
   }
@@ -125,20 +129,33 @@ function getMessageLayout(message: AdminMessage) {
     return {
       rowClassName: "justify-center",
       bubbleClassName:
-        "bg-muted/60 text-muted-foreground border-dashed border-border",
+        "border-dashed border-border bg-muted/60 text-muted-foreground",
+      htmlClassName: "[&_a]:text-foreground [&_a]:underline [&_img]:rounded-md",
+      recalledBubbleClassName:
+        "border-dashed border-border/70 bg-muted/40 text-muted-foreground",
+      recalledHtmlClassName: "text-muted-foreground [&_p]:text-muted-foreground",
       metaClassName: "text-center",
     };
   }
   if (message.senderType === "ai") {
     return {
       rowClassName: "justify-end",
-      bubbleClassName: "bg-primary/10 text-foreground border-primary/20",
+      bubbleClassName: "border-primary/15 bg-primary/5 text-foreground shadow-sm",
+      htmlClassName: "[&_a]:text-foreground [&_a]:underline [&_img]:rounded-md",
+      recalledBubbleClassName:
+        "border-dashed border-emerald-200 bg-emerald-50 text-emerald-800",
+      recalledHtmlClassName: "text-emerald-800 [&_p]:text-emerald-800",
       metaClassName: "text-right",
     };
   }
   return {
     rowClassName: "justify-end",
-    bubbleClassName: "bg-primary text-primary-foreground border-primary",
+    bubbleClassName: "border-transparent bg-emerald-600 text-white shadow-sm",
+    htmlClassName:
+      "[&_p]:text-white [&_a]:text-white [&_a]:underline [&_img]:rounded-md",
+    recalledBubbleClassName:
+      "border-dashed border-emerald-200 bg-emerald-50 text-emerald-800",
+    recalledHtmlClassName: "text-emerald-800 [&_p]:text-emerald-800",
     metaClassName: "text-right",
   };
 }
@@ -471,16 +488,20 @@ export function ConversationDetailDialog({
                               ) : null}
                             </div>
                             <div
-                              className={`rounded-2xl border px-4 py-3 text-sm leading-6 ${layout.bubbleClassName}`}
+                              className={`rounded-2xl border px-4 py-3 text-sm leading-6 ${
+                                isRecalled
+                                  ? layout.recalledBubbleClassName
+                                  : layout.bubbleClassName
+                              }`}
                             >
                               {isRecalled ? (
-                                <div className="text-muted-foreground">
+                                <div className={layout.recalledHtmlClassName}>
                                   {t("conversationMonitor.messageRecalledBody")}
                                 </div>
                               ) : isHtmlMessage ? (
                                 <ImMessageHTML
                                   html={renderIMMessageHTML(message)}
-                                  className="[&_a]:underline [&_img]:max-w-full [&_img]:cursor-zoom-in"
+                                  className={`${layout.htmlClassName} [&_img]:max-w-full [&_img]:cursor-zoom-in`}
                                   onImageClick={openImageLightbox}
                                 />
                               ) : isImageMessage ? (
