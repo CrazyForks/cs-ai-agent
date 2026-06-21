@@ -58,6 +58,10 @@ var Models = []any{
 	&SkillDefinition{},
 	&SkillRunLog{},
 	&AgentRunLog{},
+	&AIWorkflow{},
+	&AIWorkflowVersion{},
+	&AIWorkflowRun{},
+	&AIWorkflowNodeRun{},
 	&ConversationInterrupt{},
 	&SystemConfig{},
 }
@@ -525,6 +529,66 @@ type AIAgent struct {
 	AllowedGraphTools   string                          `gorm:"type:text"`                                   // AllowedGraphTools 为允许 Graph Tool 的白名单配置JSON。
 	SortNo              int                             `gorm:"type:int;not null;default:0;index"`           // SortNo 为后台展示排序号。
 	AuditFields
+}
+
+// AIWorkflow 表示客服 AI Agent 可编辑会话流程主表。
+type AIWorkflow struct {
+	ID                 int64        `gorm:"primaryKey;autoIncrement"`
+	Name               string       `gorm:"type:varchar(100);not null;default:'';index"`
+	Description        string       `gorm:"type:text"`
+	OwnerType          string       `gorm:"type:varchar(30);not null;default:'';index"`
+	OwnerID            int64        `gorm:"type:bigint;not null;default:0;index"`
+	Status             enums.Status `gorm:"type:int;not null;default:0;index"`
+	DraftDefinition    string       `gorm:"type:longtext"`
+	PublishedVersionID int64        `gorm:"type:bigint;not null;default:0;index"`
+	SortNo             int          `gorm:"type:int;not null;default:0;index"`
+	AuditFields
+}
+
+// AIWorkflowVersion 表示 AI 会话流程的不可变发布版本。
+type AIWorkflowVersion struct {
+	ID              int64        `gorm:"primaryKey;autoIncrement"`
+	WorkflowID      int64        `gorm:"type:bigint;not null;default:0;index"`
+	Version         int          `gorm:"type:int;not null;default:0;index"`
+	Status          enums.Status `gorm:"type:int;not null;default:0;index"`
+	Definition      string       `gorm:"type:longtext"`
+	DefinitionHash  string       `gorm:"type:varchar(64);not null;default:'';index"`
+	PublishedAt     *time.Time   `gorm:"type:datetime;index"`
+	PublishedByID   int64        `gorm:"type:bigint;not null;default:0;index"`
+	PublishedByName string       `gorm:"type:varchar(100);not null;default:''"`
+	AuditFields
+}
+
+// AIWorkflowRun 表示一次会话 workflow 执行记录。
+type AIWorkflowRun struct {
+	ID                int64      `gorm:"primaryKey;autoIncrement"`
+	WorkflowID        int64      `gorm:"type:bigint;not null;default:0;index"`
+	WorkflowVersionID int64      `gorm:"type:bigint;not null;default:0;index"`
+	ConversationID    int64      `gorm:"type:bigint;not null;default:0;index"`
+	AIAgentID         int64      `gorm:"type:bigint;not null;default:0;index"`
+	MessageID         int64      `gorm:"type:bigint;not null;default:0;index"`
+	Status            int        `gorm:"type:int;not null;default:0;index"`
+	StartedAt         time.Time  `gorm:"type:datetime;not null;index"`
+	EndedAt           *time.Time `gorm:"type:datetime;index"`
+	InterruptType     string     `gorm:"type:varchar(50);not null;default:'';index"`
+	InterruptNodeID   string     `gorm:"type:varchar(100);not null;default:'';index"`
+	ErrorMessage      string     `gorm:"type:text"`
+	AuditFields
+}
+
+// AIWorkflowNodeRun 表示 workflow 执行中的单节点审计记录。
+type AIWorkflowNodeRun struct {
+	ID            int64      `gorm:"primaryKey;autoIncrement"`
+	WorkflowRunID int64      `gorm:"type:bigint;not null;default:0;index"`
+	NodeID        string     `gorm:"type:varchar(100);not null;default:'';index"`
+	NodeType      string     `gorm:"type:varchar(50);not null;default:'';index"`
+	Status        int        `gorm:"type:int;not null;default:0;index"`
+	InputPreview  string     `gorm:"type:text"`
+	OutputPreview string     `gorm:"type:text"`
+	ErrorMessage  string     `gorm:"type:text"`
+	StartedAt     time.Time  `gorm:"type:datetime;not null;index"`
+	EndedAt       *time.Time `gorm:"type:datetime;index"`
+	DurationMS    int        `gorm:"type:int;not null;default:0"`
 }
 
 // Channel 接入渠道配置。
