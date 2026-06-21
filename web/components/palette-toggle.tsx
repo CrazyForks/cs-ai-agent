@@ -26,7 +26,7 @@ const paletteOptions: Array<{
   {
     value: "plain",
     labelKey: "palette.plain",
-    swatch: "bg-zinc-700",
+    swatch: "bg-[#2475fc]",
   },
   {
     value: "green",
