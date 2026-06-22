@@ -329,7 +329,7 @@ export function WorkflowEditor({
   }
 
   return (
-    <ResizablePanelGroup orientation="horizontal" className="h-full min-h-0 border-t">
+    <ResizablePanelGroup orientation="horizontal" className="h-full min-h-0">
       <ResizablePanel defaultSize="18%" minSize="12%" maxSize="34%" className="min-h-0">
         <aside className="h-full min-h-0 overflow-y-auto bg-muted/20 p-3">
           <div className="mb-3 text-sm font-medium">节点库</div>
