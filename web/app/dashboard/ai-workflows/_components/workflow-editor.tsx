@@ -20,10 +20,17 @@ import {
   type NodeProps,
   type ReactFlowInstance,
 } from "@xyflow/react"
-import { AlertCircleIcon, CheckCircle2Icon } from "lucide-react"
+import {
+  AlertCircleIcon,
+  CheckCircle2Icon,
+  PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
+} from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import type { PanelImperativeHandle } from "react-resizable-panels"
 
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Popover,
@@ -158,7 +165,9 @@ export function WorkflowEditor({
   )
   const [flowInstance, setFlowInstance] = useState<ReactFlowInstance<WorkflowFlowNode, WorkflowFlowEdge> | null>(null)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const [nodeLibraryCollapsed, setNodeLibraryCollapsed] = useState(false)
   const [pendingNodeDrag, setPendingNodeDrag] = useState<PendingNodeDrag | null>(null)
+  const nodeLibraryPanelRef = useRef<PanelImperativeHandle | null>(null)
   const canvasRef = useRef<HTMLElement | null>(null)
   const pendingNodeDragRef = useRef<PendingNodeDrag | null>(null)
   const suppressNextClickRef = useRef(false)
@@ -247,6 +256,23 @@ export function WorkflowEditor({
     })
   }
 
+  const toggleNodeLibrary = () => {
+    const panel = nodeLibraryPanelRef.current
+    if (!panel) {
+      setNodeLibraryCollapsed((current) => !current)
+      return
+    }
+
+    if (panel.isCollapsed()) {
+      panel.expand()
+      setNodeLibraryCollapsed(false)
+      return
+    }
+
+    panel.collapse()
+    setNodeLibraryCollapsed(true)
+  }
+
   const dropNodeOnCanvas = useCallback(
     (spec: AIWorkflowNodeSpec, x: number, y: number) => {
       if (!flowInstance || !canvasRef.current) {
@@ -331,42 +357,67 @@ export function WorkflowEditor({
 
   return (
     <ResizablePanelGroup orientation="horizontal" className="h-full min-h-0">
-      <ResizablePanel defaultSize="18%" minSize="12%" maxSize="34%" className="min-h-0">
-        <aside className="h-full min-h-0 bg-muted/20">
-          <ScrollArea className="h-full min-h-0">
-            <div className="p-3">
-              <div className="mb-3 text-sm font-medium">节点库</div>
-              <div className="space-y-2">
-                {nodeSpecs.map((spec) => (
-                  <button
-                    key={spec.type}
+      <ResizablePanel
+        panelRef={nodeLibraryPanelRef}
+        defaultSize="18%"
+        minSize="12%"
+        maxSize="34%"
+        collapsedSize="0%"
+        collapsible
+        onResize={(panelSize: { asPercentage: number }) => {
+          setNodeLibraryCollapsed(panelSize.asPercentage <= 1)
+        }}
+        className="min-h-0"
+      >
+        {nodeLibraryCollapsed ? null : (
+          <aside className="h-full min-h-0 bg-muted/20">
+            <ScrollArea className="h-full min-h-0">
+              <div className="p-3">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div className="min-w-0 truncate text-sm font-medium">节点库</div>
+                  <Button
                     type="button"
-                    onPointerDown={(event) => onNodePointerDown(event, spec)}
-                    onClick={() => {
-                      if (suppressNextClickRef.current) {
-                        suppressNextClickRef.current = false
-                        return
-                      }
-                      addNode(spec)
-                    }}
-                    className="flex w-full cursor-grab rounded-md border bg-background px-3 py-2 text-left text-sm hover:bg-muted active:cursor-grabbing"
+                    variant="ghost"
+                    size="icon"
+                    className="size-7 shrink-0 text-muted-foreground hover:text-foreground"
+                    onClick={toggleNodeLibrary}
+                    aria-label="折叠节点库"
                   >
-                    <span className="min-w-0">
-                      <span className="block truncate font-medium">{spec.title}</span>
-                      <span className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                        {spec.description}
+                    <PanelLeftCloseIcon className="size-3.5" />
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {nodeSpecs.map((spec) => (
+                    <button
+                      key={spec.type}
+                      type="button"
+                      onPointerDown={(event) => onNodePointerDown(event, spec)}
+                      onClick={() => {
+                        if (suppressNextClickRef.current) {
+                          suppressNextClickRef.current = false
+                          return
+                        }
+                        addNode(spec)
+                      }}
+                      className="flex w-full cursor-grab rounded-md border bg-background px-3 py-2 text-left text-sm hover:bg-muted active:cursor-grabbing"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">{spec.title}</span>
+                        <span className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                          {spec.description}
+                        </span>
+                        <span className="mt-1 flex gap-2 text-[11px] text-muted-foreground">
+                          <span>输入 {spec.inputSchema?.length ?? 0}</span>
+                          <span>输出 {spec.outputSchema?.length ?? 0}</span>
+                        </span>
                       </span>
-                      <span className="mt-1 flex gap-2 text-[11px] text-muted-foreground">
-                        <span>输入 {spec.inputSchema?.length ?? 0}</span>
-                        <span>输出 {spec.outputSchema?.length ?? 0}</span>
-                      </span>
-                    </span>
-                  </button>
-                ))}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          </ScrollArea>
-        </aside>
+            </ScrollArea>
+          </aside>
+        )}
       </ResizablePanel>
       <ResizableHandle withHandle />
       <ResizablePanel defaultSize={selectedNode ? "56%" : "82%"} minSize="30%" className="min-h-0">
@@ -378,6 +429,18 @@ export function WorkflowEditor({
             pendingNodeDrag?.active ? "ring-2 ring-primary/30" : "",
           ].join(" ")}
         >
+          {nodeLibraryCollapsed ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="absolute top-12 left-3 z-20 size-7 rounded-full bg-background/95 text-muted-foreground shadow-sm hover:text-foreground"
+              onClick={toggleNodeLibrary}
+              aria-label="展开节点库"
+            >
+              <PanelLeftOpenIcon className="size-3.5" />
+            </Button>
+          ) : null}
           <ReactFlow
             nodes={renderedNodes}
             edges={edges}
