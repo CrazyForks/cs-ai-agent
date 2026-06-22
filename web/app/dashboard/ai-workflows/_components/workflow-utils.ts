@@ -10,6 +10,7 @@ export type WorkflowEditorNode = {
   data?: {
     nodeType?: string
     name?: string
+    label?: string
     config?: Record<string, unknown>
     inputs?: Record<string, WorkflowVariableSelector>
   }
@@ -271,6 +272,36 @@ export function applyAutoInputMappings(
         : node
     ),
   }
+}
+
+export function createWorkflowNodeFromSpec(
+  spec: WorkflowNodeSpec,
+  existingNodes: Pick<WorkflowEditorNode, "id">[],
+  position: WorkflowNodePosition
+): WorkflowEditorNode {
+  const id = uniqueNodeId(existingNodes, spec.type)
+  return {
+    id,
+    type: "workflowNode",
+    position,
+    data: {
+      nodeType: spec.type,
+      name: spec.title ?? spec.type,
+      label: spec.title ?? spec.type,
+      config: {},
+      inputs: spec.defaultInputs ?? {},
+    },
+  }
+}
+
+function uniqueNodeId(existingNodes: Pick<WorkflowEditorNode, "id">[], nodeType: string) {
+  let nextIndex = existingNodes.length + 1
+  let id = `${nodeType}_${nextIndex}`
+  while (existingNodes.some((node) => node.id === id)) {
+    nextIndex += 1
+    id = `${nodeType}_${nextIndex}`
+  }
+  return id
 }
 
 function findPreferredOutput(

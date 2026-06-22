@@ -144,6 +144,41 @@ describe("applyAutoInputMappings", () => {
   })
 })
 
+describe("createWorkflowNodeFromSpec", () => {
+  it("creates node at dropped canvas position with unique id", async () => {
+    const { createWorkflowNodeFromSpec } = await loadModule()
+
+    const node = createWorkflowNodeFromSpec(
+      {
+        type: "llm_reply",
+        title: "AI 回复",
+        defaultInputs: {
+          userMessage: { nodeId: "start_1", field: "userMessage" },
+        },
+      },
+      [
+        { id: "llm_reply_1", type: "workflowNode", position: { x: 0, y: 0 }, data: {} },
+      ],
+      { x: 120, y: 240 }
+    )
+
+    assert.deepEqual(plain(node), {
+      id: "llm_reply_2",
+      type: "workflowNode",
+      position: { x: 120, y: 240 },
+      data: {
+        nodeType: "llm_reply",
+        name: "AI 回复",
+        label: "AI 回复",
+        config: {},
+        inputs: {
+          userMessage: { nodeId: "start_1", field: "userMessage" },
+        },
+      },
+    })
+  })
+})
+
 describe("getAvailableVariables", () => {
   it("exposes start outputs to retrieve node", async () => {
     const { getAvailableVariables } = await loadModule()

@@ -5,8 +5,10 @@ import "@xyflow/react/dist/style.css"
 import {
   addEdge,
   Background,
+  ConnectionMode,
   Controls,
   Handle,
+  MarkerType,
   MiniMap,
   Position,
   ReactFlow,
@@ -16,6 +18,7 @@ import {
   type Edge,
   type Node,
   type NodeProps,
+  type ReactFlowInstance,
 } from "@xyflow/react"
 import { AlertCircleIcon, CheckCircle2Icon, PlusIcon } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
@@ -35,6 +38,7 @@ import {
 import type { AIWorkflowDefinition, AIWorkflowNodeSpec } from "@/lib/api/admin"
 import {
   applyAutoInputMappings,
+  createWorkflowNodeFromSpec,
   fromApiDefinition,
   getAvailableVariables,
   getNodeSpec,
@@ -43,9 +47,10 @@ import {
   validateWorkflowDraft,
   type WorkflowEditorEdge,
   type WorkflowEditorNode,
-  type WorkflowNodeSpec,
 } from "./workflow-utils"
 import { NodeConfigPanel } from "./node-config-panel"
+
+const workflowDragType = "application/agent-desk-workflow-node"
 
 type WorkflowNodeData = Record<string, unknown> & {
   nodeType?: string
@@ -65,6 +70,22 @@ type WorkflowFlowEdge = Edge
 
 const nodeTypes = {
   workflowNode: WorkflowCanvasNode,
+}
+
+const fitViewOptions = {
+  padding: 0.16,
+  minZoom: 0.72,
+  maxZoom: 1,
+}
+
+const defaultEdgeOptions = {
+  type: "smoothstep",
+  markerEnd: {
+    type: MarkerType.ArrowClosed,
+  },
+  style: {
+    strokeWidth: 1.6,
+  },
 }
 
 function toFlowNodes(definition: AIWorkflowDefinition): WorkflowFlowNode[] {
@@ -128,6 +149,7 @@ export function WorkflowEditor({
   const [edges, setEdges, onEdgesChange] = useEdgesState<WorkflowFlowEdge>(
     toFlowEdges(definition)
   )
+  const [flowInstance, setFlowInstance] = useState<ReactFlowInstance<WorkflowFlowNode, WorkflowFlowEdge> | null>(null)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const selectedNode = useMemo(
     () => nodes.find((node) => node.id === selectedNodeId) ?? null,
@@ -157,78 +179,90 @@ export function WorkflowEditor({
 
   const onConnect = useCallback(
     (connection: Connection) => {
-      let newEdge: WorkflowFlowEdge | null = null
-      setEdges((current) => {
-        let nextIndex = current.length + 1
-        let id = `edge_${connection.source}_${connection.target}_${nextIndex}`
-        while (current.some((edge) => edge.id === id)) {
-          nextIndex += 1
-          id = `edge_${connection.source}_${connection.target}_${nextIndex}`
-        }
-        newEdge = {
-          ...connection,
-          id,
-        } as WorkflowFlowEdge
-        return addEdge(
-          {
-            ...connection,
-            id,
-          },
-          current
-        )
-      })
-      if (connection.source && connection.target) {
-        setNodes((currentNodes) => {
-          const currentDraft = toDraft(currentNodes, newEdge ? [...edges, newEdge] : edges)
-          const nextDraft = applyAutoInputMappings(
-            currentDraft,
-            connection.source!,
-            connection.target!,
-            nodeSpecs
-          )
-          return currentNodes.map((node) => {
-            const nextNode = nextDraft.nodes.find((item) => item.id === node.id)
-            if (!nextNode) {
-              return node
-            }
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                inputs: nextNode.data?.inputs ?? node.data.inputs,
-              },
-            }
-          })
-        })
+      if (!connection.source || !connection.target) {
+        return
       }
+      const edge = {
+        ...connection,
+        id: uniqueEdgeId(edges, connection.source, connection.target),
+      } as WorkflowFlowEdge
+      setEdges((current) => addEdge(edge, current))
+      setNodes((currentNodes) => {
+        const currentDraft = toDraft(currentNodes, [...edges, edge])
+        const nextDraft = applyAutoInputMappings(
+          currentDraft,
+          connection.source!,
+          connection.target!,
+          nodeSpecs
+        )
+        return currentNodes.map((node) => {
+          const nextNode = nextDraft.nodes.find((item) => item.id === node.id)
+          if (!nextNode) {
+            return node
+          }
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              inputs: nextNode.data?.inputs ?? node.data.inputs,
+            },
+          }
+        })
+      })
     },
     [edges, nodeSpecs, setEdges, setNodes]
   )
 
   const addNode = (spec: AIWorkflowNodeSpec) => {
     setNodes((current) => {
-      let nextIndex = current.length + 1
-      let id = `${spec.type}_${nextIndex}`
-      while (current.some((node) => node.id === id)) {
-        nextIndex += 1
-        id = `${spec.type}_${nextIndex}`
-      }
+      const node = createWorkflowNodeFromSpec(
+        spec,
+        current,
+        { x: 120 + current.length * 28, y: 100 + current.length * 24 }
+      ) as WorkflowFlowNode
       return [
         ...current,
         {
-          id,
-          type: "workflowNode",
-          position: { x: 120 + current.length * 28, y: 100 + current.length * 24 },
+          ...node,
           data: {
-            nodeType: spec.type,
-            name: spec.title,
-            label: spec.title,
-            config: {},
-            inputs: spec.defaultInputs ?? {},
+            ...node.data,
           },
         },
       ]
     })
+  }
+
+  const onNodeDragStart = (event: React.DragEvent<HTMLButtonElement>, spec: AIWorkflowNodeSpec) => {
+    event.dataTransfer.setData(workflowDragType, spec.type)
+    event.dataTransfer.effectAllowed = "copy"
+  }
+
+  const onCanvasDragOver = (event: React.DragEvent) => {
+    if (!event.dataTransfer.types.includes(workflowDragType)) {
+      return
+    }
+    event.preventDefault()
+    event.dataTransfer.dropEffect = "copy"
+  }
+
+  const onCanvasDrop = (event: React.DragEvent) => {
+    event.preventDefault()
+    const nodeType = event.dataTransfer.getData(workflowDragType)
+    if (!nodeType || !flowInstance) {
+      return
+    }
+    const spec = nodeSpecs.find((item) => item.type === nodeType)
+    if (!spec) {
+      return
+    }
+    const position = flowInstance.screenToFlowPosition({
+      x: event.clientX,
+      y: event.clientY,
+    })
+    setNodes((current) => [
+      ...current,
+      createWorkflowNodeFromSpec(spec, current, position) as WorkflowFlowNode,
+    ])
   }
 
   const updateNodeData = (nodeId: string, data: WorkflowNodeData) => {
@@ -257,8 +291,10 @@ export function WorkflowEditor({
               <button
                 key={spec.type}
                 type="button"
+                draggable
+                onDragStart={(event) => onNodeDragStart(event, spec)}
                 onClick={() => addNode(spec)}
-                className="flex w-full items-start gap-2 rounded-md border bg-background px-3 py-2 text-left text-sm hover:bg-muted"
+                className="flex w-full cursor-grab items-start gap-2 rounded-md border bg-background px-3 py-2 text-left text-sm hover:bg-muted active:cursor-grabbing"
               >
                 <PlusIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                 <span className="min-w-0">
@@ -283,17 +319,30 @@ export function WorkflowEditor({
             nodes={renderedNodes}
             edges={edges}
             nodeTypes={nodeTypes}
+            defaultEdgeOptions={defaultEdgeOptions}
+            connectionMode={ConnectionMode.Loose}
+            connectionRadius={34}
+            connectOnClick
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onInit={setFlowInstance}
+            onDragOver={onCanvasDragOver}
+            onDrop={onCanvasDrop}
             onNodeClick={(_, node) => setSelectedNodeId(node.id)}
             fitView
+            fitViewOptions={fitViewOptions}
+            minZoom={0.45}
+            maxZoom={1.35}
           >
             <Background />
             <Controls />
             <MiniMap pannable zoomable />
           </ReactFlow>
           <WorkflowValidationBadge errors={validation.errors} valid={validation.valid} />
+          <div className="pointer-events-none absolute bottom-3 left-3 rounded-md border bg-background/95 px-3 py-2 text-xs text-muted-foreground shadow-sm">
+            从节点右侧圆点拖到下一个节点，或依次点击两个连接点完成连线。
+          </div>
         </section>
       </ResizablePanel>
       <ResizableHandle withHandle />
@@ -307,7 +356,7 @@ export function WorkflowEditor({
           />
           {!validation.valid ? (
             <div className="border-t p-4">
-              <div className="mb-2 text-sm font-medium">Local validation</div>
+              <div className="mb-2 text-sm font-medium">流程检查</div>
               <ul className="space-y-1 text-xs text-destructive">
                 {validation.errors.map((error) => (
                   <li key={error}>{error}</li>
@@ -321,13 +370,23 @@ export function WorkflowEditor({
               className="w-full"
               onClick={() => onDefinitionChange(toApiDefinition(toDraft(nodes, edges)) as AIWorkflowDefinition)}
             >
-              Sync definition
+              同步当前流程
             </Button>
           </div>
         </aside>
       </ResizablePanel>
     </ResizablePanelGroup>
   )
+}
+
+function uniqueEdgeId(edges: WorkflowFlowEdge[], source: string, target: string) {
+  let nextIndex = edges.length + 1
+  let id = `edge_${source}_${target}_${nextIndex}`
+  while (edges.some((edge) => edge.id === id)) {
+    nextIndex += 1
+    id = `edge_${source}_${target}_${nextIndex}`
+  }
+  return id
 }
 
 function enrichNodesForRender(
@@ -360,13 +419,17 @@ function WorkflowCanvasNode({ data, selected }: NodeProps<WorkflowFlowNode>) {
   return (
     <div
       className={[
-        "min-w-56 rounded-md border bg-background shadow-sm",
+        "group/node w-44 rounded-md border bg-background shadow-sm",
         selected ? "ring-2 ring-ring" : "",
         hasIssue ? "border-destructive/70" : "border-border",
       ].join(" ")}
     >
-      <Handle type="target" position={Position.Left} />
-      <div className="flex items-start gap-2 border-b px-3 py-2">
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!size-2 !border !border-background !bg-muted-foreground/70 transition-colors group-hover/node:!bg-primary"
+      />
+      <div className="flex items-start gap-2 border-b px-2.5 py-2">
         {hasIssue ? (
           <AlertCircleIcon className="mt-0.5 size-4 shrink-0 text-destructive" />
         ) : (
@@ -377,7 +440,7 @@ function WorkflowCanvasNode({ data, selected }: NodeProps<WorkflowFlowNode>) {
           <div className="mt-0.5 truncate text-xs text-muted-foreground">{data.title}</div>
         </div>
       </div>
-      <div className="space-y-2 px-3 py-2 text-xs">
+      <div className="space-y-1.5 px-2.5 py-2 text-xs">
         <div className="flex justify-between text-muted-foreground">
           <span>输入 {data.inputCount ?? 0}</span>
           <span>输出 {data.outputCount ?? 0}</span>
@@ -392,7 +455,11 @@ function WorkflowCanvasNode({ data, selected }: NodeProps<WorkflowFlowNode>) {
           </div>
         )}
       </div>
-      <Handle type="source" position={Position.Right} />
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!size-2 !border !border-background !bg-muted-foreground/70 transition-colors group-hover/node:!bg-primary"
+      />
     </div>
   )
 }
@@ -407,7 +474,7 @@ function WorkflowValidationBadge({
   return (
     <div className="absolute left-3 top-3 flex gap-2">
       {valid ? (
-        <Badge variant="default">Valid draft</Badge>
+        <Badge variant="default">流程可发布</Badge>
       ) : (
         <Popover>
           <PopoverTrigger
@@ -419,7 +486,7 @@ function WorkflowValidationBadge({
             }
           >
             <Badge variant="destructive" className="cursor-pointer">
-              {errors.length} issues
+              {errors.length} 个待处理
             </Badge>
           </PopoverTrigger>
           <PopoverContent side="bottom" align="start" className="w-80">
