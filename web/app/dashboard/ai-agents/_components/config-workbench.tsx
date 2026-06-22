@@ -565,39 +565,36 @@ export function AIAgentConfigWorkbench({
         </div>
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-[190px_minmax(0,1fr)] bg-muted/30">
-        <aside className="min-h-0 overflow-y-auto border-r bg-muted/50 p-2">
-          <div className="space-y-1">
+      <div className="flex min-h-0 flex-1 flex-col bg-background">
+        <div className="shrink-0 border-b bg-muted/20 px-4 py-2">
+          <div className="flex min-w-0 items-center gap-1 overflow-x-auto overflow-y-hidden">
             {sections.map((section) => (
               <button
                 key={section.key}
                 type="button"
                 onClick={() => setActiveSection(section.key)}
-                className={`group relative flex h-9 w-full items-center gap-2 rounded-md border px-2.5 text-left text-sm transition-colors ${
+                className={`group flex h-8 shrink-0 items-center gap-2 rounded-md border px-2.5 text-sm transition-colors ${
                   activeSection === section.key
-                    ? "border-primary/25 bg-primary/10 font-medium text-foreground shadow-xs"
-                    : "border-border/60 bg-background/55 text-muted-foreground shadow-xs hover:border-primary/20 hover:bg-background hover:text-foreground hover:shadow-sm"
+                    ? "border-primary bg-primary font-medium text-primary-foreground shadow-xs"
+                    : "border-transparent bg-transparent text-muted-foreground hover:border-border/70 hover:bg-background/80 hover:text-foreground"
                 }`}
               >
-                {activeSection === section.key ? (
-                  <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-primary" />
-                ) : null}
                 <span
-                  className={`flex size-5 shrink-0 items-center justify-center rounded-sm ${
+                  className={`flex size-5 shrink-0 items-center justify-center rounded-sm transition-colors ${
                     activeSection === section.key
-                      ? "bg-primary/15 text-primary"
-                      : "bg-muted/80 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+                      ? "bg-primary-foreground/15 text-primary-foreground"
+                      : "text-muted-foreground group-hover:text-foreground"
                   }`}
                 >
                   {section.icon}
                 </span>
-                <span className="min-w-0 flex-1 truncate leading-none">{section.title}</span>
+                <span className="whitespace-nowrap leading-none">{section.title}</span>
               </button>
             ))}
           </div>
-        </aside>
+        </div>
 
-        <main className="min-h-0 overflow-y-auto bg-background">
+        <main className="min-h-0 flex-1 overflow-y-auto bg-background">
           {loading ? (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
               加载中...
