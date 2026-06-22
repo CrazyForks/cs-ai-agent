@@ -337,10 +337,25 @@ func defaultAgentWorkflowDefinition() dsl.Definition {
 		SchemaVersion: 1,
 		EntryNodeID:   "start_1",
 		Nodes: []dsl.Node{
-			{ID: "start_1", Type: workflowregistry.NodeTypeStart, Name: "Start", Position: dsl.Position{X: 0, Y: 80}},
-			{ID: "end_1", Type: workflowregistry.NodeTypeEnd, Name: "End", Position: dsl.Position{X: 360, Y: 80}},
+			{ID: "start_1", Type: workflowregistry.NodeTypeStart, Name: "开始", Position: dsl.Position{X: 0, Y: 120}},
+			{ID: "retrieve_1", Type: workflowregistry.NodeTypeKnowledgeRetrieve, Name: "知识检索", Position: dsl.Position{X: 260, Y: 120}, Inputs: map[string]dsl.VariableSelector{
+				"query": {NodeID: "start_1", Field: "userMessage"},
+			}},
+			{ID: "reply_1", Type: workflowregistry.NodeTypeLLMReply, Name: "AI 回复", Position: dsl.Position{X: 520, Y: 120}, Inputs: map[string]dsl.VariableSelector{
+				"userMessage":    {NodeID: "start_1", Field: "userMessage"},
+				"knowledgeItems": {NodeID: "retrieve_1", Field: "items"},
+			}},
+			{ID: "send_1", Type: workflowregistry.NodeTypeSendReply, Name: "发送回复", Position: dsl.Position{X: 780, Y: 120}, Inputs: map[string]dsl.VariableSelector{
+				"replyText": {NodeID: "reply_1", Field: "replyText"},
+			}},
+			{ID: "end_1", Type: workflowregistry.NodeTypeEnd, Name: "结束", Position: dsl.Position{X: 1040, Y: 120}},
 		},
-		Edges: []dsl.Edge{{ID: "edge_start_end", Source: "start_1", Target: "end_1"}},
+		Edges: []dsl.Edge{
+			{ID: "edge_start_retrieve", Source: "start_1", Target: "retrieve_1"},
+			{ID: "edge_retrieve_reply", Source: "retrieve_1", Target: "reply_1"},
+			{ID: "edge_reply_send", Source: "reply_1", Target: "send_1"},
+			{ID: "edge_send_end", Source: "send_1", Target: "end_1"},
+		},
 	}
 }
 

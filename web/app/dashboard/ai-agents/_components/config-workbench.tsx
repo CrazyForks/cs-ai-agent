@@ -89,19 +89,55 @@ const emptyDefinition: AIWorkflowDefinition = {
     {
       id: "start_1",
       type: "start",
-      name: "Start",
-      position: { x: 0, y: 80 },
+      name: "开始",
+      position: { x: 0, y: 120 },
       config: {},
+    },
+    {
+      id: "retrieve_1",
+      type: "knowledge_retrieve",
+      name: "知识检索",
+      position: { x: 260, y: 120 },
+      config: {},
+      inputs: {
+        query: { nodeId: "start_1", field: "userMessage" },
+      },
+    },
+    {
+      id: "reply_1",
+      type: "llm_reply",
+      name: "AI 回复",
+      position: { x: 520, y: 120 },
+      config: {},
+      inputs: {
+        userMessage: { nodeId: "start_1", field: "userMessage" },
+        knowledgeItems: { nodeId: "retrieve_1", field: "items" },
+      },
+    },
+    {
+      id: "send_1",
+      type: "send_reply",
+      name: "发送回复",
+      position: { x: 780, y: 120 },
+      config: {},
+      inputs: {
+        replyText: { nodeId: "reply_1", field: "replyText" },
+      },
     },
     {
       id: "end_1",
       type: "end",
-      name: "End",
-      position: { x: 360, y: 80 },
+      name: "结束",
+      position: { x: 1040, y: 120 },
       config: {},
     },
   ],
-  edges: [{ id: "edge_start_end", source: "start_1", target: "end_1" }],
+  edges: [
+    { id: "edge_start_retrieve", source: "start_1", target: "retrieve_1" },
+    { id: "edge_retrieve_reply", source: "retrieve_1", target: "reply_1" },
+    { id: "edge_reply_send", source: "reply_1", target: "send_1" },
+    { id: "edge_send_end", source: "send_1", target: "end_1" },
+  ],
 }
 
 function toText(value: string | number | undefined | null) {

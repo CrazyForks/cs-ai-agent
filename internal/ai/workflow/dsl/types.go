@@ -10,11 +10,12 @@ type Definition struct {
 }
 
 type Node struct {
-	ID       string          `json:"id"`
-	Type     string          `json:"type"`
-	Name     string          `json:"name"`
-	Position Position        `json:"position"`
-	Config   json.RawMessage `json:"config"`
+	ID       string                      `json:"id"`
+	Type     string                      `json:"type"`
+	Name     string                      `json:"name"`
+	Position Position                    `json:"position"`
+	Config   json.RawMessage             `json:"config"`
+	Inputs   map[string]VariableSelector `json:"inputs,omitempty"`
 }
 
 type Position struct {
@@ -30,5 +31,13 @@ type Edge struct {
 }
 
 type Condition struct {
-	Expression string `json:"expression"`
+	Expression string            `json:"expression,omitempty"`
+	Left       *VariableSelector `json:"left,omitempty"`
+	Operator   string            `json:"operator,omitempty"`
+	Right      any               `json:"right,omitempty"`
+}
+
+type VariableSelector struct {
+	NodeID string `json:"nodeId"`
+	Field  string `json:"field"`
 }

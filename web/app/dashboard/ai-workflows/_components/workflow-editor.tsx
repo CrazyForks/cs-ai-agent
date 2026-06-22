@@ -6,15 +6,18 @@ import {
   addEdge,
   Background,
   Controls,
+  Handle,
   MiniMap,
+  Position,
   ReactFlow,
   useEdgesState,
   useNodesState,
   type Connection,
   type Edge,
   type Node,
+  type NodeProps,
 } from "@xyflow/react"
-import { PlusIcon } from "lucide-react"
+import { AlertCircleIcon, CheckCircle2Icon, PlusIcon } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
@@ -31,11 +34,16 @@ import {
 } from "@/components/ui/resizable"
 import type { AIWorkflowDefinition, AIWorkflowNodeSpec } from "@/lib/api/admin"
 import {
+  applyAutoInputMappings,
   fromApiDefinition,
+  getAvailableVariables,
+  getNodeSpec,
+  getRequiredInputs,
   toApiDefinition,
   validateWorkflowDraft,
   type WorkflowEditorEdge,
   type WorkflowEditorNode,
+  type WorkflowNodeSpec,
 } from "./workflow-utils"
 import { NodeConfigPanel } from "./node-config-panel"
 
@@ -43,22 +51,33 @@ type WorkflowNodeData = Record<string, unknown> & {
   nodeType?: string
   name?: string
   config?: Record<string, unknown>
+  inputs?: Record<string, { nodeId: string; field: string }>
   label?: string
+  title?: string
+  description?: string
+  inputCount?: number
+  outputCount?: number
+  missingInputs?: string[]
 }
 
 type WorkflowFlowNode = Node<WorkflowNodeData>
 type WorkflowFlowEdge = Edge
 
+const nodeTypes = {
+  workflowNode: WorkflowCanvasNode,
+}
+
 function toFlowNodes(definition: AIWorkflowDefinition): WorkflowFlowNode[] {
   return fromApiDefinition(definition).nodes.map((node) => ({
     id: node.id,
-    type: "default",
+    type: "workflowNode",
     position: node.position,
     data: {
       nodeType: node.data?.nodeType ?? node.type,
       name: node.data?.name ?? node.id,
       label: node.data?.name ?? node.type ?? node.id,
       config: node.data?.config ?? {},
+      inputs: node.data?.inputs ?? {},
     },
   }))
 }
@@ -82,6 +101,7 @@ function toDraft(nodes: WorkflowFlowNode[], edges: WorkflowFlowEdge[]) {
         nodeType: node.data.nodeType,
         name: node.data.name,
         config: node.data.config,
+        inputs: node.data.inputs,
       },
     })) as WorkflowEditorNode[],
     edges: edges.map((edge) => ({
@@ -113,14 +133,31 @@ export function WorkflowEditor({
     () => nodes.find((node) => node.id === selectedNodeId) ?? null,
     [nodes, selectedNodeId]
   )
-  const validation = useMemo(() => validateWorkflowDraft(toDraft(nodes, edges)), [nodes, edges])
+  const draft = useMemo(() => toDraft(nodes, edges), [nodes, edges])
+  const validation = useMemo(
+    () => validateWorkflowDraft(draft, nodeSpecs),
+    [draft, nodeSpecs]
+  )
+  const renderedNodes = useMemo(
+    () => enrichNodesForRender(nodes, nodeSpecs),
+    [nodes, nodeSpecs]
+  )
+  const selectedNodeSpec = useMemo(
+    () => getNodeSpec(nodeSpecs, selectedNode?.data.nodeType ?? ""),
+    [nodeSpecs, selectedNode]
+  )
+  const availableVariables = useMemo(
+    () => (selectedNode ? getAvailableVariables(draft, selectedNode.id, nodeSpecs) : []),
+    [draft, nodeSpecs, selectedNode]
+  )
 
   useEffect(() => {
-    onDefinitionChange(toApiDefinition(toDraft(nodes, edges)) as AIWorkflowDefinition)
-  }, [edges, nodes, onDefinitionChange])
+    onDefinitionChange(toApiDefinition(draft) as AIWorkflowDefinition)
+  }, [draft, onDefinitionChange])
 
   const onConnect = useCallback(
     (connection: Connection) => {
+      let newEdge: WorkflowFlowEdge | null = null
       setEdges((current) => {
         let nextIndex = current.length + 1
         let id = `edge_${connection.source}_${connection.target}_${nextIndex}`
@@ -128,6 +165,10 @@ export function WorkflowEditor({
           nextIndex += 1
           id = `edge_${connection.source}_${connection.target}_${nextIndex}`
         }
+        newEdge = {
+          ...connection,
+          id,
+        } as WorkflowFlowEdge
         return addEdge(
           {
             ...connection,
@@ -136,8 +177,32 @@ export function WorkflowEditor({
           current
         )
       })
+      if (connection.source && connection.target) {
+        setNodes((currentNodes) => {
+          const currentDraft = toDraft(currentNodes, newEdge ? [...edges, newEdge] : edges)
+          const nextDraft = applyAutoInputMappings(
+            currentDraft,
+            connection.source!,
+            connection.target!,
+            nodeSpecs
+          )
+          return currentNodes.map((node) => {
+            const nextNode = nextDraft.nodes.find((item) => item.id === node.id)
+            if (!nextNode) {
+              return node
+            }
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                inputs: nextNode.data?.inputs ?? node.data.inputs,
+              },
+            }
+          })
+        })
+      }
     },
-    [setEdges]
+    [edges, nodeSpecs, setEdges, setNodes]
   )
 
   const addNode = (spec: AIWorkflowNodeSpec) => {
@@ -152,13 +217,14 @@ export function WorkflowEditor({
         ...current,
         {
           id,
-          type: "default",
+          type: "workflowNode",
           position: { x: 120 + current.length * 28, y: 100 + current.length * 24 },
           data: {
             nodeType: spec.type,
             name: spec.title,
             label: spec.title,
             config: {},
+            inputs: spec.defaultInputs ?? {},
           },
         },
       ]
@@ -185,7 +251,7 @@ export function WorkflowEditor({
     <ResizablePanelGroup orientation="horizontal" className="h-full min-h-0 border-t">
       <ResizablePanel defaultSize="18%" minSize="12%" maxSize="34%" className="min-h-0">
         <aside className="h-full min-h-0 overflow-y-auto bg-muted/20 p-3">
-          <div className="mb-3 text-sm font-medium">Nodes</div>
+          <div className="mb-3 text-sm font-medium">节点库</div>
           <div className="space-y-2">
             {nodeSpecs.map((spec) => (
               <button
@@ -200,6 +266,10 @@ export function WorkflowEditor({
                   <span className="mt-1 line-clamp-2 text-xs text-muted-foreground">
                     {spec.description}
                   </span>
+                  <span className="mt-1 flex gap-2 text-[11px] text-muted-foreground">
+                    <span>输入 {spec.inputSchema?.length ?? 0}</span>
+                    <span>输出 {spec.outputSchema?.length ?? 0}</span>
+                  </span>
                 </span>
               </button>
             ))}
@@ -210,8 +280,9 @@ export function WorkflowEditor({
       <ResizablePanel defaultSize="56%" minSize="30%" className="min-h-0">
         <section className="relative h-full min-h-0">
           <ReactFlow
-            nodes={nodes}
+            nodes={renderedNodes}
             edges={edges}
+            nodeTypes={nodeTypes}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
@@ -228,7 +299,12 @@ export function WorkflowEditor({
       <ResizableHandle withHandle />
       <ResizablePanel defaultSize="26%" minSize="18%" maxSize="40%" className="min-h-0">
         <aside className="h-full min-h-0 overflow-y-auto bg-muted/10">
-          <NodeConfigPanel node={selectedNode} onChange={updateNodeData} />
+          <NodeConfigPanel
+            node={selectedNode}
+            nodeSpec={selectedNodeSpec}
+            availableVariables={availableVariables}
+            onChange={updateNodeData}
+          />
           {!validation.valid ? (
             <div className="border-t p-4">
               <div className="mb-2 text-sm font-medium">Local validation</div>
@@ -251,6 +327,73 @@ export function WorkflowEditor({
         </aside>
       </ResizablePanel>
     </ResizablePanelGroup>
+  )
+}
+
+function enrichNodesForRender(
+  nodes: WorkflowFlowNode[],
+  nodeSpecs: AIWorkflowNodeSpec[]
+): WorkflowFlowNode[] {
+  return nodes.map((node) => {
+    const spec = getNodeSpec(nodeSpecs, node.data.nodeType ?? "")
+    const missingInputs = getRequiredInputs(spec).filter((input) => {
+      const selector = node.data.inputs?.[input.name]
+      return !selector?.nodeId || !selector.field
+    })
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        title: spec?.title ?? node.data.name ?? node.id,
+        description: spec?.description ?? "",
+        inputCount: spec?.inputSchema?.length ?? 0,
+        outputCount: spec?.outputSchema?.length ?? 0,
+        missingInputs: missingInputs.map((input) => input.name),
+      },
+    }
+  })
+}
+
+function WorkflowCanvasNode({ data, selected }: NodeProps<WorkflowFlowNode>) {
+  const missingInputs = data.missingInputs ?? []
+  const hasIssue = missingInputs.length > 0
+  return (
+    <div
+      className={[
+        "min-w-56 rounded-md border bg-background shadow-sm",
+        selected ? "ring-2 ring-ring" : "",
+        hasIssue ? "border-destructive/70" : "border-border",
+      ].join(" ")}
+    >
+      <Handle type="target" position={Position.Left} />
+      <div className="flex items-start gap-2 border-b px-3 py-2">
+        {hasIssue ? (
+          <AlertCircleIcon className="mt-0.5 size-4 shrink-0 text-destructive" />
+        ) : (
+          <CheckCircle2Icon className="mt-0.5 size-4 shrink-0 text-emerald-600" />
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-medium">{data.name ?? data.title}</div>
+          <div className="mt-0.5 truncate text-xs text-muted-foreground">{data.title}</div>
+        </div>
+      </div>
+      <div className="space-y-2 px-3 py-2 text-xs">
+        <div className="flex justify-between text-muted-foreground">
+          <span>输入 {data.inputCount ?? 0}</span>
+          <span>输出 {data.outputCount ?? 0}</span>
+        </div>
+        {hasIssue ? (
+          <div className="rounded-sm bg-destructive/10 px-2 py-1 text-destructive">
+            缺少输入：{missingInputs.join("、")}
+          </div>
+        ) : (
+          <div className="rounded-sm bg-emerald-500/10 px-2 py-1 text-emerald-700">
+            配置完整
+          </div>
+        )}
+      </div>
+      <Handle type="source" position={Position.Right} />
+    </div>
   )
 }
 

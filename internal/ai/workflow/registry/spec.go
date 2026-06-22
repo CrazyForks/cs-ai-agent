@@ -1,5 +1,7 @@
 package registry
 
+import "agent-desk/internal/ai/workflow/dsl"
+
 type NodeRiskLevel string
 
 const (
@@ -8,13 +10,37 @@ const (
 	NodeRiskLevelHigh   NodeRiskLevel = "high"
 )
 
+type VariableType string
+
+const (
+	VariableTypeString       VariableType = "string"
+	VariableTypeInteger      VariableType = "integer"
+	VariableTypeBoolean      VariableType = "boolean"
+	VariableTypeObject       VariableType = "object"
+	VariableTypeStringArray  VariableType = "array<string>"
+	VariableTypeIntegerArray VariableType = "array<int>"
+	VariableTypeObjectArray  VariableType = "array<object>"
+	VariableTypeAny          VariableType = "any"
+)
+
+type VariableSpec struct {
+	Name        string       `json:"name"`
+	Type        VariableType `json:"type"`
+	Required    bool         `json:"required,omitempty"`
+	Description string       `json:"description"`
+}
+
 type NodeSpec struct {
-	Type                            string        `json:"type"`
-	Title                           string        `json:"title"`
-	Description                     string        `json:"description"`
-	RiskLevel                       NodeRiskLevel `json:"riskLevel"`
-	Interruptible                   bool          `json:"interruptible"`
-	RequiresConfirmationPredecessor bool          `json:"requiresConfirmationPredecessor"`
+	Type                            string                          `json:"type"`
+	Title                           string                          `json:"title"`
+	Description                     string                          `json:"description"`
+	RiskLevel                       NodeRiskLevel                   `json:"riskLevel"`
+	Interruptible                   bool                            `json:"interruptible"`
+	RequiresConfirmationPredecessor bool                            `json:"requiresConfirmationPredecessor"`
+	ConfigSchema                    any                             `json:"configSchema,omitempty"`
+	InputSchema                     []VariableSpec                  `json:"inputSchema,omitempty"`
+	OutputSchema                    []VariableSpec                  `json:"outputSchema,omitempty"`
+	DefaultInputs                   map[string]dsl.VariableSelector `json:"defaultInputs,omitempty"`
 }
 
 type Registry struct {

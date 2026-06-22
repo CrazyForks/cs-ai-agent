@@ -78,6 +78,10 @@ func BuildAIWorkflowNodeSpecs(list []workflowregistry.NodeSpec) []response.AIWor
 			RiskLevel:                       item.RiskLevel,
 			Interruptible:                   item.Interruptible,
 			RequiresConfirmationPredecessor: item.RequiresConfirmationPredecessor,
+			ConfigSchema:                    item.ConfigSchema,
+			InputSchema:                     item.InputSchema,
+			OutputSchema:                    item.OutputSchema,
+			DefaultInputs:                   item.DefaultInputs,
 		})
 	}
 	return ret

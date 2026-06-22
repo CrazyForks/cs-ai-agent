@@ -11,6 +11,7 @@ export type WorkflowEditorNode = {
     nodeType?: string
     name?: string
     config?: Record<string, unknown>
+    inputs?: Record<string, WorkflowVariableSelector>
   }
 }
 
@@ -39,6 +40,7 @@ export type WorkflowDefinition = {
     name: string
     position: WorkflowNodePosition
     config: Record<string, unknown>
+    inputs?: Record<string, WorkflowVariableSelector>
   }[]
   edges: {
     id: string
@@ -50,12 +52,54 @@ export type WorkflowDefinition = {
   }[]
 }
 
+export type WorkflowVariableType =
+  | "string"
+  | "integer"
+  | "boolean"
+  | "object"
+  | "array<string>"
+  | "array<int>"
+  | "array<object>"
+  | "any"
+
+export type WorkflowVariableSelector = {
+  nodeId: string
+  field: string
+}
+
+export type WorkflowVariableSpec = {
+  name: string
+  type: WorkflowVariableType
+  required?: boolean
+  description?: string
+}
+
+export type WorkflowNodeSpec = {
+  type: string
+  title?: string
+  description?: string
+  inputSchema?: WorkflowVariableSpec[]
+  outputSchema?: WorkflowVariableSpec[]
+  defaultInputs?: Record<string, WorkflowVariableSelector>
+}
+
+export type WorkflowVariableRef = {
+  nodeId: string
+  nodeName: string
+  field: string
+  type: string
+  description: string
+}
+
 export type WorkflowDraftValidation = {
   valid: boolean
   errors: string[]
 }
 
-export function validateWorkflowDraft(draft: WorkflowDraft): WorkflowDraftValidation {
+export function validateWorkflowDraft(
+  draft: WorkflowDraft,
+  nodeSpecs: WorkflowNodeSpec[] = []
+): WorkflowDraftValidation {
   const errors: string[] = []
   const nodeIds = new Set<string>()
   let startCount = 0
@@ -104,6 +148,21 @@ export function validateWorkflowDraft(draft: WorkflowDraft): WorkflowDraftValida
     }
   }
 
+  for (const node of draft.nodes) {
+    const nodeType = node.data?.nodeType ?? node.type ?? ""
+    const spec = getNodeSpec(nodeSpecs, nodeType)
+    if (!spec) {
+      continue
+    }
+    for (const input of getRequiredInputs(spec)) {
+      const selector = node.data?.inputs?.[input.name]
+      if (!selector?.nodeId || !selector.field) {
+        const nodeName = node.data?.name ?? spec.title ?? node.id
+        errors.push(`${nodeName} 缺少必填输入「${input.name}」，请选择上游节点的输出变量。`)
+      }
+    }
+  }
+
   return {
     valid: errors.length === 0,
     errors,
@@ -124,6 +183,7 @@ export function toApiDefinition(draft: WorkflowDraft): WorkflowDefinition {
         y: node.position.y,
       },
       config: node.data?.config ?? {},
+      ...(node.data?.inputs ? { inputs: node.data.inputs } : {}),
     })),
     edges: draft.edges.map((edge) => ({
       id: edge.id,
@@ -150,6 +210,7 @@ export function fromApiDefinition(definition: WorkflowDefinition): WorkflowDraft
         nodeType: node.type,
         name: node.name,
         config: node.config ?? {},
+        inputs: node.inputs ?? {},
       },
     })),
     edges: (definition.edges ?? []).map((edge) => ({
@@ -159,4 +220,167 @@ export function fromApiDefinition(definition: WorkflowDefinition): WorkflowDraft
       data: edge.condition ? { condition: edge.condition } : undefined,
     })),
   }
+}
+
+export function applyAutoInputMappings(
+  draft: WorkflowDraft,
+  sourceNodeId: string,
+  targetNodeId: string,
+  nodeSpecs: WorkflowNodeSpec[]
+): WorkflowDraft {
+  const sourceNode = draft.nodes.find((node) => node.id === sourceNodeId)
+  const targetNode = draft.nodes.find((node) => node.id === targetNodeId)
+  if (!sourceNode || !targetNode) {
+    return draft
+  }
+  const sourceSpec = getNodeSpec(nodeSpecs, sourceNode.data?.nodeType ?? sourceNode.type ?? "")
+  const targetSpec = getNodeSpec(nodeSpecs, targetNode.data?.nodeType ?? targetNode.type ?? "")
+  if (!sourceSpec || !targetSpec) {
+    return draft
+  }
+  const nextInputs = { ...(targetNode.data?.inputs ?? {}) }
+  let changed = false
+
+  for (const input of targetSpec.inputSchema ?? []) {
+    if (nextInputs[input.name]) {
+      continue
+    }
+    const output = findPreferredOutput(input.name, input.type, sourceSpec.outputSchema ?? [])
+    if (!output) {
+      continue
+    }
+    nextInputs[input.name] = { nodeId: sourceNodeId, field: output.name }
+    changed = true
+  }
+
+  if (!changed) {
+    return draft
+  }
+
+  return {
+    ...draft,
+    nodes: draft.nodes.map((node) =>
+      node.id === targetNodeId
+        ? {
+            ...node,
+            data: {
+              ...node.data,
+              inputs: nextInputs,
+            },
+          }
+        : node
+    ),
+  }
+}
+
+function findPreferredOutput(
+  inputName: string,
+  inputType: WorkflowVariableType,
+  outputs: WorkflowVariableSpec[]
+): WorkflowVariableSpec | undefined {
+  const preferred = preferredOutputName(inputName)
+  if (preferred) {
+    const exact = outputs.find((output) => output.name === preferred && variableTypesCompatible(inputType, output.type))
+    if (exact) {
+      return exact
+    }
+  }
+  const sameName = outputs.find((output) => output.name === inputName && variableTypesCompatible(inputType, output.type))
+  if (sameName) {
+    return sameName
+  }
+  return outputs.find((output) => variableTypesCompatible(inputType, output.type))
+}
+
+function preferredOutputName(inputName: string): string {
+  switch (inputName) {
+    case "query":
+    case "userMessage":
+    case "issue":
+    case "prompt":
+      return "userMessage"
+    case "knowledgeItems":
+      return "items"
+    case "replyText":
+      return "replyText"
+    case "confirmed":
+      return "confirmed"
+    case "ticketDraft":
+      return "ticketDraft"
+    case "reason":
+      return "reason"
+    default:
+      return ""
+  }
+}
+
+function variableTypesCompatible(input: WorkflowVariableType, output: WorkflowVariableType): boolean {
+  return input === "any" || output === "any" || input === output
+}
+
+export function getNodeSpec(
+  nodeSpecs: WorkflowNodeSpec[],
+  nodeType: string
+): WorkflowNodeSpec | undefined {
+  return nodeSpecs.find((spec) => spec.type === nodeType)
+}
+
+export function getRequiredInputs(spec: WorkflowNodeSpec | undefined): WorkflowVariableSpec[] {
+  return (spec?.inputSchema ?? []).filter((item) => item.required)
+}
+
+export function getAvailableVariables(
+  draft: WorkflowDraft,
+  nodeId: string,
+  nodeSpecs: WorkflowNodeSpec[]
+): WorkflowVariableRef[] {
+  const ancestors = collectAncestorNodeIds(draft, nodeId)
+  const nodesById = new Map(draft.nodes.map((node) => [node.id, node]))
+  const variables: WorkflowVariableRef[] = []
+
+  for (const sourceNodeId of ancestors) {
+    const sourceNode = nodesById.get(sourceNodeId)
+    if (!sourceNode) {
+      continue
+    }
+    const nodeType = sourceNode.data?.nodeType ?? sourceNode.type ?? ""
+    const spec = getNodeSpec(nodeSpecs, nodeType)
+    for (const output of spec?.outputSchema ?? []) {
+      variables.push({
+        nodeId: sourceNode.id,
+        nodeName: sourceNode.data?.name ?? spec?.title ?? sourceNode.id,
+        field: output.name,
+        type: output.type,
+        description: output.description ?? "",
+      })
+    }
+  }
+
+  return variables
+}
+
+function collectAncestorNodeIds(draft: WorkflowDraft, nodeId: string): string[] {
+  const incoming = new Map<string, string[]>()
+  for (const edge of draft.edges) {
+    const sources = incoming.get(edge.target) ?? []
+    sources.push(edge.source)
+    incoming.set(edge.target, sources)
+  }
+
+  const visited = new Set<string>()
+  const ordered: string[] = []
+
+  function visit(current: string) {
+    for (const source of incoming.get(current) ?? []) {
+      if (visited.has(source)) {
+        continue
+      }
+      visited.add(source)
+      visit(source)
+      ordered.push(source)
+    }
+  }
+
+  visit(nodeId)
+  return ordered
 }

@@ -174,7 +174,9 @@ func validAIWorkflowDefinition() dsl.Definition {
 		EntryNodeID:   "start_1",
 		Nodes: []dsl.Node{
 			{ID: "start_1", Type: "start"},
-			{ID: "reply_1", Type: "send_reply", Config: json.RawMessage(`{"text":"hello"}`)},
+			{ID: "reply_1", Type: "send_reply", Config: json.RawMessage(`{"text":"hello"}`), Inputs: map[string]dsl.VariableSelector{
+				"replyText": {NodeID: "start_1", Field: "userMessage"},
+			}},
 			{ID: "end_1", Type: "end"},
 		},
 		Edges: []dsl.Edge{

@@ -286,6 +286,28 @@ export type AIWorkflowPosition = {
   y: number
 }
 
+export type AIWorkflowVariableType =
+  | "string"
+  | "integer"
+  | "boolean"
+  | "object"
+  | "array<string>"
+  | "array<int>"
+  | "array<object>"
+  | "any"
+
+export type AIWorkflowVariableSelector = {
+  nodeId: string
+  field: string
+}
+
+export type AIWorkflowVariableSpec = {
+  name: string
+  type: AIWorkflowVariableType
+  required?: boolean
+  description: string
+}
+
 export type AIWorkflowDefinition = {
   schemaVersion: number
   entryNodeId: string
@@ -295,6 +317,7 @@ export type AIWorkflowDefinition = {
     name: string
     position: AIWorkflowPosition
     config: Record<string, unknown>
+    inputs?: Record<string, AIWorkflowVariableSelector>
   }[]
   edges: {
     id: string
@@ -342,6 +365,10 @@ export type AIWorkflowNodeSpec = {
   riskLevel: "low" | "medium" | "high"
   interruptible: boolean
   requiresConfirmationPredecessor: boolean
+  configSchema?: unknown
+  inputSchema?: AIWorkflowVariableSpec[]
+  outputSchema?: AIWorkflowVariableSpec[]
+  defaultInputs?: Record<string, AIWorkflowVariableSelector>
 }
 
 export type AIWorkflowValidationResult = {

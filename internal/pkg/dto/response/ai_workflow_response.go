@@ -42,10 +42,14 @@ type AIWorkflowValidationResponse struct {
 }
 
 type AIWorkflowNodeSpecResponse struct {
-	Type                            string                         `json:"type"`
-	Title                           string                         `json:"title"`
-	Description                     string                         `json:"description"`
-	RiskLevel                       workflowregistry.NodeRiskLevel `json:"riskLevel"`
-	Interruptible                   bool                           `json:"interruptible"`
-	RequiresConfirmationPredecessor bool                           `json:"requiresConfirmationPredecessor"`
+	Type                            string                          `json:"type"`
+	Title                           string                          `json:"title"`
+	Description                     string                          `json:"description"`
+	RiskLevel                       workflowregistry.NodeRiskLevel  `json:"riskLevel"`
+	Interruptible                   bool                            `json:"interruptible"`
+	RequiresConfirmationPredecessor bool                            `json:"requiresConfirmationPredecessor"`
+	ConfigSchema                    any                             `json:"configSchema,omitempty"`
+	InputSchema                     []workflowregistry.VariableSpec `json:"inputSchema,omitempty"`
+	OutputSchema                    []workflowregistry.VariableSpec `json:"outputSchema,omitempty"`
+	DefaultInputs                   map[string]dsl.VariableSelector `json:"defaultInputs,omitempty"`
 }

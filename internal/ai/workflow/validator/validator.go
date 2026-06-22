@@ -55,6 +55,7 @@ func (v *definitionValidator) validate() {
 	v.validateEntry()
 	v.validateReachability()
 	v.validateConfirmationGuards()
+	v.validateVariableMappings()
 }
 
 func (v *definitionValidator) validateNodes() {
@@ -180,6 +181,116 @@ func (v *definitionValidator) validateConfirmationGuards() {
 			v.addError("nodes."+id, node.Type+" requires human_confirm before execution")
 		}
 	}
+}
+
+func (v *definitionValidator) validateVariableMappings() {
+	for id, node := range v.nodesByID {
+		spec, ok := v.registry.Get(node.Type)
+		if !ok {
+			continue
+		}
+		for _, input := range spec.InputSchema {
+			if !input.Required {
+				continue
+			}
+			selector, ok := node.Inputs[input.Name]
+			if !ok || strings.TrimSpace(selector.NodeID) == "" || strings.TrimSpace(selector.Field) == "" {
+				v.addError("nodes."+id+".inputs."+input.Name, "required input mapping is missing: "+input.Name)
+				continue
+			}
+			v.validateInputSelector(id, input, selector)
+		}
+		for inputName, selector := range node.Inputs {
+			if strings.TrimSpace(selector.NodeID) == "" || strings.TrimSpace(selector.Field) == "" {
+				v.addError("nodes."+id+".inputs."+inputName, "input mapping source is required")
+				continue
+			}
+			if _, ok := findInputSpec(spec.InputSchema, inputName); ok {
+				continue
+			}
+			sourceNode, sourceOK := v.nodesByID[strings.TrimSpace(selector.NodeID)]
+			if !sourceOK {
+				v.addError("nodes."+id+".inputs."+inputName, "input source node does not exist: "+selector.NodeID)
+				continue
+			}
+			sourceSpec, sourceSpecOK := v.registry.Get(sourceNode.Type)
+			if !sourceSpecOK {
+				continue
+			}
+			if _, ok := findOutputSpec(sourceSpec.OutputSchema, selector.Field); !ok {
+				v.addError("nodes."+id+".inputs."+inputName, "input source field does not exist: "+selector.NodeID+"."+selector.Field)
+			}
+		}
+	}
+}
+
+func (v *definitionValidator) validateInputSelector(nodeID string, input registry.VariableSpec, selector dsl.VariableSelector) {
+	sourceNodeID := strings.TrimSpace(selector.NodeID)
+	sourceField := strings.TrimSpace(selector.Field)
+	sourceNode, ok := v.nodesByID[sourceNodeID]
+	if !ok {
+		v.addError("nodes."+nodeID+".inputs."+input.Name, "input source node does not exist: "+sourceNodeID)
+		return
+	}
+	if !v.hasPath(sourceNodeID, nodeID, make(map[string]struct{})) {
+		v.addError("nodes."+nodeID+".inputs."+input.Name, "input source node is not available before current node: "+sourceNodeID)
+		return
+	}
+	sourceSpec, ok := v.registry.Get(sourceNode.Type)
+	if !ok {
+		return
+	}
+	output, ok := findOutputSpec(sourceSpec.OutputSchema, sourceField)
+	if !ok {
+		v.addError("nodes."+nodeID+".inputs."+input.Name, "input source field does not exist: "+sourceNodeID+"."+sourceField)
+		return
+	}
+	if !variableTypesCompatible(input.Type, output.Type) {
+		v.addError("nodes."+nodeID+".inputs."+input.Name, fmt.Sprintf("input type mismatch: %s expects %s but %s.%s is %s", input.Name, input.Type, sourceNodeID, sourceField, output.Type))
+	}
+}
+
+func (v *definitionValidator) hasPath(sourceID string, targetID string, visiting map[string]struct{}) bool {
+	if sourceID == targetID {
+		return false
+	}
+	if _, seen := visiting[sourceID]; seen {
+		return false
+	}
+	visiting[sourceID] = struct{}{}
+	for _, next := range v.outgoing[sourceID] {
+		if next == targetID {
+			return true
+		}
+		if v.hasPath(next, targetID, visiting) {
+			return true
+		}
+	}
+	return false
+}
+
+func findInputSpec(items []registry.VariableSpec, name string) (registry.VariableSpec, bool) {
+	name = strings.TrimSpace(name)
+	for _, item := range items {
+		if item.Name == name {
+			return item, true
+		}
+	}
+	return registry.VariableSpec{}, false
+}
+
+func findOutputSpec(items []registry.VariableSpec, name string) (registry.VariableSpec, bool) {
+	name = strings.TrimSpace(name)
+	for _, item := range items {
+		if item.Name == name {
+			return item, true
+		}
+	}
+	return registry.VariableSpec{}, false
+}
+
+func variableTypesCompatible(input registry.VariableType, output registry.VariableType) bool {
+	return input == registry.VariableTypeAny || output == registry.VariableTypeAny || input == output
 }
 
 func (v *definitionValidator) hasConfirmationPredecessor(nodeID string, visiting map[string]struct{}) bool {

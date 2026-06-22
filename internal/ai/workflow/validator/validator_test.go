@@ -83,9 +83,16 @@ func TestValidateDefinitionAcceptsConfirmedCreateTicket(t *testing.T) {
 		EntryNodeID:   "start_1",
 		Nodes: []dsl.Node{
 			{ID: "start_1", Type: "start"},
-			{ID: "draft_1", Type: "prepare_ticket_draft"},
-			{ID: "confirm_1", Type: "human_confirm"},
-			{ID: "create_1", Type: "create_ticket"},
+			{ID: "draft_1", Type: "prepare_ticket_draft", Inputs: map[string]dsl.VariableSelector{
+				"issue": {NodeID: "start_1", Field: "userMessage"},
+			}},
+			{ID: "confirm_1", Type: "human_confirm", Inputs: map[string]dsl.VariableSelector{
+				"prompt": {NodeID: "start_1", Field: "userMessage"},
+			}},
+			{ID: "create_1", Type: "create_ticket", Inputs: map[string]dsl.VariableSelector{
+				"ticketDraft": {NodeID: "draft_1", Field: "ticketDraft"},
+				"confirmed":   {NodeID: "confirm_1", Field: "confirmed"},
+			}},
 			{ID: "end_1", Type: "end"},
 		},
 		Edges: []dsl.Edge{
@@ -103,13 +110,99 @@ func TestValidateDefinitionAcceptsConfirmedCreateTicket(t *testing.T) {
 	}
 }
 
+func TestValidateDefinitionRejectsMissingRequiredInputMapping(t *testing.T) {
+	def := minimalDefinition()
+	def.Nodes[1].Inputs = nil
+
+	result := validator.ValidateDefinition(def, registry.DefaultRegistry())
+
+	if result.Valid {
+		t.Fatalf("expected missing required input mapping to be invalid")
+	}
+	if !hasValidationMessage(result, "required input mapping is missing") {
+		t.Fatalf("expected required-input error, got %#v", result.Errors)
+	}
+}
+
+func TestValidateDefinitionRejectsUnknownInputSourceNode(t *testing.T) {
+	def := mappedReplyDefinition()
+	def.Nodes[1].Inputs["replyText"] = dsl.VariableSelector{NodeID: "missing_1", Field: "replyText"}
+
+	result := validator.ValidateDefinition(def, registry.DefaultRegistry())
+
+	if result.Valid {
+		t.Fatalf("expected unknown input source node to be invalid")
+	}
+	if !hasValidationMessage(result, "input source node does not exist") {
+		t.Fatalf("expected source-node error, got %#v", result.Errors)
+	}
+}
+
+func TestValidateDefinitionRejectsUnknownInputSourceField(t *testing.T) {
+	def := mappedReplyDefinition()
+	def.Nodes[1].Inputs["replyText"] = dsl.VariableSelector{NodeID: "start_1", Field: "missing"}
+
+	result := validator.ValidateDefinition(def, registry.DefaultRegistry())
+
+	if result.Valid {
+		t.Fatalf("expected unknown input source field to be invalid")
+	}
+	if !hasValidationMessage(result, "input source field does not exist") {
+		t.Fatalf("expected source-field error, got %#v", result.Errors)
+	}
+}
+
+func TestValidateDefinitionRejectsIncompatibleInputType(t *testing.T) {
+	def := mappedReplyDefinition()
+	def.Nodes[1].Inputs["replyText"] = dsl.VariableSelector{NodeID: "start_1", Field: "conversationId"}
+
+	result := validator.ValidateDefinition(def, registry.DefaultRegistry())
+
+	if result.Valid {
+		t.Fatalf("expected incompatible input type to be invalid")
+	}
+	if !hasValidationMessage(result, "input type mismatch") {
+		t.Fatalf("expected type-mismatch error, got %#v", result.Errors)
+	}
+}
+
+func TestValidateDefinitionAcceptsMappedKnowledgeFlow(t *testing.T) {
+	def := dsl.Definition{
+		SchemaVersion: 1,
+		EntryNodeID:   "start_1",
+		Nodes: []dsl.Node{
+			{ID: "start_1", Type: "start"},
+			{ID: "retrieve_1", Type: "knowledge_retrieve", Inputs: map[string]dsl.VariableSelector{
+				"query": {NodeID: "start_1", Field: "userMessage"},
+			}},
+			{ID: "reply_1", Type: "send_reply", Inputs: map[string]dsl.VariableSelector{
+				"replyText": {NodeID: "start_1", Field: "userMessage"},
+			}},
+			{ID: "end_1", Type: "end"},
+		},
+		Edges: []dsl.Edge{
+			{ID: "e1", Source: "start_1", Target: "retrieve_1"},
+			{ID: "e2", Source: "retrieve_1", Target: "reply_1"},
+			{ID: "e3", Source: "reply_1", Target: "end_1"},
+		},
+	}
+
+	result := validator.ValidateDefinition(def, registry.DefaultRegistry())
+
+	if !result.Valid {
+		t.Fatalf("expected mapped knowledge flow to be valid, got %#v", result.Errors)
+	}
+}
+
 func minimalDefinition() dsl.Definition {
 	return dsl.Definition{
 		SchemaVersion: 1,
 		EntryNodeID:   "start_1",
 		Nodes: []dsl.Node{
 			{ID: "start_1", Type: "start"},
-			{ID: "reply_1", Type: "send_reply", Config: json.RawMessage(`{"text":"hello"}`)},
+			{ID: "reply_1", Type: "send_reply", Config: json.RawMessage(`{"text":"hello"}`), Inputs: map[string]dsl.VariableSelector{
+				"replyText": {NodeID: "start_1", Field: "userMessage"},
+			}},
 			{ID: "end_1", Type: "end"},
 		},
 		Edges: []dsl.Edge{
@@ -117,6 +210,14 @@ func minimalDefinition() dsl.Definition {
 			{ID: "e2", Source: "reply_1", Target: "end_1"},
 		},
 	}
+}
+
+func mappedReplyDefinition() dsl.Definition {
+	def := minimalDefinition()
+	def.Nodes[1].Inputs = map[string]dsl.VariableSelector{
+		"replyText": {NodeID: "start_1", Field: "userMessage"},
+	}
+	return def
 }
 
 func hasValidationMessage(result validator.Result, want string) bool {

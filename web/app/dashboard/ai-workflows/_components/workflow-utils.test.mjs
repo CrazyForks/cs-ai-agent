@@ -53,6 +53,155 @@ describe("validateWorkflowDraft", () => {
     assert.equal(result.valid, false)
     assert.match(result.errors.join("\n"), /target node does not exist/)
   })
+
+  it("rejects missing required input mapping", async () => {
+    const { validateWorkflowDraft } = await loadModule()
+
+    const result = validateWorkflowDraft(
+      {
+        nodes: [
+          { id: "start_1", type: "start", position: { x: 0, y: 0 }, data: {} },
+          { id: "reply_1", type: "send_reply", position: { x: 200, y: 0 }, data: {} },
+          { id: "end_1", type: "end", position: { x: 400, y: 0 }, data: {} },
+        ],
+        edges: [
+          { id: "e1", source: "start_1", target: "reply_1" },
+          { id: "e2", source: "reply_1", target: "end_1" },
+        ],
+      },
+      [
+        {
+          type: "send_reply",
+          inputSchema: [{ name: "replyText", type: "string", required: true }],
+        },
+      ]
+    )
+
+    assert.equal(result.valid, false)
+    assert.match(result.errors.join("\n"), /缺少必填输入「replyText」/)
+  })
+})
+
+describe("applyAutoInputMappings", () => {
+  it("maps start user message to knowledge retrieve query", async () => {
+    const { applyAutoInputMappings } = await loadModule()
+
+    const draft = applyAutoInputMappings(
+      {
+        nodes: [
+          { id: "start_1", type: "start", position: { x: 0, y: 0 }, data: {} },
+          { id: "retrieve_1", type: "knowledge_retrieve", position: { x: 200, y: 0 }, data: {} },
+        ],
+        edges: [{ id: "e1", source: "start_1", target: "retrieve_1" }],
+      },
+      "start_1",
+      "retrieve_1",
+      [
+        {
+          type: "start",
+          outputSchema: [{ name: "userMessage", type: "string", description: "Message" }],
+        },
+        {
+          type: "knowledge_retrieve",
+          inputSchema: [{ name: "query", type: "string", required: true }],
+        },
+      ]
+    )
+
+    assert.deepEqual(plain(draft.nodes[1].data.inputs), {
+      query: { nodeId: "start_1", field: "userMessage" },
+    })
+  })
+
+  it("maps llm reply text to send reply content", async () => {
+    const { applyAutoInputMappings } = await loadModule()
+
+    const draft = applyAutoInputMappings(
+      {
+        nodes: [
+          { id: "llm_1", type: "llm_reply", position: { x: 0, y: 0 }, data: {} },
+          { id: "send_1", type: "send_reply", position: { x: 200, y: 0 }, data: {} },
+        ],
+        edges: [{ id: "e1", source: "llm_1", target: "send_1" }],
+      },
+      "llm_1",
+      "send_1",
+      [
+        {
+          type: "llm_reply",
+          outputSchema: [{ name: "replyText", type: "string", description: "Reply" }],
+        },
+        {
+          type: "send_reply",
+          inputSchema: [{ name: "replyText", type: "string", required: true }],
+        },
+      ]
+    )
+
+    assert.deepEqual(plain(draft.nodes[1].data.inputs), {
+      replyText: { nodeId: "llm_1", field: "replyText" },
+    })
+  })
+})
+
+describe("getAvailableVariables", () => {
+  it("exposes start outputs to retrieve node", async () => {
+    const { getAvailableVariables } = await loadModule()
+
+    const variables = getAvailableVariables(
+      {
+        nodes: [
+          { id: "start_1", type: "start", position: { x: 0, y: 0 }, data: { name: "Start" } },
+          { id: "retrieve_1", type: "knowledge_retrieve", position: { x: 200, y: 0 }, data: {} },
+        ],
+        edges: [{ id: "e1", source: "start_1", target: "retrieve_1" }],
+      },
+      "retrieve_1",
+      [
+        {
+          type: "start",
+          outputSchema: [{ name: "userMessage", type: "string", description: "Message" }],
+        },
+      ]
+    )
+
+    assert.deepEqual(plain(variables), [
+      {
+        nodeId: "start_1",
+        nodeName: "Start",
+        field: "userMessage",
+        type: "string",
+        description: "Message",
+      },
+    ])
+  })
+
+  it("hides variables from downstream nodes", async () => {
+    const { getAvailableVariables } = await loadModule()
+
+    const variables = getAvailableVariables(
+      {
+        nodes: [
+          { id: "start_1", type: "start", position: { x: 0, y: 0 }, data: {} },
+          { id: "reply_1", type: "send_reply", position: { x: 200, y: 0 }, data: {} },
+          { id: "end_1", type: "end", position: { x: 400, y: 0 }, data: {} },
+        ],
+        edges: [
+          { id: "e1", source: "start_1", target: "reply_1" },
+          { id: "e2", source: "reply_1", target: "end_1" },
+        ],
+      },
+      "reply_1",
+      [
+        {
+          type: "end",
+          outputSchema: [{ name: "status", type: "string", description: "Status" }],
+        },
+      ]
+    )
+
+    assert.deepEqual(plain(variables), [])
+  })
 })
 
 describe("toApiDefinition", () => {

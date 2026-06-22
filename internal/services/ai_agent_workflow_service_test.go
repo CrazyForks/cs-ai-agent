@@ -50,6 +50,12 @@ func TestAIAgentServiceCreatesDefaultWorkflow(t *testing.T) {
 	if stored.EntryNodeID == "" {
 		t.Fatalf("expected default draft definition")
 	}
+	if len(stored.Nodes) < 5 {
+		t.Fatalf("expected product-ready default workflow, got nodes: %#v", stored.Nodes)
+	}
+	if !workflowHasNodeType(stored, "knowledge_retrieve") || !workflowHasNodeType(stored, "llm_reply") || !workflowHasNodeType(stored, "send_reply") {
+		t.Fatalf("expected default workflow to include retrieve, llm reply, and send reply nodes: %#v", stored.Nodes)
+	}
 }
 
 func TestAIWorkflowServicePublishAgentWorkflowBindsAgentVersion(t *testing.T) {
@@ -168,4 +174,13 @@ func aiAgentWorkflowTestOperator() *dto.AuthPrincipal {
 		Username: "agent-workflow-tester",
 		Nickname: "agent-workflow-tester",
 	}
+}
+
+func workflowHasNodeType(def dsl.Definition, nodeType string) bool {
+	for _, node := range def.Nodes {
+		if node.Type == nodeType {
+			return true
+		}
+	}
+	return false
 }
