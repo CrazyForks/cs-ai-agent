@@ -20,7 +20,7 @@ import {
   type NodeProps,
   type ReactFlowInstance,
 } from "@xyflow/react"
-import { AlertCircleIcon, CheckCircle2Icon, PlusIcon } from "lucide-react"
+import { AlertCircleIcon, CheckCircle2Icon } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
@@ -343,9 +343,8 @@ export function WorkflowEditor({
                   }
                   addNode(spec)
                 }}
-                className="flex w-full cursor-grab items-start gap-2 rounded-md border bg-background px-3 py-2 text-left text-sm hover:bg-muted active:cursor-grabbing"
+                className="flex w-full cursor-grab rounded-md border bg-background px-3 py-2 text-left text-sm hover:bg-muted active:cursor-grabbing"
               >
-                <PlusIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                 <span className="min-w-0">
                   <span className="block truncate font-medium">{spec.title}</span>
                   <span className="mt-1 line-clamp-2 text-xs text-muted-foreground">
@@ -394,9 +393,6 @@ export function WorkflowEditor({
             <MiniMap pannable zoomable />
           </ReactFlow>
           <WorkflowValidationBadge errors={validation.errors} valid={validation.valid} />
-          <div className="pointer-events-none absolute bottom-3 left-3 rounded-md border bg-background/95 px-3 py-2 text-xs text-muted-foreground shadow-sm">
-            从节点右侧圆点拖到下一个节点，或依次点击两个连接点完成连线。
-          </div>
           {pendingNodeDrag?.active ? (
             <div
               className="pointer-events-none fixed z-50 rounded-md border bg-background px-3 py-2 text-sm font-medium shadow-lg"
