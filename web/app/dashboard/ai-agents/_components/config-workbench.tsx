@@ -878,71 +878,48 @@ export function AIAgentConfigWorkbench({
 
               {activeSection === "publish" ? (
                 <ConfigSection>
-                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-md border px-3 py-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">Agent 状态</span>
-                      <Badge variant="secondary">{agent?.statusName || "-"}</Badge>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">生效流程版本</span>
-                      <Badge variant={agent?.workflowVersionId ? "default" : "outline"}>
-                        {agent?.workflowVersionId ? `#${agent.workflowVersionId}` : "未发布"}
-                      </Badge>
-                    </div>
-                    <div className="min-w-0 flex-1 text-xs text-muted-foreground">
-                      发布会保存草稿、生成不可变版本，并绑定为当前生效流程。
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <div>
-                      <h3 className="text-sm font-medium">版本记录</h3>
-                      {/* <p className="mt-1 text-xs text-muted-foreground">
-                        仅展示已发布的不可变流程版本，当前页面暂不支持切换或回滚版本。
-                      </p> */}
-                    </div>
-                    <div className="overflow-hidden rounded-md border">
-                      {workflowVersions.length > 0 ? (
-                        <Table>
-                          <TableHeader className="bg-muted/40">
-                            <TableRow>
-                              <TableHead className="w-28">版本</TableHead>
-                              <TableHead>发布时间</TableHead>
-                              <TableHead>发布人</TableHead>
-                              <TableHead>状态</TableHead>
-                              <TableHead className="text-right">定义指纹</TableHead>
+                  <div className="overflow-hidden rounded-md border">
+                    {workflowVersions.length > 0 ? (
+                      <Table>
+                        <TableHeader className="bg-muted/40">
+                          <TableRow>
+                            <TableHead className="w-28">版本</TableHead>
+                            <TableHead>发布时间</TableHead>
+                            <TableHead>发布人</TableHead>
+                            <TableHead>状态</TableHead>
+                            <TableHead className="text-right">定义指纹</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {workflowVersions.map((version) => (
+                            <TableRow key={version.id}>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">v{version.version}</span>
+                                  {agent?.workflowVersionId === version.id ? (
+                                    <Badge variant="secondary">当前生效</Badge>
+                                  ) : null}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {version.publishedAt || version.createdAt || "-"}
+                              </TableCell>
+                              <TableCell>{version.publishedByName || "-"}</TableCell>
+                              <TableCell>
+                                <Badge variant={version.status === Status.Ok ? "outline" : "secondary"}>
+                                  {version.status === Status.Ok ? "启用" : "禁用"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                                {version.definitionHash ? version.definitionHash.slice(0, 8) : "-"}
+                              </TableCell>
                             </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {workflowVersions.map((version) => (
-                              <TableRow key={version.id}>
-                                <TableCell>
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-medium">v{version.version}</span>
-                                    {agent?.workflowVersionId === version.id ? (
-                                      <Badge variant="secondary">当前生效</Badge>
-                                    ) : null}
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-muted-foreground">
-                                  {version.publishedAt || version.createdAt || "-"}
-                                </TableCell>
-                                <TableCell>{version.publishedByName || "-"}</TableCell>
-                                <TableCell>
-                                  <Badge variant={version.status === Status.Ok ? "outline" : "secondary"}>
-                                    {version.status === Status.Ok ? "启用" : "禁用"}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-right font-mono text-xs text-muted-foreground">
-                                  {version.definitionHash ? version.definitionHash.slice(0, 8) : "-"}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      ) : (
-                        <div className="p-4 text-sm text-muted-foreground">暂无已发布版本。</div>
-                      )}
-                    </div>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <div className="p-4 text-sm text-muted-foreground">暂无已发布版本。</div>
+                    )}
                   </div>
                 </ConfigSection>
               ) : null}
