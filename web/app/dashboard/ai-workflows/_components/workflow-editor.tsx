@@ -5,17 +5,21 @@ import "@xyflow/react/dist/style.css"
 import {
   addEdge,
   Background,
+  BaseEdge,
   ConnectionMode,
+  EdgeLabelRenderer,
   Controls,
+  getBezierPath,
   Handle,
   MarkerType,
-  MiniMap,
   Position,
   ReactFlow,
   useEdgesState,
   useNodesState,
   type Connection,
+  type ConnectionLineComponentProps,
   type Edge,
+  type EdgeProps,
   type Node,
   type NodeProps,
   type ReactFlowInstance,
@@ -64,6 +68,8 @@ type WorkflowNodeData = Record<string, unknown> & {
   name?: string
   config?: Record<string, unknown>
   inputs?: Record<string, { nodeId: string; field: string }>
+  nodeSpecs?: AIWorkflowNodeSpec[]
+  onAddAfter?: (sourceNodeId: string, spec: AIWorkflowNodeSpec) => void
   label?: string
   title?: string
   description?: string
@@ -89,6 +95,10 @@ const nodeTypes = {
   workflowNode: WorkflowCanvasNode,
 }
 
+const edgeTypes = {
+  workflowEdge: WorkflowCanvasEdge,
+}
+
 const fitViewOptions = {
   padding: 0.16,
   minZoom: 0.72,
@@ -96,7 +106,7 @@ const fitViewOptions = {
 }
 
 const defaultEdgeOptions = {
-  type: "smoothstep",
+  type: "workflowEdge",
   markerEnd: {
     type: MarkerType.ArrowClosed,
   },
@@ -123,6 +133,7 @@ function toFlowNodes(definition: AIWorkflowDefinition): WorkflowFlowNode[] {
 function toFlowEdges(definition: AIWorkflowDefinition): WorkflowFlowEdge[] {
   return (definition.edges ?? []).map((edge) => ({
     id: edge.id,
+    type: "workflowEdge",
     source: edge.source,
     target: edge.target,
     label: edge.condition ? "条件" : undefined,
@@ -196,10 +207,6 @@ export function WorkflowEditor({
     () => validateWorkflowDraft(draft, nodeSpecs),
     [draft, nodeSpecs]
   )
-  const renderedNodes = useMemo(
-    () => enrichNodesForRender(nodes, nodeSpecs),
-    [nodes, nodeSpecs]
-  )
   const propertyPanelNodeSpec = useMemo(
     () => getNodeSpec(nodeSpecs, propertyPanelNode?.data.nodeType ?? ""),
     [nodeSpecs, propertyPanelNode]
@@ -269,6 +276,7 @@ export function WorkflowEditor({
       const edge = {
         ...connection,
         id: uniqueEdgeId(edges, connection.source, connection.target),
+        type: "workflowEdge",
       } as WorkflowFlowEdge
       setEdges((current) => addEdge(edge, current))
       setNodes((currentNodes) => {
@@ -315,6 +323,48 @@ export function WorkflowEditor({
       ]
     })
   }
+
+  const addNodeAfter = useCallback(
+    (sourceNodeId: string, spec: AIWorkflowNodeSpec) => {
+      setNodes((current) => {
+        const sourceNode = current.find((node) => node.id === sourceNodeId)
+        const nextPosition = sourceNode
+          ? { x: sourceNode.position.x + 280, y: sourceNode.position.y }
+          : { x: 160 + current.length * 32, y: 120 + current.length * 24 }
+        const nextNode = createWorkflowNodeFromSpec(
+          spec,
+          current,
+          nextPosition
+        ) as WorkflowFlowNode
+
+        setEdges((currentEdges) => [
+          ...currentEdges,
+          {
+            id: uniqueEdgeId(currentEdges, sourceNodeId, nextNode.id),
+            source: sourceNodeId,
+            target: nextNode.id,
+            type: "workflowEdge",
+          },
+        ])
+
+        return [...current, nextNode]
+      })
+    },
+    [setEdges, setNodes]
+  )
+
+  const renderedNodes = useMemo(
+    () =>
+      enrichNodesForRender(nodes, nodeSpecs).map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          nodeSpecs,
+          onAddAfter: addNodeAfter,
+        },
+      })),
+    [addNodeAfter, nodes, nodeSpecs]
+  )
 
   const dropNodeOnCanvas = useCallback(
     (spec: AIWorkflowNodeSpec, x: number, y: number) => {
@@ -549,7 +599,9 @@ export function WorkflowEditor({
             nodes={renderedNodes}
             edges={edges}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             defaultEdgeOptions={defaultEdgeOptions}
+            connectionLineComponent={WorkflowConnectionLine}
             connectionMode={ConnectionMode.Loose}
             connectionRadius={34}
             connectOnClick
@@ -576,9 +628,16 @@ export function WorkflowEditor({
             minZoom={0.45}
             maxZoom={1.35}
           >
-            <Background />
-            <Controls />
-            <MiniMap pannable zoomable />
+            <Background
+              gap={18}
+              size={1.4}
+              color="hsl(var(--muted-foreground) / 0.18)"
+              className="bg-[radial-gradient(circle_at_20%_10%,hsl(var(--primary)/0.08),transparent_28%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--muted)/0.24))]"
+            />
+            <Controls
+              className="!bottom-4 !left-4 overflow-hidden !rounded-xl !border !border-border/70 !bg-background/95 !shadow-lg"
+              showInteractive={false}
+            />
           </ReactFlow>
           <WorkflowValidationBadge errors={validation.errors} valid={validation.valid} />
           {propertyPanelNode || propertyPanelEdge ? (
@@ -852,34 +911,193 @@ function normalizeConditionRight(value: string) {
   return trimmed
 }
 
-function WorkflowCanvasNode({ data, selected }: NodeProps<WorkflowFlowNode>) {
+function WorkflowConnectionLine({ fromX, fromY, toX, toY }: ConnectionLineComponentProps) {
+  const [edgePath] = getBezierPath({
+    sourceX: fromX,
+    sourceY: fromY,
+    sourcePosition: Position.Right,
+    targetX: toX,
+    targetY: toY,
+    targetPosition: Position.Left,
+    curvature: 0.18,
+  })
+
+  return (
+    <g>
+      <path
+        fill="none"
+        stroke="hsl(var(--primary) / 0.72)"
+        strokeDasharray="6 5"
+        strokeLinecap="round"
+        strokeWidth={2}
+        d={edgePath}
+      />
+      <circle cx={toX} cy={toY} r={4} fill="hsl(var(--primary))" />
+    </g>
+  )
+}
+
+function WorkflowCanvasEdge({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  selected,
+  data,
+  markerEnd,
+}: EdgeProps<WorkflowFlowEdge>) {
+  const [edgePath, labelX, labelY] = getBezierPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+    curvature: 0.18,
+  })
+  const condition = (data as WorkflowEditorEdge["data"] | undefined)?.condition
+
+  return (
+    <>
+      <BaseEdge
+        id={id}
+        path={edgePath}
+        markerEnd={markerEnd}
+        className={cn(
+          "!stroke-[1.8px] transition-colors",
+          selected ? "!stroke-primary" : "!stroke-border"
+        )}
+      />
+      {condition ? (
+        <EdgeLabelRenderer>
+          <div
+            className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border bg-background/95 px-2 py-0.5 text-[10px] font-medium text-muted-foreground shadow-sm"
+            style={{
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+            }}
+          >
+            条件
+          </div>
+        </EdgeLabelRenderer>
+      ) : null}
+    </>
+  )
+}
+
+function WorkflowNodeHandle({
+  type,
+  position,
+  className,
+}: {
+  type: "source" | "target"
+  position: Position
+  className?: string
+}) {
+  return (
+    <Handle
+      type={type}
+      position={position}
+      className={className}
+    >
+      <PlusIcon className="size-2.5" />
+    </Handle>
+  )
+}
+
+function WorkflowAddAfterButton({
+  nodeId,
+  visible,
+  className,
+  nodeSpecs,
+  onAddAfter,
+}: {
+  nodeId: string
+  visible: boolean
+  className?: string
+  nodeSpecs?: AIWorkflowNodeSpec[]
+  onAddAfter?: (sourceNodeId: string, spec: AIWorkflowNodeSpec) => void
+}) {
+  if (!nodeSpecs?.length || !onAddAfter) {
+    return null
+  }
+  return (
+    <Popover>
+      <PopoverTrigger
+        render={
+          <button
+            type="button"
+            className={cn(
+              "absolute z-20 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all duration-150",
+              visible ? "opacity-100" : "pointer-events-none opacity-0",
+              className
+            )}
+            aria-label="添加下游节点"
+          >
+            <PlusIcon className="size-3" />
+          </button>
+        }
+      />
+      <PopoverContent side="right" align="center" className="w-72 p-2">
+        <div className="px-2 pb-2 text-xs font-medium text-muted-foreground">添加下游节点</div>
+        <div className="max-h-72 space-y-1 overflow-y-auto">
+          {nodeSpecs.map((spec) => (
+            <button
+              key={spec.type}
+              type="button"
+              className="flex w-full rounded-md px-2 py-2 text-left hover:bg-muted"
+              onClick={() => onAddAfter(nodeId, spec)}
+            >
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium">{spec.title}</span>
+                <span className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                  {spec.description}
+                </span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+function WorkflowCanvasNode({ id, data, selected }: NodeProps<WorkflowFlowNode>) {
+  const [hovered, setHovered] = useState(false)
   const missingInputs = data.missingInputs ?? []
   const hasIssue = missingInputs.length > 0
   const isConditionNode = data.nodeType === "condition"
+  const nodeSpecs = data.nodeSpecs as AIWorkflowNodeSpec[] | undefined
+  const onAddAfter = data.onAddAfter as
+    | ((sourceNodeId: string, spec: AIWorkflowNodeSpec) => void)
+    | undefined
+  const showHandles = selected || hovered
   const handleClassName = cn(
-    "!size-4 !rounded-full !border-0 !bg-primary !text-primary-foreground !shadow-md",
+    "!size-4 !rounded-full !border-0 !bg-primary !text-primary-foreground !shadow-lg",
     "flex items-center justify-center opacity-0 transition-all duration-150",
-    selected
-      ? "pointer-events-auto opacity-100"
-      : "pointer-events-none group-hover/node:pointer-events-auto group-hover/node:opacity-100"
+    showHandles ? "pointer-events-auto opacity-100" : "pointer-events-none"
   )
   if (isConditionNode) {
     return (
-      <div className="group/node relative flex size-36 items-center justify-center">
+      <div
+        className="group/node relative flex size-36 items-center justify-center"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
         <div
           className={[
-            "absolute inset-4 rotate-45 rounded-sm border bg-background shadow-sm",
-            selected ? "ring-2 ring-ring" : "",
-            hasIssue ? "border-destructive/70" : "border-border",
+            "absolute inset-4 rotate-45 rounded-xl border bg-background shadow-[0_10px_30px_rgba(15,23,42,0.08)] transition-all",
+            selected ? "border-primary ring-4 ring-primary/10" : "",
+            hasIssue ? "border-destructive/70" : "border-border/70",
           ].join(" ")}
         />
-        <Handle
+        <WorkflowNodeHandle
           type="target"
           position={Position.Left}
           className={cn("!left-0", handleClassName)}
-        >
-          <PlusIcon className="size-2.5" />
-        </Handle>
+        />
         <div className="relative z-10 flex max-w-24 flex-col items-center text-center">
           {hasIssue ? (
             <AlertCircleIcon className="mb-1 size-4 text-destructive" />
@@ -889,64 +1107,81 @@ function WorkflowCanvasNode({ data, selected }: NodeProps<WorkflowFlowNode>) {
           <div className="line-clamp-2 text-sm font-medium leading-tight">{data.name ?? data.title}</div>
           <div className="mt-1 text-[11px] text-muted-foreground">分支</div>
         </div>
-        <Handle
+        <WorkflowNodeHandle
           type="source"
           position={Position.Right}
           className={cn("!right-0", handleClassName)}
-        >
-          <PlusIcon className="size-2.5" />
-        </Handle>
+        />
+        <WorkflowAddAfterButton
+          nodeId={id}
+          visible={showHandles}
+          className="right-4 top-4"
+          nodeSpecs={nodeSpecs}
+          onAddAfter={onAddAfter}
+        />
       </div>
     )
   }
   return (
     <div
       className={[
-        "group/node w-44 rounded-md border bg-background shadow-sm",
-        selected ? "ring-2 ring-ring" : "",
-        hasIssue ? "border-destructive/70" : "border-border",
+        "group/node relative w-52 overflow-hidden rounded-xl border bg-background shadow-[0_12px_34px_rgba(15,23,42,0.08)] transition-all hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(15,23,42,0.12)]",
+        selected ? "border-primary ring-4 ring-primary/10" : "",
+        hasIssue ? "border-destructive/70" : "border-border/70",
       ].join(" ")}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
-      <Handle
+      <WorkflowNodeHandle
         type="target"
         position={Position.Left}
         className={cn("!-left-2.5", handleClassName)}
-      >
-        <PlusIcon className="size-2.5" />
-      </Handle>
-      <div className="flex items-start gap-2 border-b px-2.5 py-2">
-        {hasIssue ? (
-          <AlertCircleIcon className="mt-0.5 size-4 shrink-0 text-destructive" />
-        ) : (
-          <CheckCircle2Icon className="mt-0.5 size-4 shrink-0 text-emerald-600" />
-        )}
+      />
+      <div className="flex items-start gap-2 border-b border-border/60 bg-muted/20 px-3 py-2.5">
+        <div
+          className={cn(
+            "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg",
+            hasIssue ? "bg-destructive/10 text-destructive" : "bg-emerald-500/10 text-emerald-700"
+          )}
+        >
+          {hasIssue ? (
+            <AlertCircleIcon className="size-4" />
+          ) : (
+            <CheckCircle2Icon className="size-4" />
+          )}
+        </div>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-medium">{data.name ?? data.title}</div>
           <div className="mt-0.5 truncate text-xs text-muted-foreground">{data.title}</div>
         </div>
       </div>
-      <div className="space-y-1.5 px-2.5 py-2 text-xs">
-        <div className="flex justify-between text-muted-foreground">
-          <span>输入 {data.inputCount ?? 0}</span>
-          <span>输出 {data.outputCount ?? 0}</span>
+      <div className="space-y-2 px-3 py-2.5 text-xs">
+        <div className="flex items-center justify-between text-muted-foreground">
+          <span className="rounded-full bg-muted px-2 py-0.5">输入 {data.inputCount ?? 0}</span>
+          <span className="rounded-full bg-muted px-2 py-0.5">输出 {data.outputCount ?? 0}</span>
         </div>
         {hasIssue ? (
-          <div className="rounded-sm bg-destructive/10 px-2 py-1 text-destructive">
+          <div className="rounded-md bg-destructive/10 px-2 py-1.5 text-destructive">
             缺少输入：{missingInputs.join("、")}
           </div>
         ) : (
-          <div className="rounded-sm bg-emerald-500/10 px-2 py-1 text-emerald-700">
+          <div className="rounded-md bg-emerald-500/10 px-2 py-1.5 text-emerald-700">
             配置完整
           </div>
         )}
       </div>
-      <Handle
+      <WorkflowNodeHandle
         type="source"
         position={Position.Right}
         className={cn("!-right-2.5", handleClassName)}
-      >
-        <PlusIcon className="size-2.5" />
-      </Handle>
+      />
+      <WorkflowAddAfterButton
+        nodeId={id}
+        visible={showHandles}
+        className="right-2 top-2"
+        nodeSpecs={nodeSpecs}
+        onAddAfter={onAddAfter}
+      />
     </div>
   )
 }
