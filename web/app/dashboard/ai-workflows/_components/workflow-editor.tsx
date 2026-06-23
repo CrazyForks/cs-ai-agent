@@ -20,6 +20,7 @@ import {
   type ConnectionLineComponentProps,
   type Edge,
   type EdgeProps,
+  type FinalConnectionState,
   type Node,
   type NodeProps,
   type ReactFlowInstance,
@@ -85,6 +86,7 @@ type WorkflowEdgeRenderData = WorkflowEditorEdge["data"] & {
   active?: boolean
   onSelect?: (edgeId: string) => void
 }
+type WorkflowFinalConnectionState = FinalConnectionState
 
 type PendingNodeDrag = {
   spec: AIWorkflowNodeSpec
@@ -118,6 +120,8 @@ const defaultEdgeOptions = {
     strokeWidth: 1.6,
   },
 }
+
+const workflowHandleRadius = 8
 
 function toFlowNodes(definition: AIWorkflowDefinition): WorkflowFlowNode[] {
   return fromApiDefinition(definition).nodes.map((node) => ({
@@ -335,6 +339,47 @@ export function WorkflowEditor({
       })
     },
     [edges, nodeSpecs, setEdges, setNodes]
+  )
+
+  const connectToNode = useCallback(
+    (connectionState: WorkflowFinalConnectionState, targetNodeId: string) => {
+      if (!connectionState.fromHandle || connectionState.toHandle || connectionState.fromHandle.nodeId === targetNodeId) {
+        return
+      }
+
+      const fromHandle = connectionState.fromHandle
+      const source = fromHandle.type === "target" ? targetNodeId : fromHandle.nodeId
+      const target = fromHandle.type === "target" ? fromHandle.nodeId : targetNodeId
+      const connection = {
+        source,
+        target,
+        sourceHandle: fromHandle.type === "target" ? null : fromHandle.id ?? null,
+        targetHandle: fromHandle.type === "target" ? fromHandle.id ?? null : null,
+      } satisfies Connection
+      onConnect(connection)
+    },
+    [onConnect]
+  )
+
+  const onConnectEnd = useCallback(
+    (event: MouseEvent | TouchEvent, connectionState: WorkflowFinalConnectionState) => {
+      if (connectionState.toHandle) {
+        return
+      }
+      const point = getEventClientPoint(event)
+      if (!point) {
+        return
+      }
+      const nodeElement = document
+        .elementFromPoint(point.x, point.y)
+        ?.closest<HTMLElement>(".react-flow__node[data-id]")
+      const targetNodeId = nodeElement?.dataset.id
+      if (!targetNodeId) {
+        return
+      }
+      connectToNode(connectionState, targetNodeId)
+    },
+    [connectToNode]
   )
 
   const addNode = (spec: AIWorkflowNodeSpec) => {
@@ -679,6 +724,7 @@ export function WorkflowEditor({
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onConnectEnd={onConnectEnd}
             onInit={setFlowInstance}
             onNodeClick={(event, node) => {
               event.stopPropagation()
@@ -981,14 +1027,49 @@ function normalizeConditionRight(value: string) {
   return trimmed
 }
 
-function WorkflowConnectionLine({ fromX, fromY, toX, toY }: ConnectionLineComponentProps) {
+function getEventClientPoint(event: MouseEvent | TouchEvent) {
+  if ("changedTouches" in event) {
+    const touch = event.changedTouches[0] ?? event.touches[0]
+    return touch ? { x: touch.clientX, y: touch.clientY } : null
+  }
+  return { x: event.clientX, y: event.clientY }
+}
+
+function getEdgeEndpointOffset(position: Position, amount: number) {
+  switch (position) {
+    case Position.Left:
+      return { x: amount, y: 0 }
+    case Position.Right:
+      return { x: -amount, y: 0 }
+    case Position.Top:
+      return { x: 0, y: amount }
+    case Position.Bottom:
+      return { x: 0, y: -amount }
+  }
+}
+
+function WorkflowConnectionLine({
+  fromX,
+  fromY,
+  fromPosition,
+  toX,
+  toY,
+  toPosition,
+  toHandle,
+}: ConnectionLineComponentProps) {
+  const sourceOffset = getEdgeEndpointOffset(fromPosition ?? Position.Right, workflowHandleRadius)
+  const targetOffset = getEdgeEndpointOffset(toPosition ?? Position.Left, toHandle ? workflowHandleRadius : 0)
+  const sourceX = fromX + sourceOffset.x
+  const sourceY = fromY + sourceOffset.y
+  const targetX = toX + targetOffset.x
+  const targetY = toY + targetOffset.y
   const [edgePath] = getBezierPath({
-    sourceX: fromX,
-    sourceY: fromY,
-    sourcePosition: Position.Right,
-    targetX: toX,
-    targetY: toY,
-    targetPosition: Position.Left,
+    sourceX,
+    sourceY,
+    sourcePosition: fromPosition ?? Position.Right,
+    targetX,
+    targetY,
+    targetPosition: toPosition ?? Position.Left,
     curvature: 0.18,
   })
 
@@ -1020,12 +1101,14 @@ function WorkflowCanvasEdge({
   data,
   markerEnd,
 }: EdgeProps<WorkflowFlowEdge>) {
+  const sourceOffset = getEdgeEndpointOffset(sourcePosition, workflowHandleRadius)
+  const targetOffset = getEdgeEndpointOffset(targetPosition, workflowHandleRadius)
   const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX,
-    sourceY,
+    sourceX: sourceX + sourceOffset.x,
+    sourceY: sourceY + sourceOffset.y,
     sourcePosition,
-    targetX,
-    targetY,
+    targetX: targetX + targetOffset.x,
+    targetY: targetY + targetOffset.y,
     targetPosition,
     curvature: 0.18,
   })
