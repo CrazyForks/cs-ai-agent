@@ -151,6 +151,11 @@ func DefaultRegistry() *Registry {
 			},
 			OutputSchema: []VariableSpec{
 				output("handoffId", VariableTypeInteger, "Handoff operation ID."),
+				output("reason", VariableTypeString, "Handoff reason."),
+				output("decision", VariableTypeString, "Handoff dispatch decision."),
+				output("teamId", VariableTypeInteger, "Assigned or pending team ID."),
+				output("assigneeId", VariableTypeInteger, "Assigned agent user ID."),
+				output("message", VariableTypeString, "Customer-visible handoff notice."),
 			},
 		},
 		NodeSpec{

@@ -14,6 +14,7 @@ import (
 	workflowregistry "agent-desk/internal/ai/workflow/registry"
 	"agent-desk/internal/models"
 	"agent-desk/internal/pkg/utils"
+	"agent-desk/internal/services"
 )
 
 const maxWorkflowSteps = 128
@@ -133,21 +134,41 @@ func (e *Executor) executeNode(ctx context.Context, state *runState, node dsl.No
 			"replyMessageId": int64(0),
 		})
 	case workflowregistry.NodeTypeHandoffToHuman:
-		reason := strings.TrimSpace(toString(state.resolveInput(node, "reason")))
-		replyText := strings.TrimSpace(readStringConfig(node.Config, "replyText"))
-		if replyText == "" {
-			replyText = "已为你转接人工客服，请稍候。"
-		}
-		state.result.ReplyText = replyText
-		state.setNodeVars(node.ID, map[string]any{
-			"handoffId": int64(0),
-			"reason":    reason,
-		})
+		return e.executeHandoffToHuman(state, node)
 	case workflowregistry.NodeTypeEnd:
 		state.setNodeVars(node.ID, map[string]any{"status": "completed"})
 	default:
 		return fmt.Errorf("unsupported workflow node type: %s", node.Type)
 	}
+	return nil
+}
+
+func (e *Executor) executeHandoffToHuman(state *runState, node dsl.Node) error {
+	reason := strings.TrimSpace(toString(state.resolveInput(node, "reason")))
+	result, err := services.ConversationHumanDispatchService.HandoffByAIWithRequestID(
+		state.input.Conversation.ID,
+		state.input.AIAgent,
+		reason,
+		strings.TrimSpace(state.input.UserMessage.RequestID),
+	)
+	if err != nil {
+		return err
+	}
+	output := map[string]any{
+		"handoffId":  int64(0),
+		"reason":     reason,
+		"decision":   "",
+		"teamId":     int64(0),
+		"assigneeId": int64(0),
+		"message":    "",
+	}
+	if result != nil {
+		output["decision"] = string(result.Decision)
+		output["teamId"] = result.TeamID
+		output["assigneeId"] = result.AssigneeID
+		output["message"] = strings.TrimSpace(result.Message)
+	}
+	state.setNodeVars(node.ID, output)
 	return nil
 }
 
