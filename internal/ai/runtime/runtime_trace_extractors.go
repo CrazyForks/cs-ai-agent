@@ -7,29 +7,6 @@ import (
 	applicationruntime "agent-desk/internal/ai/application/runtime"
 )
 
-func runtimeTraceFinalAction(summary *applicationruntime.Summary) string {
-	if summary == nil {
-		return ""
-	}
-	switch strings.TrimSpace(summary.Status) {
-	case "completed":
-		if strings.TrimSpace(summary.ReplyText) != "" {
-			return "reply"
-		}
-		return "completed"
-	case "fallback":
-		return "fallback"
-	case "error":
-		return "error"
-	case "interrupted":
-		return "interrupted"
-	case "expired":
-		return "expired"
-	default:
-		return strings.TrimSpace(summary.Status)
-	}
-}
-
 func extractToolSearchTrace(summary *applicationruntime.Summary) string {
 	if summary == nil {
 		return ""

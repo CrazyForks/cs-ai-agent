@@ -8,18 +8,6 @@ import (
 	"agent-desk/internal/pkg/toolx"
 )
 
-func TestRuntimeTraceFinalAction(t *testing.T) {
-	if got := runtimeTraceFinalAction(&applicationruntime.Summary{Status: "completed", ReplyText: "ok"}); got != "reply" {
-		t.Fatalf("expected reply final action, got %q", got)
-	}
-	if got := runtimeTraceFinalAction(&applicationruntime.Summary{Status: "completed"}); got != "completed" {
-		t.Fatalf("expected completed final action, got %q", got)
-	}
-	if got := runtimeTraceFinalAction(&applicationruntime.Summary{Status: "fallback"}); got != "fallback" {
-		t.Fatalf("expected fallback final action, got %q", got)
-	}
-}
-
 func TestExtractRuntimeToolTraces(t *testing.T) {
 	summary := &applicationruntime.Summary{
 		TraceData: `{

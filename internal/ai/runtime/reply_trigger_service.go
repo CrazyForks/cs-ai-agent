@@ -45,13 +45,11 @@ func (s *aiReplyService) TriggerReplyAsync(conversation models.Conversation, mes
 }
 
 func (s *aiReplyService) TriggerReply(ctx context.Context, conversation models.Conversation, message models.Message, aiAgent models.AIAgent) (retErr error) {
-	trace := &aiReplyTraceData{Status: "started"}
 	var summary *applicationruntime.Summary
 	replyCtx := aiReplyContext{
 		Conversation: conversation,
 		Message:      message,
 		AIAgent:      aiAgent,
-		Trace:        trace,
 		SummaryRef:   &summary,
 	}
 	if err := ctx.Err(); err != nil {
@@ -76,7 +74,6 @@ func (s *aiReplyService) executeReply(ctx context.Context, replyCtx aiReplyConte
 		Conversation: replyCtx.Conversation,
 		Message:      replyCtx.Message,
 		AIAgent:      replyCtx.AIAgent,
-		Trace:        replyCtx.Trace,
 	})
 	replyCtx.setSummary(summary)
 	if err != nil {
@@ -86,18 +83,16 @@ func (s *aiReplyService) executeReply(ctx context.Context, replyCtx aiReplyConte
 		return s.interrupts.HandleInterruptedSummary(s, replyCtx, summary)
 	}
 	if summary != nil && strings.TrimSpace(summary.ReplyText) != "" {
-		replyMessage, err := s.commit.CommitAIReply(replyCommitInput{
+		_, err := s.commit.CommitAIReply(replyCommitInput{
 			Conversation: replyCtx.Conversation,
 			Message:      replyCtx.Message,
 			AIAgent:      replyCtx.AIAgent,
 			ReplyText:    summary.ReplyText,
-			Trace:        replyCtx.Trace,
 			ClientPrefix: "ai_reply",
 		})
 		if err != nil {
 			return err
 		}
-		replyCtx.Trace.ReplySent = replyMessage != nil
 	}
 	return nil
 }

@@ -25,21 +25,17 @@ func (s *replyInterruptService) ResumePendingInterrupt(ctx context.Context, owne
 		Message:          replyCtx.Message,
 		AIAgent:          replyCtx.AIAgent,
 		PendingInterrupt: replyCtx.PendingInterrupt,
-		Trace:            replyCtx.Trace,
 	})
 	replyCtx.setSummary(summary)
 	if err != nil {
 		if isCheckpointMissingError(err) {
 			summary = expiredInterruptSummary()
 			replyCtx.setSummary(summary)
-			replyCtx.Trace.Status = "interrupt_expired"
-			replyCtx.Trace.FinalAction = "expired"
 			replyMessage, expireErr := owner.commit.CommitAIReply(replyCommitInput{
 				Conversation: replyCtx.Conversation,
 				Message:      replyCtx.Message,
 				AIAgent:      replyCtx.AIAgent,
 				ReplyText:    summary.ReplyText,
-				Trace:        replyCtx.Trace,
 				ClientPrefix: "ai_interrupt_expired",
 			})
 			if expireErr != nil {
@@ -65,7 +61,6 @@ func (s *replyInterruptService) ResumePendingInterrupt(ctx context.Context, owne
 			Message:      replyCtx.Message,
 			AIAgent:      replyCtx.AIAgent,
 			ReplyText:    summary.ReplyText,
-			Trace:        replyCtx.Trace,
 			ClientPrefix: "ai_resume",
 		})
 		if err != nil {
@@ -95,7 +90,6 @@ func (s *replyInterruptService) HandleInterruptedSummary(owner *aiReplyService, 
 		Message:      replyCtx.Message,
 		AIAgent:      replyCtx.AIAgent,
 		ReplyText:    replyText,
-		Trace:        replyCtx.Trace,
 		ClientPrefix: "ai_interrupt",
 	})
 	if err != nil {
@@ -117,7 +111,6 @@ func (s *replyInterruptService) HandleInterruptedResume(owner *aiReplyService, r
 		Message:      replyCtx.Message,
 		AIAgent:      replyCtx.AIAgent,
 		ReplyText:    replyText,
-		Trace:        replyCtx.Trace,
 		ClientPrefix: "ai_interrupt_resume",
 	})
 	if err != nil {

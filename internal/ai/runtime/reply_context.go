@@ -9,7 +9,6 @@ type aiReplyContext struct {
 	Conversation     models.Conversation
 	Message          models.Message
 	AIAgent          models.AIAgent
-	Trace            *aiReplyTraceData
 	SummaryRef       **applicationruntime.Summary
 	PendingInterrupt *models.ConversationInterrupt
 }

@@ -21,7 +21,6 @@ type replyCommitInput struct {
 	Message        models.Message
 	AIAgent        models.AIAgent
 	ReplyText      string
-	Trace          *aiReplyTraceData
 	ClientPrefix   string
 	IncrementRound bool
 }
@@ -35,7 +34,6 @@ func (s *replyCommitService) SendAIReply(input replyCommitInput) (*models.Messag
 	if replyText == "" {
 		return nil, nil
 	}
-	commitStartedAt := time.Now()
 	replyMessage, err := svc.MessageService.SendAIMessageWithRequestID(
 		input.Conversation.ID,
 		input.AIAgent.ID,
@@ -46,13 +44,6 @@ func (s *replyCommitService) SendAIReply(input replyCommitInput) (*models.Messag
 		s.buildAIPrincipal(input.AIAgent),
 		input.Message.RequestID,
 	)
-	if input.Trace != nil {
-		input.Trace.CommitMs = time.Since(commitStartedAt).Milliseconds()
-		input.Trace.ReplySent = err == nil && replyMessage != nil
-		if replyMessage != nil {
-			input.Trace.ReplyMessageID = replyMessage.ID
-		}
-	}
 	if err != nil || !input.IncrementRound {
 		return replyMessage, err
 	}
