@@ -14,35 +14,47 @@ import (
 	"github.com/mlogclub/simple/sqls"
 )
 
-func resolveAgentWorkflow(aiAgent models.AIAgent) (compiler.Result, error) {
+type resolvedWorkflow struct {
+	Definition dsl.Definition
+	Compiled   compiler.Result
+	WorkflowID int64
+	VersionID  int64
+}
+
+func resolveAgentWorkflow(aiAgent models.AIAgent) (resolvedWorkflow, error) {
 	if aiAgent.WorkflowVersionID <= 0 {
-		return compiler.Result{}, errorsx.InvalidParam("workflow version is required")
+		return resolvedWorkflow{}, errorsx.InvalidParam("workflow version is required")
 	}
 	version := repositories.AIWorkflowVersionRepository.Get(sqls.DB(), aiAgent.WorkflowVersionID)
 	if version == nil || version.Status != enums.StatusOk {
-		return compiler.Result{}, errorsx.InvalidParam("workflow version does not exist")
+		return resolvedWorkflow{}, errorsx.InvalidParam("workflow version does not exist")
 	}
 	var def dsl.Definition
 	if err := json.Unmarshal([]byte(version.Definition), &def); err != nil {
-		return compiler.Result{}, errorsx.InvalidParam("workflow definition is invalid")
+		return resolvedWorkflow{}, errorsx.InvalidParam("workflow definition is invalid")
 	}
-	return compiler.Compile(def), nil
+	return resolvedWorkflow{
+		Definition: def,
+		Compiled:   compiler.Compile(def),
+		WorkflowID: version.WorkflowID,
+		VersionID:  version.ID,
+	}, nil
 }
 
-func prepareWorkflowAgent(aiAgent models.AIAgent) (models.AIAgent, error) {
-	result, err := resolveAgentWorkflow(aiAgent)
+func prepareWorkflowAgent(aiAgent models.AIAgent) (models.AIAgent, resolvedWorkflow, error) {
+	workflow, err := resolveAgentWorkflow(aiAgent)
 	if err != nil {
-		return aiAgent, err
+		return aiAgent, resolvedWorkflow{}, err
 	}
-	if strings.TrimSpace(result.Appendix) == "" {
-		return aiAgent, nil
+	if strings.TrimSpace(workflow.Compiled.Appendix) == "" {
+		return aiAgent, workflow, nil
 	}
 	prompt := strings.TrimSpace(aiAgent.SystemPrompt)
-	appendix := strings.TrimSpace(result.Appendix)
+	appendix := strings.TrimSpace(workflow.Compiled.Appendix)
 	if prompt == "" {
 		aiAgent.SystemPrompt = appendix
-		return aiAgent, nil
+		return aiAgent, workflow, nil
 	}
 	aiAgent.SystemPrompt = prompt + "\n\n" + appendix
-	return aiAgent, nil
+	return aiAgent, workflow, nil
 }

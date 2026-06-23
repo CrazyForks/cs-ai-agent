@@ -194,6 +194,34 @@ func TestValidateDefinitionAcceptsMappedKnowledgeFlow(t *testing.T) {
 	}
 }
 
+func TestValidateDefinitionRejectsUnknownConditionOperator(t *testing.T) {
+	def := conditionDefinition()
+	def.Edges[1].Condition.Operator = "regex"
+
+	result := validator.ValidateDefinition(def, registry.DefaultRegistry())
+
+	if result.Valid {
+		t.Fatalf("expected unknown condition operator to be invalid")
+	}
+	if !hasValidationMessage(result, "unsupported condition operator") {
+		t.Fatalf("expected condition operator error, got %#v", result.Errors)
+	}
+}
+
+func TestValidateDefinitionRejectsUnknownConditionVariable(t *testing.T) {
+	def := conditionDefinition()
+	def.Edges[1].Condition.Left.Field = "missing"
+
+	result := validator.ValidateDefinition(def, registry.DefaultRegistry())
+
+	if result.Valid {
+		t.Fatalf("expected unknown condition variable to be invalid")
+	}
+	if !hasValidationMessage(result, "condition source field does not exist") {
+		t.Fatalf("expected condition variable error, got %#v", result.Errors)
+	}
+}
+
 func minimalDefinition() dsl.Definition {
 	return dsl.Definition{
 		SchemaVersion: 1,
@@ -218,6 +246,32 @@ func mappedReplyDefinition() dsl.Definition {
 		"replyText": {NodeID: "start_1", Field: "userMessage"},
 	}
 	return def
+}
+
+func conditionDefinition() dsl.Definition {
+	return dsl.Definition{
+		SchemaVersion: 1,
+		EntryNodeID:   "start_1",
+		Nodes: []dsl.Node{
+			{ID: "start_1", Type: "start"},
+			{ID: "condition_1", Type: "condition"},
+			{ID: "end_1", Type: "end"},
+		},
+		Edges: []dsl.Edge{
+			{ID: "e1", Source: "start_1", Target: "condition_1"},
+			{
+				ID:     "e2",
+				Source: "condition_1",
+				Target: "end_1",
+				Condition: &dsl.Condition{
+					Left:     &dsl.VariableSelector{NodeID: "start_1", Field: "userMessage"},
+					Operator: "eq",
+					Right:    "hello",
+				},
+			},
+			{ID: "e3", Source: "condition_1", Target: "end_1"},
+		},
+	}
 }
 
 func hasValidationMessage(result validator.Result, want string) bool {

@@ -22,7 +22,10 @@ export type WorkflowEditorEdge = {
   target: string
   data?: {
     condition?: {
-      expression: string
+      expression?: string
+      left?: WorkflowVariableSelector
+      operator?: string
+      right?: unknown
     }
   }
 }
@@ -48,7 +51,10 @@ export type WorkflowDefinition = {
     source: string
     target: string
     condition?: {
-      expression: string
+      expression?: string
+      left?: WorkflowVariableSelector
+      operator?: string
+      right?: unknown
     }
   }[]
 }
@@ -133,6 +139,8 @@ export function validateWorkflowDraft(
   }
 
   const edgeIds = new Set<string>()
+  const conditionalSources = new Set<string>()
+  const defaultSources = new Set<string>()
   for (const edge of draft.edges) {
     const id = edge.id.trim()
     if (!id) {
@@ -146,6 +154,22 @@ export function validateWorkflowDraft(
     }
     if (!nodeIds.has(edge.target)) {
       errors.push(`edge target node does not exist: ${edge.target}`)
+    }
+    if (edge.data?.condition) {
+      conditionalSources.add(edge.source)
+      if (!edge.data.condition.left?.nodeId || !edge.data.condition.left.field) {
+        errors.push(`edge ${edge.id} condition left variable is required`)
+      }
+      if (!edge.data.condition.operator) {
+        errors.push(`edge ${edge.id} condition operator is required`)
+      }
+    } else {
+      defaultSources.add(edge.source)
+    }
+  }
+  for (const source of conditionalSources) {
+    if (!defaultSources.has(source)) {
+      errors.push(`node ${source} conditional branch must include a default edge`)
     }
   }
 
@@ -193,7 +217,10 @@ export function toApiDefinition(draft: WorkflowDraft): WorkflowDefinition {
       ...(edge.data?.condition
         ? {
             condition: {
-              expression: edge.data.condition.expression,
+              ...(edge.data.condition.expression ? { expression: edge.data.condition.expression } : {}),
+              ...(edge.data.condition.left ? { left: edge.data.condition.left } : {}),
+              ...(edge.data.condition.operator ? { operator: edge.data.condition.operator } : {}),
+              ...(edge.data.condition.right !== undefined ? { right: edge.data.condition.right } : {}),
             },
           }
         : {}),

@@ -30,6 +30,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { OptionCombobox } from "@/components/option-combobox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Popover,
@@ -47,10 +50,13 @@ import {
   getRequiredInputs,
   toApiDefinition,
   validateWorkflowDraft,
+  type WorkflowVariableRef,
+  type WorkflowVariableSelector,
   type WorkflowEditorEdge,
   type WorkflowEditorNode,
 } from "./workflow-utils"
 import { NodeConfigPanel } from "./node-config-panel"
+import { VariableSelector } from "./variable-selector"
 
 type WorkflowNodeData = Record<string, unknown> & {
   nodeType?: string
@@ -67,6 +73,7 @@ type WorkflowNodeData = Record<string, unknown> & {
 
 type WorkflowFlowNode = Node<WorkflowNodeData>
 type WorkflowFlowEdge = Edge
+type WorkflowEdgeCondition = NonNullable<WorkflowEditorEdge["data"]>["condition"]
 
 type PendingNodeDrag = {
   spec: AIWorkflowNodeSpec
@@ -117,6 +124,7 @@ function toFlowEdges(definition: AIWorkflowDefinition): WorkflowFlowEdge[] {
     id: edge.id,
     source: edge.source,
     target: edge.target,
+    label: edge.condition ? "条件" : undefined,
     data: edge.condition ? { condition: edge.condition } : undefined,
   }))
 }
@@ -167,6 +175,8 @@ export function WorkflowEditor({
   const [nodeLibraryResizing, setNodeLibraryResizing] = useState(false)
   const [pendingNodeDrag, setPendingNodeDrag] = useState<PendingNodeDrag | null>(null)
   const [propertyPanelNode, setPropertyPanelNode] = useState<WorkflowFlowNode | null>(null)
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
+  const [propertyPanelEdge, setPropertyPanelEdge] = useState<WorkflowFlowEdge | null>(null)
   const [propertyPanelVisible, setPropertyPanelVisible] = useState(false)
   const editorRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLElement | null>(null)
@@ -175,6 +185,10 @@ export function WorkflowEditor({
   const selectedNode = useMemo(
     () => nodes.find((node) => node.id === selectedNodeId) ?? null,
     [nodes, selectedNodeId]
+  )
+  const selectedEdge = useMemo(
+    () => edges.find((edge) => edge.id === selectedEdgeId) ?? null,
+    [edges, selectedEdgeId]
   )
   const draft = useMemo(() => toDraft(nodes, edges), [nodes, edges])
   const validation = useMemo(
@@ -192,6 +206,10 @@ export function WorkflowEditor({
   const propertyPanelAvailableVariables = useMemo(
     () => (propertyPanelNode ? getAvailableVariables(draft, propertyPanelNode.id, nodeSpecs) : []),
     [draft, nodeSpecs, propertyPanelNode]
+  )
+  const propertyPanelEdgeVariables = useMemo(
+    () => (propertyPanelEdge ? getEdgeConditionVariables(draft, propertyPanelEdge.source, nodeSpecs) : []),
+    [draft, nodeSpecs, propertyPanelEdge]
   )
 
   useEffect(() => {
@@ -219,14 +237,24 @@ export function WorkflowEditor({
   useEffect(() => {
     if (selectedNode) {
       setPropertyPanelNode(selectedNode)
+      setPropertyPanelEdge(null)
+      window.setTimeout(() => setPropertyPanelVisible(true), 0)
+      return
+    }
+    if (selectedEdge) {
+      setPropertyPanelEdge(selectedEdge)
+      setPropertyPanelNode(null)
       window.setTimeout(() => setPropertyPanelVisible(true), 0)
       return
     }
 
     setPropertyPanelVisible(false)
-    const timer = window.setTimeout(() => setPropertyPanelNode(null), 220)
+    const timer = window.setTimeout(() => {
+      setPropertyPanelNode(null)
+      setPropertyPanelEdge(null)
+    }, 220)
     return () => window.clearTimeout(timer)
-  }, [selectedNode])
+  }, [selectedNode, selectedEdge])
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -361,6 +389,20 @@ export function WorkflowEditor({
               },
             }
           : node
+      )
+    )
+  }
+
+  const updateEdgeCondition = (edgeId: string, condition?: WorkflowEdgeCondition) => {
+    setEdges((current) =>
+      current.map((edge) =>
+        edge.id === edgeId
+          ? {
+              ...edge,
+              label: condition ? "条件" : undefined,
+              data: condition ? { ...(edge.data as object), condition } : undefined,
+            }
+          : edge
       )
     )
   }
@@ -513,9 +555,17 @@ export function WorkflowEditor({
             onNodeClick={(event, node) => {
               event.stopPropagation()
               setSelectedNodeId(node.id)
+              setSelectedEdgeId(null)
             }}
-            onEdgeClick={() => setSelectedNodeId(null)}
-            onPaneClick={() => setSelectedNodeId(null)}
+            onEdgeClick={(event, edge) => {
+              event.stopPropagation()
+              setSelectedNodeId(null)
+              setSelectedEdgeId(edge.id)
+            }}
+            onPaneClick={() => {
+              setSelectedNodeId(null)
+              setSelectedEdgeId(null)
+            }}
             fitView
             fitViewOptions={fitViewOptions}
             minZoom={0.45}
@@ -526,7 +576,7 @@ export function WorkflowEditor({
             <MiniMap pannable zoomable />
           </ReactFlow>
           <WorkflowValidationBadge errors={validation.errors} valid={validation.valid} />
-          {propertyPanelNode ? (
+          {propertyPanelNode || propertyPanelEdge ? (
             <aside
               className={[
                 "absolute top-3 right-3 z-30 h-[calc(100%-1.5rem)] w-[min(380px,calc(100%-1.5rem))] overflow-hidden rounded-md border bg-background shadow-lg transition-all duration-200 ease-out",
@@ -536,12 +586,21 @@ export function WorkflowEditor({
               ].join(" ")}
             >
               <ScrollArea className="h-full min-h-0">
-                <NodeConfigPanel
-                  node={propertyPanelNode}
-                  nodeSpec={propertyPanelNodeSpec}
-                  availableVariables={propertyPanelAvailableVariables}
-                  onChange={updateNodeData}
-                />
+                {propertyPanelNode ? (
+                  <NodeConfigPanel
+                    node={propertyPanelNode}
+                    nodeSpec={propertyPanelNodeSpec}
+                    availableVariables={propertyPanelAvailableVariables}
+                    onChange={updateNodeData}
+                  />
+                ) : null}
+                {propertyPanelEdge ? (
+                  <EdgeConditionPanel
+                    edge={propertyPanelEdge}
+                    variables={propertyPanelEdgeVariables}
+                    onChange={updateEdgeCondition}
+                  />
+                ) : null}
                 {!validation.valid ? (
                   <div className="border-t p-4">
                     <div className="mb-2 text-sm font-medium">流程检查</div>
@@ -604,6 +663,143 @@ function enrichNodesForRender(
       },
     }
   })
+}
+
+function getEdgeConditionVariables(
+  draft: ReturnType<typeof toDraft>,
+  sourceNodeId: string,
+  nodeSpecs: AIWorkflowNodeSpec[]
+): WorkflowVariableRef[] {
+  const variables = getAvailableVariables(draft, sourceNodeId, nodeSpecs)
+  const sourceNode = draft.nodes.find((node) => node.id === sourceNodeId)
+  if (!sourceNode) {
+    return variables
+  }
+  const nodeType = sourceNode.data?.nodeType ?? sourceNode.type ?? ""
+  const spec = getNodeSpec(nodeSpecs, nodeType)
+  for (const output of spec?.outputSchema ?? []) {
+    variables.push({
+      nodeId: sourceNode.id,
+      nodeName: sourceNode.data?.name ?? spec?.title ?? sourceNode.id,
+      field: output.name,
+      type: output.type,
+      description: output.description ?? "",
+    })
+  }
+  return variables
+}
+
+const conditionOperators = [
+  { value: "eq", label: "等于" },
+  { value: "neq", label: "不等于" },
+  { value: "contains", label: "包含" },
+  { value: "exists", label: "存在" },
+  { value: "not_exists", label: "不存在" },
+  { value: "truthy", label: "为真" },
+  { value: "falsy", label: "为假" },
+  { value: "gt", label: "大于" },
+  { value: "gte", label: "大于等于" },
+  { value: "lt", label: "小于" },
+  { value: "lte", label: "小于等于" },
+]
+
+function EdgeConditionPanel({
+  edge,
+  variables,
+  onChange,
+}: {
+  edge: WorkflowFlowEdge
+  variables: WorkflowVariableRef[]
+  onChange: (edgeId: string, condition?: WorkflowEdgeCondition) => void
+}) {
+  const condition = (edge.data as WorkflowEditorEdge["data"] | undefined)?.condition
+  const [left, setLeft] = useState<WorkflowVariableSelector | undefined>(condition?.left)
+  const [operator, setOperator] = useState(condition?.operator ?? "eq")
+  const [right, setRight] = useState(condition?.right === undefined ? "" : String(condition.right))
+
+  const commit = (next?: {
+    left?: WorkflowVariableSelector
+    operator?: string
+    right?: string
+  }) => {
+    const nextLeft = next?.left ?? left
+    const nextOperator = next?.operator ?? operator
+    const nextRight = next?.right ?? right
+    if (!nextLeft?.nodeId || !nextLeft.field || !nextOperator) {
+      return
+    }
+    onChange(edge.id, {
+      left: nextLeft,
+      operator: nextOperator,
+      right: normalizeConditionRight(nextRight),
+    })
+  }
+
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-4 p-4">
+      <div>
+        <div className="text-sm font-medium">分支条件</div>
+        <div className="mt-1 text-xs text-muted-foreground">
+          {edge.source} {"->"} {edge.target}
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label>左侧变量</Label>
+        <VariableSelector
+          value={left}
+          variables={variables}
+          onChange={(value) => {
+            setLeft(value)
+            commit({ left: value })
+          }}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>判断方式</Label>
+        <OptionCombobox
+          value={operator}
+          options={conditionOperators}
+          placeholder="选择判断方式"
+          searchPlaceholder="搜索判断方式"
+          emptyText="没有可用判断方式"
+          onChange={(value) => {
+            setOperator(value)
+            commit({ operator: value })
+          }}
+        />
+      </div>
+      {!["exists", "not_exists", "truthy", "falsy"].includes(operator) ? (
+        <div className="space-y-2">
+          <Label htmlFor="workflow-edge-condition-right">比较值</Label>
+          <Input
+            id="workflow-edge-condition-right"
+            value={right}
+            onChange={(event) => setRight(event.target.value)}
+            onBlur={() => commit({ right })}
+          />
+        </div>
+      ) : null}
+      <div className="flex gap-2">
+        <Button type="button" size="sm" onClick={() => commit()}>
+          保存条件
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={() => onChange(edge.id, undefined)}>
+          设为默认分支
+        </Button>
+      </div>
+      <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+        没有条件的边会作为默认分支；同一节点存在条件边时，建议保留一条默认分支。
+      </div>
+    </div>
+  )
+}
+
+function normalizeConditionRight(value: string) {
+  const trimmed = value.trim()
+  if (trimmed === "true") return true
+  if (trimmed === "false") return false
+  if (trimmed !== "" && !Number.isNaN(Number(trimmed))) return Number(trimmed)
+  return trimmed
 }
 
 function WorkflowCanvasNode({ data, selected }: NodeProps<WorkflowFlowNode>) {

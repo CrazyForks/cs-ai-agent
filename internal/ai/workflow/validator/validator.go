@@ -56,6 +56,7 @@ func (v *definitionValidator) validate() {
 	v.validateReachability()
 	v.validateConfirmationGuards()
 	v.validateVariableMappings()
+	v.validateConditions()
 }
 
 func (v *definitionValidator) validateNodes() {
@@ -247,6 +248,80 @@ func (v *definitionValidator) validateInputSelector(nodeID string, input registr
 	}
 	if !variableTypesCompatible(input.Type, output.Type) {
 		v.addError("nodes."+nodeID+".inputs."+input.Name, fmt.Sprintf("input type mismatch: %s expects %s but %s.%s is %s", input.Name, input.Type, sourceNodeID, sourceField, output.Type))
+	}
+}
+
+func (v *definitionValidator) validateConditions() {
+	conditionalSources := make(map[string]bool)
+	defaultSources := make(map[string]bool)
+	for index, edge := range v.def.Edges {
+		field := fmt.Sprintf("edges[%d].condition", index)
+		sourceID := strings.TrimSpace(edge.Source)
+		if edge.Condition == nil {
+			if sourceID != "" {
+				defaultSources[sourceID] = true
+			}
+			continue
+		}
+		if sourceID != "" {
+			conditionalSources[sourceID] = true
+		}
+		v.validateCondition(field, sourceID, edge.Condition)
+	}
+	for sourceID := range conditionalSources {
+		if !defaultSources[sourceID] {
+			v.addError("edges."+sourceID, "conditional branch must include a default edge")
+		}
+	}
+}
+
+func (v *definitionValidator) validateCondition(field string, sourceNodeID string, condition *dsl.Condition) {
+	if condition == nil {
+		return
+	}
+	operator := strings.TrimSpace(condition.Operator)
+	if operator == "" && strings.TrimSpace(condition.Expression) != "" {
+		v.addError(field+".expression", "free-form condition expressions are not supported")
+		return
+	}
+	if !isSupportedConditionOperator(operator) {
+		v.addError(field+".operator", "unsupported condition operator: "+operator)
+		return
+	}
+	if condition.Left == nil {
+		v.addError(field+".left", "condition left variable is required")
+		return
+	}
+	sourceSelectorNodeID := strings.TrimSpace(condition.Left.NodeID)
+	sourceField := strings.TrimSpace(condition.Left.Field)
+	if sourceSelectorNodeID == "" || sourceField == "" {
+		v.addError(field+".left", "condition left variable is required")
+		return
+	}
+	sourceNode, ok := v.nodesByID[sourceSelectorNodeID]
+	if !ok {
+		v.addError(field+".left", "condition source node does not exist: "+sourceSelectorNodeID)
+		return
+	}
+	if sourceNodeID != "" && !v.hasPath(sourceSelectorNodeID, sourceNodeID, make(map[string]struct{})) && sourceSelectorNodeID != sourceNodeID {
+		v.addError(field+".left", "condition source node is not available before branch: "+sourceSelectorNodeID)
+		return
+	}
+	sourceSpec, ok := v.registry.Get(sourceNode.Type)
+	if !ok {
+		return
+	}
+	if _, ok := findOutputSpec(sourceSpec.OutputSchema, sourceField); !ok {
+		v.addError(field+".left", "condition source field does not exist: "+sourceSelectorNodeID+"."+sourceField)
+	}
+}
+
+func isSupportedConditionOperator(operator string) bool {
+	switch strings.TrimSpace(operator) {
+	case "eq", "equals", "neq", "not_equals", "contains", "exists", "not_exists", "truthy", "is_true", "falsy", "is_false", "gt", "gte", "lt", "lte":
+		return true
+	default:
+		return false
 	}
 }
 
