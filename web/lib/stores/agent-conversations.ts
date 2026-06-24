@@ -22,7 +22,7 @@ import {
   parseImMessageCursorId,
 } from "@/lib/im-message-merge"
 import {
-  markMessagesReadToSeqNo,
+  markMessagesReadToMessageId,
   patchConversationList,
   patchConversationListWithMessage,
   type RealtimeConversationPatch,
@@ -377,7 +377,7 @@ export const useAgentConversationsStore = create<AgentConversationsStore>((set, 
         return {
           readingMessageId: 0,
           messages: current.messages.map((item) => {
-            if (item.seqNo > lastMessage.seqNo) {
+            if (item.id > lastMessage.id) {
               return item
             }
             return item.agentRead ? item : { ...item, agentRead: true }
@@ -388,7 +388,6 @@ export const useAgentConversationsStore = create<AgentConversationsStore>((set, 
                   ...item,
                   agentUnreadCount: 0,
                   agentLastReadMessageId: lastMessage.id,
-                  agentLastReadSeqNo: lastMessage.seqNo,
                 }
               : item
           ),
@@ -424,18 +423,18 @@ export const useAgentConversationsStore = create<AgentConversationsStore>((set, 
         conversationId > 0 &&
         state.selectedConversationId === conversationId
       ) {
-        if ((patch.agentLastReadSeqNo ?? 0) > 0) {
-          nextMessages = markMessagesReadToSeqNo(
+        if ((patch.agentLastReadMessageId ?? 0) > 0) {
+          nextMessages = markMessagesReadToMessageId(
             nextMessages,
-            patch.agentLastReadSeqNo ?? 0,
+            patch.agentLastReadMessageId ?? 0,
             "agent",
             patch.agentLastReadAt
           )
         }
-        if ((patch.customerLastReadSeqNo ?? 0) > 0) {
-          nextMessages = markMessagesReadToSeqNo(
+        if ((patch.customerLastReadMessageId ?? 0) > 0) {
+          nextMessages = markMessagesReadToMessageId(
             nextMessages,
-            patch.customerLastReadSeqNo ?? 0,
+            patch.customerLastReadMessageId ?? 0,
             "customer",
             patch.customerLastReadAt
           )
@@ -501,7 +500,6 @@ export const useAgentConversationsStore = create<AgentConversationsStore>((set, 
                 (current.conversations.find((item) => item.id === selectedConversationId)
                   ?.customerUnreadCount ?? 0) + 1,
               agentLastReadMessageId: message.id,
-              agentLastReadSeqNo: message.seqNo,
             }
           ),
         }))
@@ -558,7 +556,6 @@ export const useAgentConversationsStore = create<AgentConversationsStore>((set, 
                 (current.conversations.find((item) => item.id === selectedConversationId)
                   ?.customerUnreadCount ?? 0) + 1,
               agentLastReadMessageId: message.id,
-              agentLastReadSeqNo: message.seqNo,
             }
           ),
         }))

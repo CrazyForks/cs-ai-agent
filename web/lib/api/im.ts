@@ -49,10 +49,8 @@ export type ImConversation = {
   customerUnreadCount: number
   agentUnreadCount: number
   customerLastReadMessageId: number
-  customerLastReadSeqNo: number
   customerLastReadAt?: string
   agentLastReadMessageId: number
-  agentLastReadSeqNo: number
   agentLastReadAt?: string
   closedAt?: string
   tags?: ImConversationTag[]
@@ -73,7 +71,6 @@ export type ImMessage = {
   messageType: string
   content: string
   payload?: string
-  seqNo: number
   sendStatus: number
   sentAt?: string
   deliveredAt?: string

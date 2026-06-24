@@ -52,10 +52,8 @@ export type AgentConversation = {
   customerUnreadCount: number
   agentUnreadCount: number
   customerLastReadMessageId: number
-  customerLastReadSeqNo: number
   customerLastReadAt?: string
   agentLastReadMessageId: number
-  agentLastReadSeqNo: number
   agentLastReadAt?: string
   customerOnline: boolean
   closedAt?: string
@@ -79,7 +77,6 @@ export type AgentMessage = {
   messageType: string
   content: string
   payload?: string
-  seqNo: number
   sendStatus: number
   sentAt?: string
   deliveredAt?: string

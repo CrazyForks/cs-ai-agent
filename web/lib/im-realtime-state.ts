@@ -17,7 +17,6 @@ export type RealtimeMessageCreatedPayload<TMessage extends RealtimeMessage> = {
   messageType?: string
   content?: string
   payload?: string
-  seqNo?: number
   sendStatus?: number
   sentAt?: string
 }
@@ -50,7 +49,6 @@ export function normalizeRealtimeMessage<TMessage extends RealtimeMessage>(
     messageType: payload.messageType ?? "",
     content: payload.content ?? "",
     payload: payload.payload,
-    seqNo: payload.seqNo ?? 0,
     sendStatus: payload.sendStatus ?? 0,
     sentAt: payload.sentAt,
     customerRead: false,
@@ -143,18 +141,18 @@ export function patchConversationListWithMessage<
   return changed ? next : conversations
 }
 
-export function markMessagesReadToSeqNo<TMessage extends RealtimeMessage>(
+export function markMessagesReadToMessageId<TMessage extends RealtimeMessage>(
   messages: TMessage[],
-  seqNo: number,
+  messageId: number,
   reader: "agent" | "customer",
   readAt?: string
 ): TMessage[] {
-  if (seqNo <= 0) {
+  if (messageId <= 0) {
     return messages
   }
   let changed = false
   const next = messages.map((message) => {
-    if (message.seqNo > seqNo) {
+    if (message.id > messageId) {
       return message
     }
     if (reader === "agent") {

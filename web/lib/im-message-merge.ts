@@ -11,7 +11,6 @@ export type MergeableImMessage = {
   messageType: string
   content: string
   payload?: string
-  seqNo: number
   sendStatus: number
   sentAt?: string
   deliveredAt?: string

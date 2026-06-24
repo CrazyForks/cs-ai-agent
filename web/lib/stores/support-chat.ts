@@ -29,7 +29,7 @@ import {
   parseImMessageCursorId,
 } from "@/lib/im-message-merge"
 import {
-  markMessagesReadToSeqNo,
+  markMessagesReadToMessageId,
   normalizeRealtimeMessage,
   patchConversation,
   patchConversationWithMessage,
@@ -88,18 +88,18 @@ function markConversationReadMessages(
   payload: ImRealtimeEnvelope["data"] | ImRealtimeEnvelope["payload"]
 ) {
   let next = messages
-  if ((payload?.agentLastReadSeqNo ?? 0) > 0) {
-    next = markMessagesReadToSeqNo(
+  if ((payload?.agentLastReadMessageId ?? 0) > 0) {
+    next = markMessagesReadToMessageId(
       next,
-      payload?.agentLastReadSeqNo ?? 0,
+      payload?.agentLastReadMessageId ?? 0,
       "agent",
       payload?.agentLastReadAt
     )
   }
-  if ((payload?.customerLastReadSeqNo ?? 0) > 0) {
-    next = markMessagesReadToSeqNo(
+  if ((payload?.customerLastReadMessageId ?? 0) > 0) {
+    next = markMessagesReadToMessageId(
       next,
-      payload?.customerLastReadSeqNo ?? 0,
+      payload?.customerLastReadMessageId ?? 0,
       "customer",
       payload?.customerLastReadAt
     )
@@ -464,7 +464,7 @@ export const useSupportChatStore = create<SupportChatStore>((set, get) => {
         set((current) => ({
           readingMessageId: 0,
           messages: current.messages.map((item) => {
-            if ((item.seqNo ?? 0) > (lastMessage.seqNo ?? 0)) {
+            if (item.id > lastMessage.id) {
               return item
             }
             return item.customerRead ? item : { ...item, customerRead: true }
@@ -474,7 +474,6 @@ export const useSupportChatStore = create<SupportChatStore>((set, get) => {
                 ...current.conversation,
                 customerUnreadCount: 0,
                 customerLastReadMessageId: lastMessage.id,
-                customerLastReadSeqNo: lastMessage.seqNo,
               }
             : null,
         }))
@@ -509,7 +508,6 @@ export const useSupportChatStore = create<SupportChatStore>((set, get) => {
             ? {
                 ...state.conversation,
                 customerLastReadMessageId: nextMessage.id,
-                customerLastReadSeqNo: nextMessage.seqNo,
                 customerUnreadCount: 0,
                 lastMessageAt: nextMessage.sentAt,
                 lastMessageSummary: summarizeIMMessage(nextMessage),
@@ -575,7 +573,6 @@ export const useSupportChatStore = create<SupportChatStore>((set, get) => {
             ? {
                 ...state.conversation,
                 customerLastReadMessageId: nextMessage.id,
-                customerLastReadSeqNo: nextMessage.seqNo,
                 customerUnreadCount: 0,
                 lastMessageAt: nextMessage.sentAt,
                 lastMessageSummary: summarizeIMMessage(nextMessage),
