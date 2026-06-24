@@ -35,6 +35,62 @@ func TestExecutorRoutesByConditionEdge(t *testing.T) {
 	assertPath(t, result.NodePath, []string{"start_1", "condition_1", "vip_reply", "send_vip", "end_1"})
 }
 
+func TestExecutorConditionNodeTraceExplainsMatchedEdge(t *testing.T) {
+	result, err := NewExecutor().Execute(context.Background(), Input{
+		Definition: conditionalReplyDefinition(),
+		UserMessage: models.Message{
+			Content: "vip",
+		},
+	})
+	if err != nil {
+		t.Fatalf("execute workflow: %v", err)
+	}
+
+	trace := findNodeTrace(result.NodeTraces, "condition_1")
+	if trace == nil {
+		t.Fatalf("expected condition node trace, got %#v", result.NodeTraces)
+	}
+	for _, want := range []string{
+		`"selectedEdgeId":"edge_condition_vip"`,
+		`"selectedTargetNodeId":"vip_reply"`,
+		`"operator":"eq"`,
+		`"leftValue":"vip"`,
+		`"matched":true`,
+	} {
+		if !strings.Contains(trace.OutputPreview, want) {
+			t.Fatalf("expected condition trace output to contain %s, got %s", want, trace.OutputPreview)
+		}
+	}
+}
+
+func TestExecutorConditionNodeTraceExplainsDefaultEdge(t *testing.T) {
+	result, err := NewExecutor().Execute(context.Background(), Input{
+		Definition: conditionalReplyDefinition(),
+		UserMessage: models.Message{
+			Content: "normal",
+		},
+	})
+	if err != nil {
+		t.Fatalf("execute workflow: %v", err)
+	}
+
+	trace := findNodeTrace(result.NodeTraces, "condition_1")
+	if trace == nil {
+		t.Fatalf("expected condition node trace, got %#v", result.NodeTraces)
+	}
+	for _, want := range []string{
+		`"selectedEdgeId":"edge_condition_default"`,
+		`"selectedTargetNodeId":"normal_reply"`,
+		`"reason":"no conditional edge matched; selected default edge"`,
+		`"leftValue":"normal"`,
+		`"matched":false`,
+	} {
+		if !strings.Contains(trace.OutputPreview, want) {
+			t.Fatalf("expected condition trace output to contain %s, got %s", want, trace.OutputPreview)
+		}
+	}
+}
+
 func TestExecutorUsesDefaultEdgeWhenConditionDoesNotMatch(t *testing.T) {
 	executor := NewExecutor()
 	result, err := executor.Execute(context.Background(), Input{
@@ -277,6 +333,15 @@ func TestExecutorResumeCreatesTicketAfterHumanConfirmation(t *testing.T) {
 	if ticket.Title == "" || !strings.Contains(ticket.Description, "订单支付失败") {
 		t.Fatalf("unexpected ticket: %+v", ticket)
 	}
+}
+
+func findNodeTrace(items []NodeTrace, nodeID string) *NodeTrace {
+	for i := range items {
+		if items[i].NodeID == nodeID {
+			return &items[i]
+		}
+	}
+	return nil
 }
 
 func conditionalReplyDefinition() dsl.Definition {

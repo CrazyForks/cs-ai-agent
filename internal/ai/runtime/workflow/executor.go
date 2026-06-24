@@ -69,17 +69,36 @@ func NewExecutor() *Executor {
 }
 
 type runState struct {
-	input     Input
-	nodesByID map[string]dsl.Node
-	outgoing  map[string][]dsl.Edge
-	vars      map[string]map[string]any
-	result    Result
+	input           Input
+	nodesByID       map[string]dsl.Node
+	outgoing        map[string][]dsl.Edge
+	vars            map[string]map[string]any
+	branchDecisions map[string]branchDecision
+	result          Result
 }
 
 type workflowCheckPoint struct {
 	Definition    dsl.Definition            `json:"definition"`
 	ConfirmNodeID string                    `json:"confirmNodeId"`
 	Vars          map[string]map[string]any `json:"vars"`
+}
+
+type branchDecision struct {
+	SelectedEdgeID       string                `json:"selectedEdgeId,omitempty"`
+	SelectedTargetNodeID string                `json:"selectedTargetNodeId,omitempty"`
+	Reason               string                `json:"reason"`
+	Evaluations          []conditionEvaluation `json:"evaluations,omitempty"`
+}
+
+type conditionEvaluation struct {
+	EdgeID       string `json:"edgeId"`
+	TargetNodeID string `json:"targetNodeId"`
+	SourceNodeID string `json:"sourceNodeId,omitempty"`
+	SourceField  string `json:"sourceField,omitempty"`
+	Operator     string `json:"operator,omitempty"`
+	LeftValue    any    `json:"leftValue,omitempty"`
+	RightValue   any    `json:"rightValue,omitempty"`
+	Matched      bool   `json:"matched"`
 }
 
 func (e *Executor) Execute(ctx context.Context, input Input) (*Result, error) {
@@ -159,25 +178,34 @@ func (e *Executor) executeFrom(ctx context.Context, state *runState, currentID s
 			state.result.Status = "error"
 			return &state.result, err
 		}
-		trace.OutputPreview = workflowPreviewJSON(state.vars[node.ID])
 		trace.DurationMS = int(time.Since(startedAt).Milliseconds())
 		if state.result.Interrupted {
+			trace.OutputPreview = workflowPreviewJSON(state.nodeOutputPreview(node.ID))
 			trace.Status = "interrupted"
 			state.result.NodeTraces = append(state.result.NodeTraces, trace)
 			state.result.Status = "interrupted"
 			return &state.result, nil
 		}
-		trace.Status = "completed"
-		state.result.NodeTraces = append(state.result.NodeTraces, trace)
 		if node.Type == workflowregistry.NodeTypeEnd {
+			trace.OutputPreview = workflowPreviewJSON(state.nodeOutputPreview(node.ID))
+			trace.Status = "completed"
+			state.result.NodeTraces = append(state.result.NodeTraces, trace)
 			state.result.Status = "completed"
 			return &state.result, nil
 		}
 		nextID, ok, err := state.nextNodeID(node.ID)
 		if err != nil {
+			trace.OutputPreview = workflowPreviewJSON(state.nodeOutputPreview(node.ID))
+			trace.Status = "failed"
+			trace.ErrorMessage = err.Error()
+			trace.DurationMS = int(time.Since(startedAt).Milliseconds())
+			state.result.NodeTraces = append(state.result.NodeTraces, trace)
 			state.result.Status = "error"
 			return &state.result, err
 		}
+		trace.OutputPreview = workflowPreviewJSON(state.nodeOutputPreview(node.ID))
+		trace.Status = "completed"
+		state.result.NodeTraces = append(state.result.NodeTraces, trace)
 		if !ok {
 			state.result.Status = "completed"
 			return &state.result, nil
@@ -191,10 +219,11 @@ func (e *Executor) executeFrom(ctx context.Context, state *runState, currentID s
 
 func newRunState(input Input) *runState {
 	state := &runState{
-		input:     input,
-		nodesByID: make(map[string]dsl.Node, len(input.Definition.Nodes)),
-		outgoing:  make(map[string][]dsl.Edge),
-		vars:      make(map[string]map[string]any),
+		input:           input,
+		nodesByID:       make(map[string]dsl.Node, len(input.Definition.Nodes)),
+		outgoing:        make(map[string][]dsl.Edge),
+		vars:            make(map[string]map[string]any),
+		branchDecisions: make(map[string]branchDecision),
 		result: Result{
 			Status:     "started",
 			NodePath:   make([]string, 0),
@@ -532,61 +561,99 @@ func (s *runState) nextNodeID(sourceNodeID string) (string, bool, error) {
 	if len(edges) == 0 {
 		return "", false, nil
 	}
+	evaluations := make([]conditionEvaluation, 0)
 	for _, edge := range edges {
 		if edge.Condition == nil {
 			continue
 		}
-		matched, err := s.evaluateCondition(edge.Condition)
+		matched, evaluation, err := s.evaluateCondition(edge)
 		if err != nil {
 			return "", false, err
 		}
+		evaluations = append(evaluations, evaluation)
 		if matched {
+			s.branchDecisions[sourceNodeID] = branchDecision{
+				SelectedEdgeID:       strings.TrimSpace(edge.ID),
+				SelectedTargetNodeID: strings.TrimSpace(edge.Target),
+				Reason:               "conditional edge matched",
+				Evaluations:          evaluations,
+			}
 			return strings.TrimSpace(edge.Target), true, nil
 		}
 	}
 	for _, edge := range edges {
 		if edge.Condition == nil {
+			if len(evaluations) > 0 {
+				s.branchDecisions[sourceNodeID] = branchDecision{
+					SelectedEdgeID:       strings.TrimSpace(edge.ID),
+					SelectedTargetNodeID: strings.TrimSpace(edge.Target),
+					Reason:               "no conditional edge matched; selected default edge",
+					Evaluations:          evaluations,
+				}
+			}
 			return strings.TrimSpace(edge.Target), true, nil
+		}
+	}
+	if len(evaluations) > 0 {
+		s.branchDecisions[sourceNodeID] = branchDecision{
+			Reason:      "no conditional edge matched and no default edge exists",
+			Evaluations: evaluations,
 		}
 	}
 	return "", false, nil
 }
 
-func (s *runState) evaluateCondition(condition *dsl.Condition) (bool, error) {
+func (s *runState) evaluateCondition(edge dsl.Edge) (bool, conditionEvaluation, error) {
+	condition := edge.Condition
+	evaluation := conditionEvaluation{
+		EdgeID:       strings.TrimSpace(edge.ID),
+		TargetNodeID: strings.TrimSpace(edge.Target),
+	}
 	if condition == nil {
-		return true, nil
+		evaluation.Matched = true
+		return true, evaluation, nil
 	}
 	left := s.resolveSelector(condition.Left)
 	operator := strings.TrimSpace(condition.Operator)
-	if operator == "" && strings.TrimSpace(condition.Expression) != "" {
-		return false, fmt.Errorf("free-form workflow condition expressions are not supported")
+	if condition.Left != nil {
+		evaluation.SourceNodeID = strings.TrimSpace(condition.Left.NodeID)
+		evaluation.SourceField = strings.TrimSpace(condition.Left.Field)
 	}
+	evaluation.Operator = operator
+	evaluation.LeftValue = left
+	evaluation.RightValue = condition.Right
+	if operator == "" && strings.TrimSpace(condition.Expression) != "" {
+		return false, evaluation, fmt.Errorf("free-form workflow condition expressions are not supported")
+	}
+	var matched bool
 	switch operator {
 	case "eq", "equals":
-		return compareString(left, condition.Right) == 0, nil
+		matched = compareString(left, condition.Right) == 0
 	case "neq", "not_equals":
-		return compareString(left, condition.Right) != 0, nil
+		matched = compareString(left, condition.Right) != 0
 	case "contains":
-		return strings.Contains(toString(left), toString(condition.Right)), nil
+		matched = strings.Contains(toString(left), toString(condition.Right))
 	case "exists":
-		return exists(left), nil
+		matched = exists(left)
 	case "not_exists":
-		return !exists(left), nil
+		matched = !exists(left)
 	case "truthy", "is_true":
-		return truthy(left), nil
+		matched = truthy(left)
 	case "falsy", "is_false":
-		return !truthy(left), nil
+		matched = !truthy(left)
 	case "gt":
-		return compareNumber(left, condition.Right) > 0, nil
+		matched = compareNumber(left, condition.Right) > 0
 	case "gte":
-		return compareNumber(left, condition.Right) >= 0, nil
+		matched = compareNumber(left, condition.Right) >= 0
 	case "lt":
-		return compareNumber(left, condition.Right) < 0, nil
+		matched = compareNumber(left, condition.Right) < 0
 	case "lte":
-		return compareNumber(left, condition.Right) <= 0, nil
+		matched = compareNumber(left, condition.Right) <= 0
 	default:
-		return false, fmt.Errorf("unsupported workflow condition operator: %s", operator)
+		return false, evaluation, fmt.Errorf("unsupported workflow condition operator: %s", operator)
 	}
+	evaluation.Matched = matched
+	return matched, evaluation, nil
 }
 
 func (s *runState) setNodeVars(nodeID string, values map[string]any) {
@@ -616,6 +683,16 @@ func (s *runState) nodeInputPreview(node dsl.Node) map[string]any {
 		} else {
 			ret["config"] = string(node.Config)
 		}
+	}
+	return ret
+}
+
+func (s *runState) nodeOutputPreview(nodeID string) map[string]any {
+	ret := map[string]any{
+		"outputs": s.vars[nodeID],
+	}
+	if decision, ok := s.branchDecisions[nodeID]; ok {
+		ret["branchDecision"] = decision
 	}
 	return ret
 }
