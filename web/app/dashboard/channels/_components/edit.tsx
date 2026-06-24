@@ -10,6 +10,7 @@ import { toast } from "sonner"
 import { getWidgetDemoPath } from "@/components/support-chat/demo-navigation"
 import { OptionCombobox } from "@/components/option-combobox"
 import { ProjectDialog } from "@/components/project-dialog"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Field,
@@ -246,6 +247,10 @@ function buildPayload(form: EditForm, status: number, t: Translate): CreateAdmin
   }
 }
 
+function isAgentWorkflowPublished(agent: AIAgent | undefined) {
+  return Boolean(agent?.workflowPublished ?? (agent?.workflowVersionId ?? 0) > 0)
+}
+
 type ChannelFormBodyProps = Omit<ChannelFormDialogProps, "open">
 
 export function EditDialog({
@@ -313,6 +318,7 @@ function ChannelFormBody({
     formState: { errors },
   } = form
   const channelType = useWatch({ control, name: "channelType" })
+  const aiAgentId = useWatch({ control, name: "aiAgentId" })
   const openKfId = useWatch({ control, name: "openKfId" })
   const userTokenSecret = useWatch({ control, name: "userTokenSecret" })
 
@@ -384,9 +390,15 @@ function ChannelFormBody({
     t,
   ])
 
-  const aiAgentOptions = aiAgents.map((item) => ({
+  const selectedAIAgent = aiAgents.find((item) => String(item.id) === aiAgentId)
+  const availableAIAgents = aiAgents.filter(
+    (item) => isAgentWorkflowPublished(item) || String(item.id) === aiAgentId
+  )
+  const aiAgentOptions = availableAIAgents.map((item) => ({
     value: String(item.id),
-    label: item.name,
+    label: isAgentWorkflowPublished(item)
+      ? `${item.name} · 当前生效 #${item.workflowVersionId}`
+      : `${item.name} · 未发布`,
   }))
   const wxWorkKFAccountOptions = wxWorkKFAccounts.map((item) => ({
     value: item.openKfId,
@@ -413,6 +425,11 @@ function ChannelFormBody({
   }
 
   async function onFormSubmit(values: EditForm) {
+    const selected = aiAgents.find((item) => String(item.id) === values.aiAgentId)
+    if (!isAgentWorkflowPublished(selected)) {
+      toast.error("该 Agent 尚未发布流程，不能绑定渠道")
+      return
+    }
     await onSubmit(buildPayload(values, currentStatus, t))
   }
 
@@ -504,6 +521,19 @@ function ChannelFormBody({
                     />
                   )}
                 />
+                {selectedAIAgent && !isAgentWorkflowPublished(selectedAIAgent) ? (
+                  <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                    该 Agent 尚未发布流程，AI 不会自动回复。请先在 Agent 配置中发布流程版本。
+                  </div>
+                ) : null}
+                {selectedAIAgent && isAgentWorkflowPublished(selectedAIAgent) ? (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Badge variant="secondary">
+                      {selectedAIAgent.workflowStateText || "已发布"}
+                    </Badge>
+                    <span>当前生效版本 #{selectedAIAgent.workflowVersionId}</span>
+                  </div>
+                ) : null}
                 <FieldError errors={[errors.aiAgentId]} />
               </FieldContent>
             </Field>

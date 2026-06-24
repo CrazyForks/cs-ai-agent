@@ -160,6 +160,10 @@ function uniqueNumbers(input: number[]) {
   return Array.from(new Set(input.filter((id) => Number.isFinite(id) && id > 0)))
 }
 
+function isWorkflowPublished(agent: AIAgent | null) {
+  return Boolean(agent?.workflowPublished ?? (agent?.workflowVersionId ?? 0) > 0)
+}
+
 export function AIAgentConfigWorkbench({
   agentId,
   onAgentSaved,
@@ -544,6 +548,9 @@ export function AIAgentConfigWorkbench({
   const selectedKnowledgeOptions = selectedOptions(selectedKnowledgeIds, knowledgeOptions)
   const selectedTeamOptions = selectedOptions(selectedTeamIds, teamOptions)
   const selectedSkillOptions = selectedOptions(selectedSkillIds, skillOptions)
+  const workflowPublished = isWorkflowPublished(agent)
+  const workflowStateText =
+    agent?.workflowStateText || (workflowPublished ? "已发布" : "未发布")
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
@@ -555,7 +562,12 @@ export function AIAgentConfigWorkbench({
           <div className="flex min-w-0 items-center gap-2">
             <h1 className="truncate text-base font-semibold">{agent?.name ?? "新建 AI Agent"}</h1>
             {agent?.statusName ? <Badge variant="secondary">{agent.statusName}</Badge> : null}
-            {agent?.workflowVersionId ? <Badge>已发布</Badge> : <Badge variant="outline">草稿</Badge>}
+            <Badge variant={workflowPublished ? "default" : "outline"}>
+              {workflowStateText}
+            </Badge>
+            {workflowPublished ? (
+              <Badge variant="secondary">当前生效 #{agent?.workflowVersionId}</Badge>
+            ) : null}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -618,6 +630,11 @@ export function AIAgentConfigWorkbench({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col bg-background">
+        {agent && !workflowPublished ? (
+          <div className="shrink-0 border-b border-amber-200 bg-amber-50 px-5 py-2 text-sm text-amber-900">
+            未发布流程，AI 不会自动回复。保存配置后请进入“会话流程”发布一个版本，再绑定渠道或启用自动回复。
+          </div>
+        ) : null}
         <div className="shrink-0 border-b bg-muted/20 px-4 py-2">
           <div className="flex min-w-0 items-center gap-1 overflow-x-auto overflow-y-hidden">
             {sections.map((section) => (

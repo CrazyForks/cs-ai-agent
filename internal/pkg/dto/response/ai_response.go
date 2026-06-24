@@ -92,6 +92,9 @@ type AIAgentResponse struct {
 	DirectTools         []AIAgentMCPToolResponse        `json:"directTools"`
 	GraphTools          []string                        `json:"graphTools"`
 	WorkflowVersionID   int64                           `json:"workflowVersionId"`
+	WorkflowPublished   bool                            `json:"workflowPublished"`
+	WorkflowState       string                          `json:"workflowState"`
+	WorkflowStateText   string                          `json:"workflowStateText"`
 	SortNo              int                             `json:"sortNo"`
 	CreatedAt           string                          `json:"createdAt"`
 	UpdatedAt           string                          `json:"updatedAt"`

@@ -62,6 +62,10 @@ function getNextStatus(item: AIAgent) {
   return item.status === Status.Ok ? Status.Disabled : Status.Ok;
 }
 
+function isWorkflowPublished(item: AIAgent) {
+  return Boolean(item.workflowPublished ?? item.workflowVersionId > 0);
+}
+
 export default function DashboardAIAgentsPage() {
   const t = useI18n();
   const statusOptions = useMemo(() => getStatusOptions(t), [t]);
@@ -115,6 +119,36 @@ export default function DashboardAIAgentsPage() {
         key: "serviceMode",
         label: t("aiAgent.columnServiceMode"),
         render: (item) => getServiceModeLabel(item.serviceMode, t),
+      },
+      {
+        key: "workflow",
+        label: "流程状态",
+        render: (item) => {
+          const published = isWorkflowPublished(item);
+          return (
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Badge variant={published ? "default" : "outline"}>
+                  {item.workflowStateText || (published ? "已发布" : "未发布")}
+                </Badge>
+                {published ? (
+                  <span className="font-mono text-xs text-muted-foreground">
+                    #{item.workflowVersionId}
+                  </span>
+                ) : null}
+              </div>
+              {!published ? (
+                <div className="text-xs text-muted-foreground">
+                  未发布流程，AI 不会自动回复
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground">
+                  当前生效版本 #{item.workflowVersionId}
+                </div>
+              )}
+            </div>
+          );
+        },
       },
       {
         key: "knowledge",

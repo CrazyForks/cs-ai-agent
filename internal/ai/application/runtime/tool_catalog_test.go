@@ -125,7 +125,7 @@ func TestPrepareWorkflowAgentRejectsMissingPublishedWorkflow(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected missing workflow version error")
 	}
-	if !strings.Contains(err.Error(), "workflow version is required") {
+	if !strings.Contains(err.Error(), "AI Agent workflow is not published") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }

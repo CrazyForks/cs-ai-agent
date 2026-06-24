@@ -190,6 +190,9 @@ func buildAIAgentResponseWithLocale(item *models.AIAgent, locale string) respons
 		DirectTools:         make([]response.AIAgentMCPToolResponse, 0),
 		GraphTools:          make([]string, 0),
 		WorkflowVersionID:   item.WorkflowVersionID,
+		WorkflowPublished:   item.WorkflowVersionID > 0,
+		WorkflowState:       aiAgentWorkflowState(item.WorkflowVersionID),
+		WorkflowStateText:   aiAgentWorkflowStateText(item.WorkflowVersionID),
 		SortNo:              item.SortNo,
 		CreatedAt:           item.CreatedAt.Format("2006-01-02 15:04:05"),
 		UpdatedAt:           item.UpdatedAt.Format("2006-01-02 15:04:05"),
@@ -281,6 +284,20 @@ func buildAIAgentResponseWithLocale(item *models.AIAgent, locale string) respons
 		}
 	}
 	return ret
+}
+
+func aiAgentWorkflowState(workflowVersionID int64) string {
+	if workflowVersionID > 0 {
+		return "published"
+	}
+	return "draft"
+}
+
+func aiAgentWorkflowStateText(workflowVersionID int64) string {
+	if workflowVersionID > 0 {
+		return "已发布"
+	}
+	return "未发布"
 }
 
 func appendGraphToolCodeIfMissing(items []string, toolCode string) []string {

@@ -244,6 +244,9 @@ export type AIAgent = {
   }[]
   graphTools: string[]
   workflowVersionId: number
+  workflowPublished: boolean
+  workflowState: string
+  workflowStateText: string
   sortNo: number
   createdAt: string
   updatedAt: string

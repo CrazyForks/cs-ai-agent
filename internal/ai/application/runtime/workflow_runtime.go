@@ -23,7 +23,7 @@ type resolvedWorkflow struct {
 
 func resolveAgentWorkflow(aiAgent models.AIAgent) (resolvedWorkflow, error) {
 	if aiAgent.WorkflowVersionID <= 0 {
-		return resolvedWorkflow{}, errorsx.InvalidParam("workflow version is required")
+		return resolvedWorkflow{}, errorsx.InvalidParam("AI Agent workflow is not published; publish a workflow version before enabling automatic replies")
 	}
 	version := repositories.AIWorkflowVersionRepository.Get(sqls.DB(), aiAgent.WorkflowVersionID)
 	if version == nil || version.Status != enums.StatusOk {
