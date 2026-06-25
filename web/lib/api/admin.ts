@@ -544,6 +544,7 @@ export type AIWorkflowRun = {
   errorMessage: string
   createdAt: string
   updatedAt: string
+  definition?: AIWorkflowDefinition
   nodes?: AIWorkflowNodeRun[]
 }
 

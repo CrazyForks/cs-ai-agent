@@ -30,6 +30,7 @@ import {
 } from "@/lib/api/admin"
 import { formatDateTime } from "@/lib/utils"
 import { useI18n } from "@/i18n/provider"
+import { WorkflowRunAuditGraph } from "./_components/workflow-run-audit-graph"
 
 type TFunction = (key: string, values?: Record<string, string | number>) => string
 
@@ -409,7 +410,9 @@ function WorkflowRunDetailDialog({
               {run.errorMessage}
             </div>
           ) : null}
+          <WorkflowRunAuditGraph run={run} />
           <div className="space-y-3">
+            <div className="text-sm font-medium">{t("workflowRun.nodeDetails")}</div>
             {(run.nodes ?? []).map((node, index) => (
               <WorkflowNodeRunBlock key={node.id || node.nodeId || index} node={node} t={t} />
             ))}

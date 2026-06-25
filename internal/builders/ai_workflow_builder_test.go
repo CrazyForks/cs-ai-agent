@@ -1,9 +1,11 @@
 package builders
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
+	"agent-desk/internal/ai/workflow/dsl"
 	workflowregistry "agent-desk/internal/ai/workflow/registry"
 	"agent-desk/internal/models"
 )
@@ -62,6 +64,40 @@ func TestBuildAIWorkflowRunIncludesAuditDisplayFields(t *testing.T) {
 	}
 	if resp.DurationMS != 1500 {
 		t.Fatalf("expected duration 1500ms, got %d", resp.DurationMS)
+	}
+}
+
+func TestBuildAIWorkflowRunDetailIncludesPublishedDefinitionSnapshot(t *testing.T) {
+	definition := dsl.Definition{
+		SchemaVersion: 1,
+		EntryNodeID:   "start_1",
+		Nodes: []dsl.Node{
+			{ID: "start_1", Type: workflowregistry.NodeTypeStart, Name: "开始"},
+			{ID: "reply_1", Type: workflowregistry.NodeTypeLLMReply, Name: "运行时回复"},
+		},
+		Edges: []dsl.Edge{{ID: "edge_start_reply", Source: "start_1", Target: "reply_1"}},
+	}
+	buf, err := json.Marshal(definition)
+	if err != nil {
+		t.Fatalf("marshal definition: %v", err)
+	}
+
+	resp := BuildAIWorkflowRunDetailWithContext(
+		&models.AIWorkflowRun{ID: 9, WorkflowVersionID: 22, Status: 1, StartedAt: time.Now()},
+		nil,
+		&models.AIWorkflow{Name: "当前 Workflow 草稿不应参与审计图"},
+		&models.AIWorkflowVersion{Version: 3, Definition: string(buf)},
+		&models.AIAgent{Name: "售后 Agent"},
+	)
+
+	if resp.Definition.EntryNodeID != "start_1" {
+		t.Fatalf("expected run detail definition from published version, got %#v", resp.Definition)
+	}
+	if len(resp.Definition.Nodes) != 2 || resp.Definition.Nodes[1].Name != "运行时回复" {
+		t.Fatalf("expected published definition nodes, got %#v", resp.Definition.Nodes)
+	}
+	if len(resp.Definition.Edges) != 1 || resp.Definition.Edges[0].ID != "edge_start_reply" {
+		t.Fatalf("expected published definition edges, got %#v", resp.Definition.Edges)
 	}
 }
 

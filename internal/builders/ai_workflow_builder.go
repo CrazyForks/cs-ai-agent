@@ -134,6 +134,9 @@ func BuildAIWorkflowRunDetail(item *models.AIWorkflowRun, nodes []models.AIWorkf
 
 func BuildAIWorkflowRunDetailWithContext(item *models.AIWorkflowRun, nodes []models.AIWorkflowNodeRun, workflow *models.AIWorkflow, version *models.AIWorkflowVersion, agent *models.AIAgent) response.AIWorkflowRunResponse {
 	ret := BuildAIWorkflowRunWithContext(item, workflow, version, agent)
+	if version != nil {
+		ret.Definition = parseWorkflowDefinition(version.Definition)
+	}
 	ret.Nodes = BuildAIWorkflowNodeRunList(nodes)
 	return ret
 }

@@ -163,7 +163,18 @@ func TestAIWorkflowServiceRunListAndDetail(t *testing.T) {
 	if err := sqls.DB().Create(&workflow).Error; err != nil {
 		t.Fatalf("create workflow: %v", err)
 	}
-	version := models.AIWorkflowVersion{WorkflowID: workflow.ID, Version: 7, Status: enums.StatusOk}
+	versionDefinition := validAIWorkflowDefinition()
+	versionDefinition.Nodes[1].Name = "运行时回复"
+	versionDefinitionJSON, err := json.Marshal(versionDefinition)
+	if err != nil {
+		t.Fatalf("marshal version definition: %v", err)
+	}
+	version := models.AIWorkflowVersion{
+		WorkflowID: workflow.ID,
+		Version:    7,
+		Status:     enums.StatusOk,
+		Definition: string(versionDefinitionJSON),
+	}
 	if err := sqls.DB().Create(&version).Error; err != nil {
 		t.Fatalf("create workflow version: %v", err)
 	}

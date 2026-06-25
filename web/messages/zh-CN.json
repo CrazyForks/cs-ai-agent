@@ -2289,6 +2289,7 @@
     "close": "关闭",
     "loadingDetail": "加载流程执行详情中",
     "interruptNode": "中断节点",
+    "nodeDetails": "节点运行明细",
     "emptyNodes": "暂无节点记录",
     "notFound": "未找到流程执行记录",
     "input": "输入",

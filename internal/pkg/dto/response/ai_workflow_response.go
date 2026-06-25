@@ -74,6 +74,7 @@ type AIWorkflowRunResponse struct {
 	ErrorMessage      string                      `json:"errorMessage"`
 	CreatedAt         string                      `json:"createdAt"`
 	UpdatedAt         string                      `json:"updatedAt"`
+	Definition        dsl.Definition              `json:"definition"`
 	Nodes             []AIWorkflowNodeRunResponse `json:"nodes,omitempty"`
 }
 

@@ -2289,6 +2289,7 @@
     "close": "Close",
     "loadingDetail": "Loading workflow run detail",
     "interruptNode": "Interrupt Node",
+    "nodeDetails": "Node Run Details",
     "emptyNodes": "No node records",
     "notFound": "Workflow run not found",
     "input": "Input",
