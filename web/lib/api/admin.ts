@@ -318,18 +318,12 @@ export type AIWorkflowDefinition = {
     config: Record<string, unknown>
     inputs?: Record<string, AIWorkflowVariableSelector>
   }[]
-  edges: {
-    id: string
-    source: string
-    target: string
-    condition?: {
-      expression?: string
-      left?: AIWorkflowVariableSelector
-      operator?: string
-      right?: unknown
-    }
-  }[]
-}
+	  edges: {
+	    id: string
+	    source: string
+	    target: string
+	  }[]
+	}
 
 export type AIWorkflow = {
   id: number

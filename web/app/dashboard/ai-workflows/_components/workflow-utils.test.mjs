@@ -320,6 +320,102 @@ describe("getAvailableVariables", () => {
 })
 
 describe("toApiDefinition", () => {
+  it("keeps condition branches on the condition node config and exports plain edges", async () => {
+    const { toApiDefinition } = await loadModule()
+
+    const definition = toApiDefinition({
+      nodes: [
+        {
+          id: "start_1",
+          type: "workflowNode",
+          position: { x: 0, y: 0 },
+          data: { nodeType: "start", name: "Start", config: {} },
+        },
+        {
+          id: "condition_1",
+          type: "workflowNode",
+          position: { x: 200, y: 0 },
+          data: {
+            nodeType: "condition",
+            name: "Route",
+            config: {
+              branches: [
+                {
+                  id: "vip",
+                  name: "VIP",
+                  targetNodeId: "vip_reply",
+                  condition: {
+                    left: { nodeId: "start_1", field: "userMessage" },
+                    operator: "eq",
+                    right: "vip",
+                  },
+                },
+                {
+                  id: "default",
+                  name: "Default",
+                  targetNodeId: "normal_reply",
+                  default: true,
+                },
+              ],
+            },
+          },
+        },
+        {
+          id: "vip_reply",
+          type: "workflowNode",
+          position: { x: 400, y: 0 },
+          data: { nodeType: "llm_reply", name: "VIP", config: {} },
+        },
+        {
+          id: "normal_reply",
+          type: "workflowNode",
+          position: { x: 400, y: 160 },
+          data: { nodeType: "llm_reply", name: "Normal", config: {} },
+        },
+      ],
+      edges: [
+        { id: "e1", source: "start_1", target: "condition_1" },
+        {
+          id: "e2",
+          source: "condition_1",
+          target: "vip_reply",
+          data: {
+            condition: {
+              left: { nodeId: "start_1", field: "userMessage" },
+              operator: "eq",
+              right: "legacy",
+            },
+          },
+        },
+        { id: "e3", source: "condition_1", target: "normal_reply" },
+      ],
+    })
+
+    assert.deepEqual(plain(definition.edges), [
+      { id: "e1", source: "start_1", target: "condition_1" },
+      { id: "e2", source: "condition_1", target: "vip_reply" },
+      { id: "e3", source: "condition_1", target: "normal_reply" },
+    ])
+    assert.deepEqual(plain(definition.nodes[1].config.branches), [
+      {
+        id: "vip",
+        name: "VIP",
+        targetNodeId: "vip_reply",
+        condition: {
+          left: { nodeId: "start_1", field: "userMessage" },
+          operator: "eq",
+          right: "vip",
+        },
+      },
+      {
+        id: "default",
+        name: "Default",
+        targetNodeId: "normal_reply",
+        default: true,
+      },
+    ])
+  })
+
   it("preserves xyflow node positions", async () => {
     const { toApiDefinition } = await loadModule()
 

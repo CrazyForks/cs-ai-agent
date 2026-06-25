@@ -24,10 +24,21 @@ type Position struct {
 }
 
 type Edge struct {
-	ID        string     `json:"id"`
-	Source    string     `json:"source"`
-	Target    string     `json:"target"`
-	Condition *Condition `json:"condition,omitempty"`
+	ID     string `json:"id"`
+	Source string `json:"source"`
+	Target string `json:"target"`
+}
+
+type ConditionConfig struct {
+	Branches []ConditionBranch `json:"branches,omitempty"`
+}
+
+type ConditionBranch struct {
+	ID           string     `json:"id"`
+	Name         string     `json:"name,omitempty"`
+	TargetNodeID string     `json:"targetNodeId"`
+	Condition    *Condition `json:"condition,omitempty"`
+	Default      bool       `json:"default,omitempty"`
 }
 
 type Condition struct {

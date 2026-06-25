@@ -86,6 +86,8 @@ type workflowCheckPoint struct {
 
 type branchDecision struct {
 	SelectedEdgeID       string                `json:"selectedEdgeId,omitempty"`
+	SelectedBranchID     string                `json:"selectedBranchId,omitempty"`
+	SelectedBranchName   string                `json:"selectedBranchName,omitempty"`
 	SelectedTargetNodeID string                `json:"selectedTargetNodeId,omitempty"`
 	Reason               string                `json:"reason"`
 	Evaluations          []conditionEvaluation `json:"evaluations,omitempty"`
@@ -93,6 +95,8 @@ type branchDecision struct {
 
 type conditionEvaluation struct {
 	EdgeID       string `json:"edgeId"`
+	BranchID     string `json:"branchId,omitempty"`
+	BranchName   string `json:"branchName,omitempty"`
 	TargetNodeID string `json:"targetNodeId"`
 	SourceNodeID string `json:"sourceNodeId,omitempty"`
 	SourceField  string `json:"sourceField,omitempty"`
@@ -588,53 +592,69 @@ func (s *runState) nextNodeID(sourceNodeID string) (string, bool, error) {
 	if len(edges) == 0 {
 		return "", false, nil
 	}
+	node := s.nodesByID[sourceNodeID]
+	if strings.TrimSpace(node.Type) != workflowregistry.NodeTypeCondition {
+		return strings.TrimSpace(edges[0].Target), true, nil
+	}
+	config := dsl.ConditionConfig{}
+	if len(node.Config) > 0 {
+		if err := json.Unmarshal(node.Config, &config); err != nil {
+			return "", false, fmt.Errorf("invalid condition node config: %w", err)
+		}
+	}
 	evaluations := make([]conditionEvaluation, 0)
-	for _, edge := range edges {
-		if edge.Condition == nil {
+	for _, branch := range config.Branches {
+		if branch.Default {
 			continue
 		}
-		matched, evaluation, err := s.evaluateCondition(edge)
+		matched, evaluation, err := s.evaluateConditionBranch(sourceNodeID, branch)
 		if err != nil {
 			return "", false, err
 		}
 		evaluations = append(evaluations, evaluation)
 		if matched {
+			targetNodeID := strings.TrimSpace(branch.TargetNodeID)
 			s.branchDecisions[sourceNodeID] = branchDecision{
-				SelectedEdgeID:       strings.TrimSpace(edge.ID),
-				SelectedTargetNodeID: strings.TrimSpace(edge.Target),
-				Reason:               "conditional edge matched",
+				SelectedEdgeID:       s.edgeIDForTarget(sourceNodeID, targetNodeID),
+				SelectedBranchID:     strings.TrimSpace(branch.ID),
+				SelectedBranchName:   strings.TrimSpace(branch.Name),
+				SelectedTargetNodeID: targetNodeID,
+				Reason:               "condition branch matched",
 				Evaluations:          evaluations,
 			}
-			return strings.TrimSpace(edge.Target), true, nil
+			return targetNodeID, true, nil
 		}
 	}
-	for _, edge := range edges {
-		if edge.Condition == nil {
-			if len(evaluations) > 0 {
-				s.branchDecisions[sourceNodeID] = branchDecision{
-					SelectedEdgeID:       strings.TrimSpace(edge.ID),
-					SelectedTargetNodeID: strings.TrimSpace(edge.Target),
-					Reason:               "no conditional edge matched; selected default edge",
-					Evaluations:          evaluations,
-				}
-			}
-			return strings.TrimSpace(edge.Target), true, nil
+	for _, branch := range config.Branches {
+		if !branch.Default {
+			continue
 		}
-	}
-	if len(evaluations) > 0 {
+		targetNodeID := strings.TrimSpace(branch.TargetNodeID)
 		s.branchDecisions[sourceNodeID] = branchDecision{
-			Reason:      "no conditional edge matched and no default edge exists",
-			Evaluations: evaluations,
+			SelectedEdgeID:       s.edgeIDForTarget(sourceNodeID, targetNodeID),
+			SelectedBranchID:     strings.TrimSpace(branch.ID),
+			SelectedBranchName:   strings.TrimSpace(branch.Name),
+			SelectedTargetNodeID: targetNodeID,
+			Reason:               "no condition branch matched; selected default branch",
+			Evaluations:          evaluations,
 		}
+		return targetNodeID, true, nil
+	}
+	s.branchDecisions[sourceNodeID] = branchDecision{
+		Reason:      "no condition branch matched and no default branch exists",
+		Evaluations: evaluations,
 	}
 	return "", false, nil
 }
 
-func (s *runState) evaluateCondition(edge dsl.Edge) (bool, conditionEvaluation, error) {
-	condition := edge.Condition
+func (s *runState) evaluateConditionBranch(sourceNodeID string, branch dsl.ConditionBranch) (bool, conditionEvaluation, error) {
+	condition := branch.Condition
+	targetNodeID := strings.TrimSpace(branch.TargetNodeID)
 	evaluation := conditionEvaluation{
-		EdgeID:       strings.TrimSpace(edge.ID),
-		TargetNodeID: strings.TrimSpace(edge.Target),
+		EdgeID:       s.edgeIDForTarget(sourceNodeID, targetNodeID),
+		BranchID:     strings.TrimSpace(branch.ID),
+		BranchName:   strings.TrimSpace(branch.Name),
+		TargetNodeID: targetNodeID,
 	}
 	if condition == nil {
 		evaluation.Matched = true
@@ -681,6 +701,15 @@ func (s *runState) evaluateCondition(edge dsl.Edge) (bool, conditionEvaluation, 
 	}
 	evaluation.Matched = matched
 	return matched, evaluation, nil
+}
+
+func (s *runState) edgeIDForTarget(sourceNodeID string, targetNodeID string) string {
+	for _, edge := range s.outgoing[sourceNodeID] {
+		if strings.TrimSpace(edge.Target) == targetNodeID {
+			return strings.TrimSpace(edge.ID)
+		}
+	}
+	return ""
 }
 
 func (s *runState) setNodeVars(nodeID string, values map[string]any) {

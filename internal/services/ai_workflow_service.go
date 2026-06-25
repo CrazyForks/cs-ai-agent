@@ -427,7 +427,13 @@ func defaultAgentWorkflowDefinition() dsl.Definition {
 		EntryNodeID:   "start_1",
 		Nodes: []dsl.Node{
 			{ID: "start_1", Type: workflowregistry.NodeTypeStart, Name: "开始", Position: dsl.Position{X: 0, Y: 260}},
-			{ID: "route_intent_1", Type: workflowregistry.NodeTypeCondition, Name: "意图分流", Position: dsl.Position{X: 260, Y: 260}},
+			{ID: "route_intent_1", Type: workflowregistry.NodeTypeCondition, Name: "意图分流", Position: dsl.Position{X: 260, Y: 260}, Config: mustMarshalWorkflowConfig(dsl.ConditionConfig{Branches: []dsl.ConditionBranch{
+				{ID: "handoff", Name: "需要转人工", TargetNodeID: "handoff_1", Condition: &dsl.Condition{Left: &dsl.VariableSelector{NodeID: "start_1", Field: "userMessage"}, Operator: "contains", Right: "人工"}},
+				{ID: "ticket", Name: "需要建单", TargetNodeID: "draft_ticket_1", Condition: &dsl.Condition{Left: &dsl.VariableSelector{NodeID: "start_1", Field: "userMessage"}, Operator: "contains", Right: "工单"}},
+				{ID: "complaint", Name: "投诉建单", TargetNodeID: "draft_ticket_1", Condition: &dsl.Condition{Left: &dsl.VariableSelector{NodeID: "start_1", Field: "userMessage"}, Operator: "contains", Right: "投诉"}},
+				{ID: "incident", Name: "报障建单", TargetNodeID: "draft_ticket_1", Condition: &dsl.Condition{Left: &dsl.VariableSelector{NodeID: "start_1", Field: "userMessage"}, Operator: "contains", Right: "报障"}},
+				{ID: "default", Name: "默认知识库回复", TargetNodeID: "retrieve_1", Default: true},
+			}})},
 			{ID: "handoff_1", Type: workflowregistry.NodeTypeHandoffToHuman, Name: "转人工", Position: dsl.Position{X: 560, Y: 80}, Inputs: map[string]dsl.VariableSelector{
 				"reason": {NodeID: "start_1", Field: "userMessage"},
 			}},
@@ -441,6 +447,10 @@ func defaultAgentWorkflowDefinition() dsl.Definition {
 			{ID: "ticket_confirm_1", Type: workflowregistry.NodeTypeHumanConfirm, Name: "确认建单", Position: dsl.Position{X: 1160, Y: 240}, Inputs: map[string]dsl.VariableSelector{
 				"prompt": {NodeID: "ticket_confirm_prompt_1", Field: "replyText"},
 			}},
+			{ID: "ticket_confirm_route_1", Type: workflowregistry.NodeTypeCondition, Name: "建单确认分流", Position: dsl.Position{X: 1310, Y: 240}, Config: mustMarshalWorkflowConfig(dsl.ConditionConfig{Branches: []dsl.ConditionBranch{
+				{ID: "confirmed", Name: "已确认", TargetNodeID: "create_ticket_1", Condition: &dsl.Condition{Left: &dsl.VariableSelector{NodeID: "ticket_confirm_1", Field: "confirmed"}, Operator: "is_true"}},
+				{ID: "default", Name: "取消或未确认", TargetNodeID: "ticket_cancel_reply_1", Default: true},
+			}})},
 			{ID: "create_ticket_1", Type: workflowregistry.NodeTypeCreateTicket, Name: "创建工单", Position: dsl.Position{X: 1460, Y: 180}, Inputs: map[string]dsl.VariableSelector{
 				"ticketDraft": {NodeID: "draft_ticket_1", Field: "ticketDraft"},
 				"confirmed":   {NodeID: "ticket_confirm_1", Field: "confirmed"},
@@ -461,6 +471,10 @@ func defaultAgentWorkflowDefinition() dsl.Definition {
 				"userMessage":    {NodeID: "start_1", Field: "userMessage"},
 				"knowledgeItems": {NodeID: "retrieve_1", Field: "items"},
 			}},
+			{ID: "answerability_route_1", Type: workflowregistry.NodeTypeCondition, Name: "可回答分流", Position: dsl.Position{X: 1010, Y: 500}, Config: mustMarshalWorkflowConfig(dsl.ConditionConfig{Branches: []dsl.ConditionBranch{
+				{ID: "answerable", Name: "可以回答", TargetNodeID: "reply_1", Condition: &dsl.Condition{Left: &dsl.VariableSelector{NodeID: "answerability_1", Field: "answerability"}, Operator: "eq", Right: "answerable"}},
+				{ID: "default", Name: "兜底追问", TargetNodeID: "fallback_reply_1", Default: true},
+			}})},
 			{ID: "reply_1", Type: workflowregistry.NodeTypeLLMReply, Name: "AI 回复", Position: dsl.Position{X: 1160, Y: 440}, Inputs: map[string]dsl.VariableSelector{
 				"userMessage":    {NodeID: "start_1", Field: "userMessage"},
 				"knowledgeItems": {NodeID: "retrieve_1", Field: "items"},
@@ -479,52 +493,37 @@ func defaultAgentWorkflowDefinition() dsl.Definition {
 		},
 		Edges: []dsl.Edge{
 			{ID: "edge_start_route_intent", Source: "start_1", Target: "route_intent_1"},
-			{ID: "edge_intent_handoff", Source: "route_intent_1", Target: "handoff_1", Condition: &dsl.Condition{
-				Left:     &dsl.VariableSelector{NodeID: "start_1", Field: "userMessage"},
-				Operator: "contains",
-				Right:    "人工",
-			}},
-			{ID: "edge_intent_ticket", Source: "route_intent_1", Target: "draft_ticket_1", Condition: &dsl.Condition{
-				Left:     &dsl.VariableSelector{NodeID: "start_1", Field: "userMessage"},
-				Operator: "contains",
-				Right:    "工单",
-			}},
-			{ID: "edge_intent_complaint", Source: "route_intent_1", Target: "draft_ticket_1", Condition: &dsl.Condition{
-				Left:     &dsl.VariableSelector{NodeID: "start_1", Field: "userMessage"},
-				Operator: "contains",
-				Right:    "投诉",
-			}},
-			{ID: "edge_intent_incident", Source: "route_intent_1", Target: "draft_ticket_1", Condition: &dsl.Condition{
-				Left:     &dsl.VariableSelector{NodeID: "start_1", Field: "userMessage"},
-				Operator: "contains",
-				Right:    "报障",
-			}},
+			{ID: "edge_intent_handoff", Source: "route_intent_1", Target: "handoff_1"},
+			{ID: "edge_intent_ticket", Source: "route_intent_1", Target: "draft_ticket_1"},
 			{ID: "edge_intent_knowledge_default", Source: "route_intent_1", Target: "retrieve_1"},
 			{ID: "edge_handoff_end", Source: "handoff_1", Target: "handoff_end_1"},
 			{ID: "edge_draft_ticket_confirm_prompt", Source: "draft_ticket_1", Target: "ticket_confirm_prompt_1"},
 			{ID: "edge_ticket_prompt_confirm", Source: "ticket_confirm_prompt_1", Target: "ticket_confirm_1"},
-			{ID: "edge_ticket_confirm_create", Source: "ticket_confirm_1", Target: "create_ticket_1", Condition: &dsl.Condition{
-				Left:     &dsl.VariableSelector{NodeID: "ticket_confirm_1", Field: "confirmed"},
-				Operator: "is_true",
-			}},
-			{ID: "edge_ticket_confirm_cancel", Source: "ticket_confirm_1", Target: "ticket_cancel_reply_1"},
+			{ID: "edge_ticket_confirm_route", Source: "ticket_confirm_1", Target: "ticket_confirm_route_1"},
+			{ID: "edge_ticket_confirm_create", Source: "ticket_confirm_route_1", Target: "create_ticket_1"},
+			{ID: "edge_ticket_confirm_cancel", Source: "ticket_confirm_route_1", Target: "ticket_cancel_reply_1"},
 			{ID: "edge_create_ticket_result", Source: "create_ticket_1", Target: "ticket_result_reply_1"},
 			{ID: "edge_ticket_result_end", Source: "ticket_result_reply_1", Target: "end_1"},
 			{ID: "edge_ticket_cancel_send", Source: "ticket_cancel_reply_1", Target: "send_ticket_cancel_1"},
 			{ID: "edge_ticket_cancel_end", Source: "send_ticket_cancel_1", Target: "end_1"},
 			{ID: "edge_retrieve_answerability", Source: "retrieve_1", Target: "answerability_1"},
-			{ID: "edge_answerability_reply", Source: "answerability_1", Target: "reply_1", Condition: &dsl.Condition{
-				Left:     &dsl.VariableSelector{NodeID: "answerability_1", Field: "answerability"},
-				Operator: "eq",
-				Right:    "answerable",
-			}},
-			{ID: "edge_answerability_fallback", Source: "answerability_1", Target: "fallback_reply_1"},
+			{ID: "edge_answerability_route", Source: "answerability_1", Target: "answerability_route_1"},
+			{ID: "edge_answerability_reply", Source: "answerability_route_1", Target: "reply_1"},
+			{ID: "edge_answerability_fallback", Source: "answerability_route_1", Target: "fallback_reply_1"},
 			{ID: "edge_reply_send", Source: "reply_1", Target: "send_1"},
 			{ID: "edge_fallback_send", Source: "fallback_reply_1", Target: "send_fallback_1"},
 			{ID: "edge_send_end", Source: "send_1", Target: "end_1"},
 			{ID: "edge_send_fallback_end", Source: "send_fallback_1", Target: "end_1"},
 		},
 	}
+}
+
+func mustMarshalWorkflowConfig(value any) json.RawMessage {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		panic(err)
+	}
+	return raw
 }
 
 func defaultAgentWorkflowName(agentName string) string {

@@ -7,7 +7,6 @@ import {
   Background,
   BaseEdge,
   ConnectionMode,
-  EdgeLabelRenderer,
   Controls,
   getBezierPath,
   Handle,
@@ -44,9 +43,6 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { OptionCombobox } from "@/components/option-combobox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Popover,
@@ -69,20 +65,19 @@ import {
   toApiDefinition,
   undoWorkflowHistory,
   validateWorkflowDraft,
-  type WorkflowVariableRef,
-  type WorkflowVariableSelector,
-  type WorkflowEditorEdge,
+  type WorkflowCondition,
   type WorkflowEditorNode,
   type WorkflowHistory,
   type WorkflowHelperLine,
+  type WorkflowNodeConfig,
 } from "./workflow-utils"
 import { NodeConfigPanel, type WorkflowBranchSummary } from "./node-config-panel"
-import { VariableSelector } from "./variable-selector"
+import type { WorkflowBranchTargetOption } from "./node-config-panel"
 
 type WorkflowNodeData = Record<string, unknown> & {
   nodeType?: string
   name?: string
-  config?: Record<string, unknown>
+  config?: WorkflowNodeConfig
   inputs?: Record<string, { nodeId: string; field: string }>
   nodeSpecs?: AIWorkflowNodeSpec[]
   onAddAfter?: (sourceNodeId: string, spec: AIWorkflowNodeSpec) => void
@@ -100,10 +95,8 @@ type WorkflowEditorSnapshot = {
   nodes: WorkflowFlowNode[]
   edges: WorkflowFlowEdge[]
 }
-type WorkflowEdgeCondition = NonNullable<WorkflowEditorEdge["data"]>["condition"]
-type WorkflowEdgeRenderData = WorkflowEditorEdge["data"] & {
+type WorkflowEdgeRenderData = {
   active?: boolean
-  onSelect?: (edgeId: string) => void
 }
 type WorkflowFinalConnectionState = FinalConnectionState
 
@@ -163,8 +156,6 @@ function toFlowEdges(definition: AIWorkflowDefinition): WorkflowFlowEdge[] {
     type: "workflowEdge",
     source: edge.source,
     target: edge.target,
-    label: edge.condition ? "条件" : undefined,
-    data: edge.condition ? { condition: edge.condition } : undefined,
   }))
 }
 
@@ -185,7 +176,6 @@ function toDraft(nodes: WorkflowFlowNode[], edges: WorkflowFlowEdge[]) {
       id: edge.id,
       source: edge.source,
       target: edge.target,
-      data: edge.data as WorkflowEditorEdge["data"],
     })),
   }
 }
@@ -231,7 +221,6 @@ export function WorkflowEditor({
   const [helperLines, setHelperLines] = useState<WorkflowHelperLine>({})
   const [propertyPanelNode, setPropertyPanelNode] = useState<WorkflowFlowNode | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
-  const [propertyPanelEdge, setPropertyPanelEdge] = useState<WorkflowFlowEdge | null>(null)
   const [propertyPanelVisible, setPropertyPanelVisible] = useState(false)
   const editorRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLElement | null>(null)
@@ -259,14 +248,13 @@ export function WorkflowEditor({
     [draft, nodeSpecs, propertyPanelNode]
   )
   const propertyPanelBranchSummaries = useMemo(
-    () => (propertyPanelNode ? getBranchSummaries(nodes, edges, propertyPanelNode.id) : []),
+    () => (propertyPanelNode ? getBranchSummaries(nodes, propertyPanelNode.id) : []),
+    [nodes, propertyPanelNode]
+  )
+  const propertyPanelBranchTargetOptions = useMemo(
+    () => (propertyPanelNode ? getBranchTargetOptions(nodes, edges, propertyPanelNode.id) : []),
     [edges, nodes, propertyPanelNode]
   )
-  const propertyPanelEdgeVariables = useMemo(
-    () => (propertyPanelEdge ? getEdgeConditionVariables(draft, propertyPanelEdge.source, nodeSpecs) : []),
-    [draft, nodeSpecs, propertyPanelEdge]
-  )
-
   useEffect(() => {
     onDefinitionChange(toApiDefinition(draft) as AIWorkflowDefinition)
   }, [draft, onDefinitionChange])
@@ -311,19 +299,6 @@ export function WorkflowEditor({
       window.clearTimeout(propertyPanelAnimationTimerRef.current)
     }
     setPropertyPanelNode(node)
-    setPropertyPanelEdge(null)
-    propertyPanelAnimationTimerRef.current = window.setTimeout(() => {
-      setPropertyPanelVisible(true)
-      propertyPanelAnimationTimerRef.current = null
-    }, 0)
-  }, [])
-
-  const showPropertyPanelEdge = useCallback((edge: WorkflowFlowEdge) => {
-    if (propertyPanelAnimationTimerRef.current !== null) {
-      window.clearTimeout(propertyPanelAnimationTimerRef.current)
-    }
-    setPropertyPanelEdge(edge)
-    setPropertyPanelNode(null)
     propertyPanelAnimationTimerRef.current = window.setTimeout(() => {
       setPropertyPanelVisible(true)
       propertyPanelAnimationTimerRef.current = null
@@ -337,7 +312,6 @@ export function WorkflowEditor({
     setPropertyPanelVisible(false)
     propertyPanelAnimationTimerRef.current = window.setTimeout(() => {
       setPropertyPanelNode(null)
-      setPropertyPanelEdge(null)
       propertyPanelAnimationTimerRef.current = null
     }, 220)
   }, [])
@@ -376,9 +350,6 @@ export function WorkflowEditor({
       )
       setPropertyPanelNode((current) =>
         current ? snapshot.nodes.find((node) => node.id === current.id) ?? null : null
-      )
-      setPropertyPanelEdge((current) =>
-        current ? snapshot.edges.find((edge) => edge.id === current.id) ?? null : null
       )
     },
     [setEdges, setNodes]
@@ -733,15 +704,6 @@ export function WorkflowEditor({
     )
   }
 
-  const selectEdge = useCallback((edgeId: string) => {
-    const edge = edges.find((item) => item.id === edgeId)
-    if (!edge) {
-      return
-    }
-    setSelectedEdgeId(edgeId)
-    showPropertyPanelEdge(edge)
-  }, [edges, showPropertyPanelEdge])
-
   const renderedEdges = useMemo(
     () =>
       edges.map((edge) => {
@@ -750,33 +712,12 @@ export function WorkflowEditor({
           ...edge,
           selected: active,
           data: {
-            ...((edge.data ?? {}) as WorkflowEditorEdge["data"]),
             active,
-            onSelect: selectEdge,
           } satisfies WorkflowEdgeRenderData,
         }
       }),
-    [edges, selectedEdgeId, selectEdge]
+    [edges, selectedEdgeId]
   )
-
-  const updateEdgeCondition = (edgeId: string, condition?: WorkflowEdgeCondition) => {
-    pushCurrentSnapshotToHistory()
-    const updateEdge = (edge: WorkflowFlowEdge) => ({
-      ...edge,
-      label: condition ? "条件" : undefined,
-      data: condition ? { ...(edge.data as object), condition } : undefined,
-    })
-    setEdges((current) =>
-      current.map((edge) =>
-        edge.id === edgeId
-          ? updateEdge(edge)
-          : edge
-      )
-    )
-    setPropertyPanelEdge((current) =>
-      current?.id === edgeId ? updateEdge(current) : current
-    )
-  }
 
   const clampNodeLibraryWidth = useCallback((width: number) => {
     const containerWidth = editorRef.current?.getBoundingClientRect().width ?? 0
@@ -936,7 +877,7 @@ export function WorkflowEditor({
             }}
             onEdgeClick={(event, edge) => {
               event.stopPropagation()
-              selectEdge(edge.id)
+              setSelectedEdgeId(edge.id)
             }}
             onPaneClick={() => {
               setSelectedEdgeId(null)
@@ -977,7 +918,7 @@ export function WorkflowEditor({
               restoreDefaultDisabled={restoreDefaultDisabled}
             />
           </div>
-          {propertyPanelNode || propertyPanelEdge ? (
+          {propertyPanelNode ? (
             <aside
               className={[
                 "absolute top-3 right-3 z-30 h-[calc(100%-1.5rem)] w-[min(380px,calc(100%-1.5rem))] overflow-hidden rounded-md border bg-background shadow-lg transition-all duration-200 ease-out",
@@ -993,14 +934,8 @@ export function WorkflowEditor({
                     nodeSpec={propertyPanelNodeSpec}
                     availableVariables={propertyPanelAvailableVariables}
                     branchSummaries={propertyPanelBranchSummaries}
+                    branchTargetOptions={propertyPanelBranchTargetOptions}
                     onChange={updateNodeData}
-                  />
-                ) : null}
-                {propertyPanelEdge ? (
-                  <EdgeConditionPanel
-                    edge={propertyPanelEdge}
-                    variables={propertyPanelEdgeVariables}
-                    onChange={updateEdgeCondition}
                   />
                 ) : null}
                 {!validation.valid ? (
@@ -1067,30 +1002,6 @@ function enrichNodesForRender(
   })
 }
 
-function getEdgeConditionVariables(
-  draft: ReturnType<typeof toDraft>,
-  sourceNodeId: string,
-  nodeSpecs: AIWorkflowNodeSpec[]
-): WorkflowVariableRef[] {
-  const variables = getAvailableVariables(draft, sourceNodeId, nodeSpecs)
-  const sourceNode = draft.nodes.find((node) => node.id === sourceNodeId)
-  if (!sourceNode) {
-    return variables
-  }
-  const nodeType = sourceNode.data?.nodeType ?? sourceNode.type ?? ""
-  const spec = getNodeSpec(nodeSpecs, nodeType)
-  for (const output of spec?.outputSchema ?? []) {
-    variables.push({
-      nodeId: sourceNode.id,
-      nodeName: sourceNode.data?.name ?? spec?.title ?? sourceNode.id,
-      field: output.name,
-      type: output.type,
-      description: output.description ?? "",
-    })
-  }
-  return variables
-}
-
 const conditionOperators = [
   { value: "eq", label: "等于" },
   { value: "neq", label: "不等于" },
@@ -1107,24 +1018,40 @@ const conditionOperators = [
 
 function getBranchSummaries(
   nodes: WorkflowFlowNode[],
-  edges: WorkflowFlowEdge[],
   nodeId: string
 ): WorkflowBranchSummary[] {
-  return edges
-    .filter((edge) => edge.source === nodeId)
-    .map((edge) => {
-      const target = nodes.find((node) => node.id === edge.target)
-      const condition = (edge.data as WorkflowEditorEdge["data"] | undefined)?.condition
+  const node = nodes.find((item) => item.id === nodeId)
+  const branches = node?.data.config?.branches ?? []
+  return branches
+    .map((branch) => {
+      const target = nodes.find((item) => item.id === branch.targetNodeId)
       return {
-        edgeId: edge.id,
-        targetName: target?.data.name ?? target?.data.title ?? edge.target,
-        conditionLabel: condition ? formatConditionLabel(condition) : "无条件匹配",
-        isDefault: !condition,
+        branchId: branch.id,
+        targetNodeId: branch.targetNodeId,
+        targetName: target?.data.name ?? target?.data.title ?? branch.targetNodeId,
+        conditionLabel: branch.condition ? formatConditionLabel(branch.condition) : "无条件匹配",
+        isDefault: Boolean(branch.default),
       }
     })
 }
 
-function formatConditionLabel(condition: NonNullable<WorkflowEdgeCondition>) {
+function getBranchTargetOptions(
+  nodes: WorkflowFlowNode[],
+  edges: WorkflowFlowEdge[],
+  nodeId: string
+): WorkflowBranchTargetOption[] {
+  return edges
+    .filter((edge) => edge.source === nodeId)
+    .map((edge) => {
+      const target = nodes.find((node) => node.id === edge.target)
+      return {
+        value: edge.target,
+        label: target?.data.name ?? target?.data.title ?? edge.target,
+      }
+    })
+}
+
+function formatConditionLabel(condition: WorkflowCondition) {
   const left = condition.left?.nodeId && condition.left.field
     ? `${condition.left.nodeId}.${condition.left.field}`
     : "未选择变量"
@@ -1147,105 +1074,6 @@ function formatConditionRight(value: unknown) {
     return JSON.stringify(value)
   }
   return String(value)
-}
-
-function EdgeConditionPanel({
-  edge,
-  variables,
-  onChange,
-}: {
-  edge: WorkflowFlowEdge
-  variables: WorkflowVariableRef[]
-  onChange: (edgeId: string, condition?: WorkflowEdgeCondition) => void
-}) {
-  const condition = (edge.data as WorkflowEditorEdge["data"] | undefined)?.condition
-  const [left, setLeft] = useState<WorkflowVariableSelector | undefined>(condition?.left)
-  const [operator, setOperator] = useState(condition?.operator ?? "eq")
-  const [right, setRight] = useState(condition?.right === undefined ? "" : String(condition.right))
-
-  const commit = (next?: {
-    left?: WorkflowVariableSelector
-    operator?: string
-    right?: string
-  }) => {
-    const nextLeft = next?.left ?? left
-    const nextOperator = next?.operator ?? operator
-    const nextRight = next?.right ?? right
-    if (!nextLeft?.nodeId || !nextLeft.field || !nextOperator) {
-      return
-    }
-    onChange(edge.id, {
-      left: nextLeft,
-      operator: nextOperator,
-      right: normalizeConditionRight(nextRight),
-    })
-  }
-
-  return (
-    <div className="flex h-full min-h-0 flex-col gap-4 p-4">
-      <div>
-        <div className="text-sm font-medium">分支条件</div>
-        <div className="mt-1 text-xs text-muted-foreground">
-          {edge.source} {"->"} {edge.target}
-        </div>
-      </div>
-      <div className="space-y-2">
-        <Label>左侧变量</Label>
-        <VariableSelector
-          value={left}
-          variables={variables}
-          onChange={(value) => {
-            setLeft(value)
-            commit({ left: value })
-          }}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label>判断方式</Label>
-        <OptionCombobox
-          value={operator}
-          options={conditionOperators}
-          placeholder="选择判断方式"
-          searchPlaceholder="搜索判断方式"
-          emptyText="没有可用判断方式"
-          onChange={(value) => {
-            setOperator(value)
-            commit({ operator: value })
-          }}
-        />
-      </div>
-      {!["exists", "not_exists", "truthy", "falsy"].includes(operator) ? (
-        <div className="space-y-2">
-          <Label htmlFor="workflow-edge-condition-right">比较值</Label>
-          <Input
-            id="workflow-edge-condition-right"
-            value={right}
-            onChange={(event) => setRight(event.target.value)}
-            onBlur={() => commit({ right })}
-          />
-        </div>
-      ) : null}
-      <div className="flex gap-2">
-        <Button type="button" size="sm" onClick={() => commit()}>
-          保存条件
-        </Button>
-        <Button type="button" size="sm" variant="outline" onClick={() => onChange(edge.id, undefined)}>
-          设为默认分支
-        </Button>
-      </div>
-      <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
-        没有条件的边会作为默认分支；同一节点存在条件边时，建议保留一条默认分支。
-      </div>
-    </div>
-  )
-}
-
-function normalizeConditionRight(value: string) {
-  const trimmed = value.trim()
-  if (trimmed === "true") return true
-  if (trimmed === "false") return false
-  if (trimmed !== "" && !Number.isNaN(Number(trimmed))) return Number(trimmed)
-  return trimmed
 }
 
 function getEventClientPoint(event: MouseEvent | TouchEvent) {
@@ -1334,7 +1162,7 @@ function WorkflowCanvasEdge({
 }: EdgeProps<WorkflowFlowEdge>) {
   const sourceOffset = getEdgeEndpointOffset(sourcePosition, workflowHandleRadius)
   const targetOffset = getEdgeEndpointOffset(targetPosition, workflowHandleRadius)
-  const [edgePath, labelX, labelY] = getBezierPath({
+  const [edgePath] = getBezierPath({
     sourceX: sourceX + sourceOffset.x,
     sourceY: sourceY + sourceOffset.y,
     sourcePosition,
@@ -1343,54 +1171,19 @@ function WorkflowCanvasEdge({
     targetPosition,
     curvature: 0.18,
   })
-  const condition = (data as WorkflowEditorEdge["data"] | undefined)?.condition
   const edgeData = data as WorkflowEdgeRenderData | undefined
   const active = selected || edgeData?.active
 
   return (
-    <>
-      <BaseEdge
-        id={id}
-        path={edgePath}
-        markerEnd={markerEnd}
-        className={cn(
-          "transition-all",
-          active ? "!stroke-primary !stroke-[2.4px]" : "!stroke-muted-foreground/45 !stroke-[1.8px]"
-        )}
-      />
-      {condition ? (
-        <EdgeLabelRenderer>
-          <div
-            role="button"
-            tabIndex={0}
-            aria-label="选择条件连接线"
-            className={cn(
-              "nodrag nopan pointer-events-auto absolute inline-flex -translate-x-1/2 -translate-y-1/2 cursor-pointer select-none items-center rounded-md border px-2 py-1 text-[11px] font-medium shadow-sm backdrop-blur transition-all",
-              active
-                ? "border-primary bg-primary text-primary-foreground shadow-md"
-                : "border-border/80 bg-background/95 text-muted-foreground hover:border-primary/60 hover:text-foreground"
-            )}
-            style={{
-              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-            }}
-            onClick={(event) => {
-              event.stopPropagation()
-              edgeData?.onSelect?.(id)
-            }}
-            onKeyDown={(event) => {
-              if (event.key !== "Enter" && event.key !== " ") {
-                return
-              }
-              event.preventDefault()
-              event.stopPropagation()
-              edgeData?.onSelect?.(id)
-            }}
-          >
-            条件
-          </div>
-        </EdgeLabelRenderer>
-      ) : null}
-    </>
+    <BaseEdge
+      id={id}
+      path={edgePath}
+      markerEnd={markerEnd}
+      className={cn(
+        "transition-all",
+        active ? "!stroke-primary !stroke-[2.4px]" : "!stroke-muted-foreground/45 !stroke-[1.8px]"
+      )}
+    />
   )
 }
 

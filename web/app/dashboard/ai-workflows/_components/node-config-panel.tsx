@@ -7,9 +7,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { OptionCombobox } from "@/components/option-combobox"
 import { VariableSelector } from "./variable-selector"
 import type {
+  WorkflowConditionBranch,
   WorkflowNodeSpec,
+  WorkflowNodeConfig,
   WorkflowVariableRef,
   WorkflowVariableSpec,
   WorkflowVariableSelector,
@@ -18,15 +21,21 @@ import type {
 type WorkflowNodeData = Record<string, unknown> & {
   nodeType?: string
   name?: string
-  config?: Record<string, unknown>
+  config?: WorkflowNodeConfig
   inputs?: Record<string, WorkflowVariableSelector>
 }
 
 export type WorkflowBranchSummary = {
-  edgeId: string
+  branchId: string
+  targetNodeId: string
   targetName: string
   conditionLabel: string
   isDefault: boolean
+}
+
+export type WorkflowBranchTargetOption = {
+  value: string
+  label: string
 }
 
 export function NodeConfigPanel({
@@ -34,12 +43,14 @@ export function NodeConfigPanel({
   nodeSpec,
   availableVariables,
   branchSummaries = [],
+  branchTargetOptions = [],
   onChange,
 }: {
   node: Node<WorkflowNodeData> | null
   nodeSpec?: WorkflowNodeSpec
   availableVariables: WorkflowVariableRef[]
   branchSummaries?: WorkflowBranchSummary[]
+  branchTargetOptions?: WorkflowBranchTargetOption[]
   onChange: (nodeId: string, data: WorkflowNodeData) => void
 }) {
   if (!node) {
@@ -57,6 +68,7 @@ export function NodeConfigPanel({
       nodeSpec={nodeSpec}
       availableVariables={availableVariables}
       branchSummaries={branchSummaries}
+      branchTargetOptions={branchTargetOptions}
       onChange={onChange}
     />
   )
@@ -67,12 +79,14 @@ function NodeConfigForm({
   nodeSpec,
   availableVariables,
   branchSummaries,
+  branchTargetOptions,
   onChange,
 }: {
   node: Node<WorkflowNodeData>
   nodeSpec?: WorkflowNodeSpec
   availableVariables: WorkflowVariableRef[]
   branchSummaries: WorkflowBranchSummary[]
+  branchTargetOptions: WorkflowBranchTargetOption[]
   onChange: (nodeId: string, data: WorkflowNodeData) => void
 }) {
   const [name, setName] = useState(node.data.name ?? "")
@@ -121,7 +135,14 @@ function NodeConfigForm({
         />
       </div>
       {isConditionNode ? (
-        <ConditionNodePanel branchSummaries={branchSummaries} outputSchema={outputSchema} />
+        <ConditionNodePanel
+          branches={node.data.config?.branches ?? []}
+          branchSummaries={branchSummaries}
+          branchTargetOptions={branchTargetOptions}
+          availableVariables={availableVariables}
+          outputSchema={outputSchema}
+          onChange={(branches) => commitChange({ config: { ...(node.data.config ?? {}), branches } })}
+        />
       ) : (
         <>
           {inputSchema.length > 0 ? (
@@ -207,38 +228,161 @@ function NodeConfigForm({
 }
 
 function ConditionNodePanel({
+  branches,
   branchSummaries,
+  branchTargetOptions,
+  availableVariables,
   outputSchema,
+  onChange,
 }: {
+  branches: WorkflowConditionBranch[]
   branchSummaries: WorkflowBranchSummary[]
+  branchTargetOptions: WorkflowBranchTargetOption[]
+  availableVariables: WorkflowVariableRef[]
   outputSchema: WorkflowVariableSpec[]
+  onChange: (branches: WorkflowConditionBranch[]) => void
 }) {
+  const summariesByBranchID = new Map(branchSummaries.map((item) => [item.branchId, item]))
+  const commitBranch = (branchId: string, patch: Partial<WorkflowConditionBranch>) => {
+    onChange(branches.map((branch) => (
+      branch.id === branchId ? normalizeBranch({ ...branch, ...patch }) : branch
+    )))
+  }
+  const addBranch = () => {
+    const index = branches.length + 1
+    onChange([
+      ...branches,
+      {
+        id: `branch_${index}`,
+        name: `分支 ${index}`,
+        targetNodeId: branchTargetOptions[0]?.value ?? "",
+        condition: { operator: "eq" },
+      },
+    ])
+  }
+  const deleteBranch = (branchId: string) => {
+    onChange(branches.filter((branch) => branch.id !== branchId))
+  }
+  const markDefault = (branchId: string) => {
+    onChange(branches.map((branch) => normalizeBranch({
+      ...branch,
+      default: branch.id === branchId,
+      condition: branch.id === branchId ? undefined : branch.condition ?? { operator: "eq" },
+    })))
+  }
+
   return (
     <>
-      {/* <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
-        条件节点只负责分流；每条出口连线承载自己的判断条件，没有条件的出口会作为默认分支。
-      </div> */}
       <div className="space-y-2">
-        <div className="text-sm font-medium">出口分支</div>
-        {branchSummaries.length > 0 ? (
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-sm font-medium">分支</div>
+          <Button type="button" variant="outline" size="sm" onClick={addBranch}>
+            添加分支
+          </Button>
+        </div>
+        {branches.length > 0 ? (
           <div className="space-y-2">
-            {branchSummaries.map((branch) => (
-              <div key={branch.edgeId} className="rounded-md border bg-background p-2">
-                <div className="flex items-center justify-between gap-2 text-xs">
-                  <span className="min-w-0 truncate font-medium">{branch.targetName}</span>
-                  <span className="shrink-0 rounded-sm bg-muted px-1.5 py-0.5 text-muted-foreground">
-                    {branch.isDefault ? "默认" : "条件"}
-                  </span>
+            {branches.map((branch, index) => {
+              const summary = summariesByBranchID.get(branch.id)
+              const condition = branch.condition ?? {}
+              const conditionRight = condition.right === undefined || condition.right === null
+                ? ""
+                : String(condition.right)
+              return (
+                <div key={branch.id} className="space-y-3 rounded-md border bg-background p-3">
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <span className="min-w-0 truncate font-medium">
+                      {branch.default ? "ELSE" : index === 0 ? "IF" : "ELSE IF"}
+                    </span>
+                    <span className="shrink-0 rounded-sm bg-muted px-1.5 py-0.5 text-muted-foreground">
+                      {branch.default ? "默认" : "条件"}
+                    </span>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">分支名称</Label>
+                    <Input
+                      value={branch.name ?? ""}
+                      onChange={(event) => commitBranch(branch.id, { name: event.target.value })}
+                      placeholder="例如：需要转人工"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">目标节点</Label>
+                    <OptionCombobox
+                      value={branch.targetNodeId}
+                      options={branchTargetOptions}
+                      placeholder="选择目标节点"
+                      searchPlaceholder="搜索目标节点"
+                      emptyText="请先从条件节点连出下游节点"
+                      onChange={(value) => commitBranch(branch.id, { targetNodeId: value })}
+                    />
+                  </div>
+                  {branch.default ? (
+                    <div className="rounded-md border border-dashed p-2 text-xs text-muted-foreground">
+                      未命中上方条件时进入：{summary?.targetName ?? (branch.targetNodeId || "未选择目标节点")}
+                    </div>
+                  ) : (
+                    <div className="space-y-3 rounded-md border bg-muted/20 p-2">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">判断变量</Label>
+                        <VariableSelector
+                          value={condition.left}
+                          variables={availableVariables}
+                          onChange={(value) => commitBranch(branch.id, {
+                            condition: { ...condition, left: value },
+                          })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">判断方式</Label>
+                        <OptionCombobox
+                          value={condition.operator ?? "eq"}
+                          options={conditionOperators}
+                          placeholder="选择判断方式"
+                          searchPlaceholder="搜索判断方式"
+                          emptyText="没有可用判断方式"
+                          onChange={(value) => commitBranch(branch.id, {
+                            condition: { ...condition, operator: value },
+                          })}
+                        />
+                      </div>
+                      {!conditionOperatorWithoutRight(condition.operator ?? "eq") ? (
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">比较值</Label>
+                          <Input
+                            value={conditionRight}
+                            onChange={(event) => commitBranch(branch.id, {
+                              condition: {
+                                ...condition,
+                                right: normalizeConditionRight(event.target.value),
+                              },
+                            })}
+                            placeholder="请输入比较值"
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {!branch.default ? (
+                      <Button type="button" size="sm" variant="outline" onClick={() => markDefault(branch.id)}>
+                        设为默认
+                      </Button>
+                    ) : null}
+                    <Button type="button" size="sm" variant="outline" onClick={() => deleteBranch(branch.id)}>
+                      删除
+                    </Button>
+                  </div>
+                  <div className="line-clamp-2 text-xs text-muted-foreground">
+                    {summary?.conditionLabel ?? "尚未完成分支配置"}
+                  </div>
                 </div>
-                <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                  {branch.conditionLabel}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         ) : (
           <div className="rounded-md border border-dashed p-2 text-xs text-muted-foreground">
-            当前还没有出口连线。
+            当前还没有分支。
           </div>
         )}
       </div>
@@ -262,4 +406,41 @@ function ConditionNodePanel({
       ) : null}
     </>
   )
+}
+
+const conditionOperators = [
+  { value: "eq", label: "等于" },
+  { value: "neq", label: "不等于" },
+  { value: "contains", label: "包含" },
+  { value: "exists", label: "存在" },
+  { value: "not_exists", label: "不存在" },
+  { value: "truthy", label: "为真" },
+  { value: "falsy", label: "为假" },
+  { value: "gt", label: "大于" },
+  { value: "gte", label: "大于等于" },
+  { value: "lt", label: "小于" },
+  { value: "lte", label: "小于等于" },
+]
+
+function conditionOperatorWithoutRight(operator: string) {
+  return ["exists", "not_exists", "truthy", "falsy"].includes(operator)
+}
+
+function normalizeConditionRight(value: string) {
+  const trimmed = value.trim()
+  if (trimmed === "true") return true
+  if (trimmed === "false") return false
+  if (trimmed !== "" && !Number.isNaN(Number(trimmed))) return Number(trimmed)
+  return trimmed
+}
+
+function normalizeBranch(branch: WorkflowConditionBranch): WorkflowConditionBranch {
+  if (branch.default) {
+    const { condition: _condition, ...rest } = branch
+    return rest
+  }
+  return {
+    ...branch,
+    condition: branch.condition ?? { operator: "eq" },
+  }
 }

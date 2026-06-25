@@ -260,7 +260,16 @@ func TestValidateDefinitionAcceptsMappedKnowledgeFlow(t *testing.T) {
 
 func TestValidateDefinitionRejectsUnknownConditionOperator(t *testing.T) {
 	def := conditionDefinition()
-	def.Edges[1].Condition.Operator = "regex"
+	var config dsl.ConditionConfig
+	if err := json.Unmarshal(def.Nodes[1].Config, &config); err != nil {
+		t.Fatalf("unmarshal condition config: %v", err)
+	}
+	config.Branches[0].Condition.Operator = "regex"
+	raw, err := json.Marshal(config)
+	if err != nil {
+		t.Fatalf("marshal condition config: %v", err)
+	}
+	def.Nodes[1].Config = raw
 
 	result := validator.ValidateDefinition(def, registry.DefaultRegistry())
 
@@ -274,7 +283,16 @@ func TestValidateDefinitionRejectsUnknownConditionOperator(t *testing.T) {
 
 func TestValidateDefinitionRejectsUnknownConditionVariable(t *testing.T) {
 	def := conditionDefinition()
-	def.Edges[1].Condition.Left.Field = "missing"
+	var config dsl.ConditionConfig
+	if err := json.Unmarshal(def.Nodes[1].Config, &config); err != nil {
+		t.Fatalf("unmarshal condition config: %v", err)
+	}
+	config.Branches[0].Condition.Left.Field = "missing"
+	raw, err := json.Marshal(config)
+	if err != nil {
+		t.Fatalf("marshal condition config: %v", err)
+	}
+	def.Nodes[1].Config = raw
 
 	result := validator.ValidateDefinition(def, registry.DefaultRegistry())
 
@@ -313,26 +331,37 @@ func mappedReplyDefinition() dsl.Definition {
 }
 
 func conditionDefinition() dsl.Definition {
-	return dsl.Definition{
-		SchemaVersion: 1,
-		EntryNodeID:   "start_1",
-		Nodes: []dsl.Node{
-			{ID: "start_1", Type: "start"},
-			{ID: "condition_1", Type: "condition"},
-			{ID: "end_1", Type: "end"},
-		},
-		Edges: []dsl.Edge{
-			{ID: "e1", Source: "start_1", Target: "condition_1"},
+	conditionConfig, _ := json.Marshal(dsl.ConditionConfig{
+		Branches: []dsl.ConditionBranch{
 			{
-				ID:     "e2",
-				Source: "condition_1",
-				Target: "end_1",
+				ID:           "hello",
+				Name:         "Hello",
+				TargetNodeID: "end_1",
 				Condition: &dsl.Condition{
 					Left:     &dsl.VariableSelector{NodeID: "start_1", Field: "userMessage"},
 					Operator: "eq",
 					Right:    "hello",
 				},
 			},
+			{
+				ID:           "default",
+				Name:         "Default",
+				TargetNodeID: "end_1",
+				Default:      true,
+			},
+		},
+	})
+	return dsl.Definition{
+		SchemaVersion: 1,
+		EntryNodeID:   "start_1",
+		Nodes: []dsl.Node{
+			{ID: "start_1", Type: "start"},
+			{ID: "condition_1", Type: "condition", Config: conditionConfig},
+			{ID: "end_1", Type: "end"},
+		},
+		Edges: []dsl.Edge{
+			{ID: "e1", Source: "start_1", Target: "condition_1"},
+			{ID: "e2", Source: "condition_1", Target: "end_1"},
 			{ID: "e3", Source: "condition_1", Target: "end_1"},
 		},
 	}

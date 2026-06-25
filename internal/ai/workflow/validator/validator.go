@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -268,31 +269,60 @@ func (v *definitionValidator) validateInputSelector(nodeID string, input registr
 }
 
 func (v *definitionValidator) validateConditions() {
-	conditionalSources := make(map[string]bool)
-	defaultSources := make(map[string]bool)
-	for index, edge := range v.def.Edges {
-		field := fmt.Sprintf("edges[%d].condition", index)
-		sourceID := strings.TrimSpace(edge.Source)
-		if edge.Condition == nil {
-			if sourceID != "" {
-				defaultSources[sourceID] = true
-			}
+	for index, node := range v.def.Nodes {
+		if strings.TrimSpace(node.Type) != registry.NodeTypeCondition {
 			continue
 		}
-		if sourceID != "" {
-			conditionalSources[sourceID] = true
+		field := fmt.Sprintf("nodes[%d].config.branches", index)
+		config := dsl.ConditionConfig{}
+		if len(node.Config) > 0 {
+			if err := json.Unmarshal(node.Config, &config); err != nil {
+				v.addError(field, "condition branches config must be valid JSON")
+				continue
+			}
 		}
-		v.validateCondition(field, sourceID, edge.Condition)
-	}
-	for sourceID := range conditionalSources {
-		if !defaultSources[sourceID] {
-			v.addError("edges."+sourceID, "conditional branch must include a default edge")
+		if len(config.Branches) == 0 {
+			v.addError(field, "condition node must include at least one branch")
+			continue
+		}
+		defaultCount := 0
+		seenBranchIDs := make(map[string]struct{}, len(config.Branches))
+		for branchIndex, branch := range config.Branches {
+			branchField := fmt.Sprintf("%s[%d]", field, branchIndex)
+			branchID := strings.TrimSpace(branch.ID)
+			if branchID == "" {
+				v.addError(branchField+".id", "condition branch id is required")
+			} else if _, exists := seenBranchIDs[branchID]; exists {
+				v.addError(branchField+".id", "duplicate condition branch id: "+branchID)
+			}
+			seenBranchIDs[branchID] = struct{}{}
+			targetNodeID := strings.TrimSpace(branch.TargetNodeID)
+			if targetNodeID == "" {
+				v.addError(branchField+".targetNodeId", "condition branch target node is required")
+			} else if _, ok := v.nodesByID[targetNodeID]; !ok {
+				v.addError(branchField+".targetNodeId", "condition branch target node does not exist: "+targetNodeID)
+			}
+			if !v.hasEdgeTo(strings.TrimSpace(node.ID), targetNodeID) {
+				v.addError(branchField+".targetNodeId", "condition branch target must have an outgoing edge: "+targetNodeID)
+			}
+			if branch.Default {
+				defaultCount++
+				if branch.Condition != nil {
+					v.addError(branchField+".condition", "default condition branch must not define a condition")
+				}
+				continue
+			}
+			v.validateCondition(branchField+".condition", strings.TrimSpace(node.ID), branch.Condition)
+		}
+		if defaultCount != 1 {
+			v.addError(field, "condition node must include exactly one default branch")
 		}
 	}
 }
 
 func (v *definitionValidator) validateCondition(field string, sourceNodeID string, condition *dsl.Condition) {
 	if condition == nil {
+		v.addError(field, "condition branch condition is required")
 		return
 	}
 	operator := strings.TrimSpace(condition.Operator)
@@ -354,6 +384,18 @@ func (v *definitionValidator) hasPath(sourceID string, targetID string, visiting
 			return true
 		}
 		if v.hasPath(next, targetID, visiting) {
+			return true
+		}
+	}
+	return false
+}
+
+func (v *definitionValidator) hasEdgeTo(sourceID string, targetID string) bool {
+	if sourceID == "" || targetID == "" {
+		return true
+	}
+	for _, edge := range v.def.Edges {
+		if strings.TrimSpace(edge.Source) == sourceID && strings.TrimSpace(edge.Target) == targetID {
 			return true
 		}
 	}

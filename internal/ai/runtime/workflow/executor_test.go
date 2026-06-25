@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -18,7 +19,15 @@ import (
 	"gorm.io/gorm/schema"
 )
 
-func TestExecutorRoutesByConditionEdge(t *testing.T) {
+func mustMarshalWorkflowTestConfig(value any) json.RawMessage {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		panic(err)
+	}
+	return raw
+}
+
+func TestExecutorRoutesByConditionNodeBranch(t *testing.T) {
 	executor := NewExecutor()
 	result, err := executor.Execute(context.Background(), Input{
 		Definition: conditionalReplyDefinition(),
@@ -52,6 +61,7 @@ func TestExecutorConditionNodeTraceExplainsMatchedEdge(t *testing.T) {
 	}
 	for _, want := range []string{
 		`"selectedEdgeId":"edge_condition_vip"`,
+		`"selectedBranchId":"vip"`,
 		`"selectedTargetNodeId":"vip_reply"`,
 		`"operator":"eq"`,
 		`"leftValue":"vip"`,
@@ -80,8 +90,9 @@ func TestExecutorConditionNodeTraceExplainsDefaultEdge(t *testing.T) {
 	}
 	for _, want := range []string{
 		`"selectedEdgeId":"edge_condition_default"`,
+		`"selectedBranchId":"default"`,
 		`"selectedTargetNodeId":"normal_reply"`,
-		`"reason":"no conditional edge matched; selected default edge"`,
+		`"reason":"no condition branch matched; selected default branch"`,
 		`"leftValue":"normal"`,
 		`"matched":false`,
 	} {
@@ -129,7 +140,7 @@ func TestExecutorHandoffToHumanRunsRealDispatchAction(t *testing.T) {
 	if strings.TrimSpace(result.ReplyText) != "" {
 		t.Fatalf("expected workflow handoff node to avoid duplicate reply text, got %q", result.ReplyText)
 	}
-	assertPath(t, result.NodePath, []string{"start_1", "handoff_1", "assigned_end"})
+	assertPath(t, result.NodePath, []string{"start_1", "handoff_1", "handoff_route_1", "assigned_end"})
 
 	current := services.ConversationService.Get(conversation.ID)
 	if current.Status != enums.IMConversationStatusActive {
@@ -207,7 +218,7 @@ func TestExecutorAnalyzeConversationOutputsBranchVariables(t *testing.T) {
 	if err != nil {
 		t.Fatalf("execute workflow: %v", err)
 	}
-	assertPath(t, result.NodePath, []string{"start_1", "analyze_1", "handoff_end"})
+	assertPath(t, result.NodePath, []string{"start_1", "analyze_1", "analyze_route_1", "handoff_end"})
 }
 
 func TestExecutorPrepareTicketDraftOutputsDraftVariable(t *testing.T) {
@@ -225,7 +236,7 @@ func TestExecutorPrepareTicketDraftOutputsDraftVariable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("execute workflow: %v", err)
 	}
-	assertPath(t, result.NodePath, []string{"start_1", "draft_1", "ready_end"})
+	assertPath(t, result.NodePath, []string{"start_1", "draft_1", "draft_route_1", "ready_end"})
 }
 
 func TestExecutorLLMReplyUsesAgentFallbackWhenDeclaredKnowledgeIsEmpty(t *testing.T) {
@@ -314,7 +325,7 @@ func TestExecutorResumeHumanConfirmContinuesWithConfirmedVariable(t *testing.T) 
 	if result.Interrupted {
 		t.Fatalf("expected workflow resume to complete")
 	}
-	assertPath(t, result.NodePath, []string{"end_1"})
+	assertPath(t, result.NodePath, []string{"confirm_route_1", "end_1"})
 }
 
 func TestExecutorResumeCreatesTicketAfterHumanConfirmation(t *testing.T) {
@@ -349,7 +360,7 @@ func TestExecutorResumeCreatesTicketAfterHumanConfirmation(t *testing.T) {
 	if result.Interrupted {
 		t.Fatalf("expected workflow to complete")
 	}
-	assertPath(t, result.NodePath, []string{"create_ticket_1", "end_1"})
+	assertPath(t, result.NodePath, []string{"confirm_route_1", "create_ticket_1", "end_1"})
 
 	var ticket models.Ticket
 	if err := db.First(&ticket, "conversation_id = ?", conversation.ID).Error; err != nil {
@@ -403,7 +414,14 @@ func conditionalReplyDefinition() dsl.Definition {
 		EntryNodeID:   "start_1",
 		Nodes: []dsl.Node{
 			{ID: "start_1", Type: workflowregistry.NodeTypeStart, Name: "Start"},
-			{ID: "condition_1", Type: workflowregistry.NodeTypeCondition, Name: "Route"},
+			{ID: "condition_1", Type: workflowregistry.NodeTypeCondition, Name: "Route", Config: mustMarshalWorkflowTestConfig(dsl.ConditionConfig{Branches: []dsl.ConditionBranch{
+				{ID: "vip", Name: "VIP", TargetNodeID: "vip_reply", Condition: &dsl.Condition{
+					Left:     &dsl.VariableSelector{NodeID: "start_1", Field: "userMessage"},
+					Operator: "eq",
+					Right:    "vip",
+				}},
+				{ID: "default", Name: "Default", TargetNodeID: "normal_reply", Default: true},
+			}})},
 			{ID: "vip_reply", Type: workflowregistry.NodeTypeLLMReply, Name: "VIP", Config: []byte(`{"staticReply":"VIP reply"}`)},
 			{ID: "normal_reply", Type: workflowregistry.NodeTypeLLMReply, Name: "Normal", Config: []byte(`{"staticReply":"Normal reply"}`)},
 			{ID: "send_vip", Type: workflowregistry.NodeTypeSendReply, Name: "Send VIP", Inputs: map[string]dsl.VariableSelector{
@@ -416,16 +434,7 @@ func conditionalReplyDefinition() dsl.Definition {
 		},
 		Edges: []dsl.Edge{
 			{ID: "edge_start_condition", Source: "start_1", Target: "condition_1"},
-			{
-				ID:     "edge_condition_vip",
-				Source: "condition_1",
-				Target: "vip_reply",
-				Condition: &dsl.Condition{
-					Left:     &dsl.VariableSelector{NodeID: "start_1", Field: "userMessage"},
-					Operator: "eq",
-					Right:    "vip",
-				},
-			},
+			{ID: "edge_condition_vip", Source: "condition_1", Target: "vip_reply"},
 			{ID: "edge_condition_default", Source: "condition_1", Target: "normal_reply"},
 			{ID: "edge_vip_send", Source: "vip_reply", Target: "send_vip"},
 			{ID: "edge_normal_send", Source: "normal_reply", Target: "send_normal"},
@@ -448,6 +457,13 @@ func createTicketWorkflowDefinition() dsl.Definition {
 			{ID: "confirm_1", Type: workflowregistry.NodeTypeHumanConfirm, Name: "Confirm", Inputs: map[string]dsl.VariableSelector{
 				"prompt": {NodeID: "prompt_1", Field: "replyText"},
 			}},
+			{ID: "confirm_route_1", Type: workflowregistry.NodeTypeCondition, Name: "Confirm Route", Config: mustMarshalWorkflowTestConfig(dsl.ConditionConfig{Branches: []dsl.ConditionBranch{
+				{ID: "yes", Name: "Yes", TargetNodeID: "create_ticket_1", Condition: &dsl.Condition{
+					Left:     &dsl.VariableSelector{NodeID: "confirm_1", Field: "confirmed"},
+					Operator: "is_true",
+				}},
+				{ID: "default", Name: "Cancel", TargetNodeID: "cancel_end", Default: true},
+			}})},
 			{ID: "create_ticket_1", Type: workflowregistry.NodeTypeCreateTicket, Name: "Create Ticket", Inputs: map[string]dsl.VariableSelector{
 				"ticketDraft": {NodeID: "draft_1", Field: "ticketDraft"},
 				"confirmed":   {NodeID: "confirm_1", Field: "confirmed"},
@@ -459,16 +475,9 @@ func createTicketWorkflowDefinition() dsl.Definition {
 			{ID: "edge_start_draft", Source: "start_1", Target: "draft_1"},
 			{ID: "edge_draft_prompt", Source: "draft_1", Target: "prompt_1"},
 			{ID: "edge_prompt_confirm", Source: "prompt_1", Target: "confirm_1"},
-			{
-				ID:     "edge_confirm_create",
-				Source: "confirm_1",
-				Target: "create_ticket_1",
-				Condition: &dsl.Condition{
-					Left:     &dsl.VariableSelector{NodeID: "confirm_1", Field: "confirmed"},
-					Operator: "is_true",
-				},
-			},
-			{ID: "edge_confirm_cancel", Source: "confirm_1", Target: "cancel_end"},
+			{ID: "edge_confirm_route", Source: "confirm_1", Target: "confirm_route_1"},
+			{ID: "edge_confirm_create", Source: "confirm_route_1", Target: "create_ticket_1"},
+			{ID: "edge_confirm_cancel", Source: "confirm_route_1", Target: "cancel_end"},
 			{ID: "edge_create_end", Source: "create_ticket_1", Target: "end_1"},
 		},
 	}
@@ -484,22 +493,22 @@ func humanConfirmWorkflowDefinition() dsl.Definition {
 			{ID: "confirm_1", Type: workflowregistry.NodeTypeHumanConfirm, Name: "Confirm", Inputs: map[string]dsl.VariableSelector{
 				"prompt": {NodeID: "prompt_1", Field: "replyText"},
 			}},
+			{ID: "confirm_route_1", Type: workflowregistry.NodeTypeCondition, Name: "Confirm Route", Config: mustMarshalWorkflowTestConfig(dsl.ConditionConfig{Branches: []dsl.ConditionBranch{
+				{ID: "yes", Name: "Yes", TargetNodeID: "end_1", Condition: &dsl.Condition{
+					Left:     &dsl.VariableSelector{NodeID: "confirm_1", Field: "confirmed"},
+					Operator: "is_true",
+				}},
+				{ID: "default", Name: "Cancel", TargetNodeID: "cancel_end", Default: true},
+			}})},
 			{ID: "end_1", Type: workflowregistry.NodeTypeEnd, Name: "End"},
 			{ID: "cancel_end", Type: workflowregistry.NodeTypeEnd, Name: "Cancel"},
 		},
 		Edges: []dsl.Edge{
 			{ID: "edge_start_prompt", Source: "start_1", Target: "prompt_1"},
 			{ID: "edge_prompt_confirm", Source: "prompt_1", Target: "confirm_1"},
-			{
-				ID:     "edge_confirm_yes",
-				Source: "confirm_1",
-				Target: "end_1",
-				Condition: &dsl.Condition{
-					Left:     &dsl.VariableSelector{NodeID: "confirm_1", Field: "confirmed"},
-					Operator: "is_true",
-				},
-			},
-			{ID: "edge_confirm_cancel", Source: "confirm_1", Target: "cancel_end"},
+			{ID: "edge_confirm_route", Source: "confirm_1", Target: "confirm_route_1"},
+			{ID: "edge_confirm_yes", Source: "confirm_route_1", Target: "end_1"},
+			{ID: "edge_confirm_cancel", Source: "confirm_route_1", Target: "cancel_end"},
 		},
 	}
 }
@@ -513,21 +522,21 @@ func prepareTicketDraftWorkflowDefinition() dsl.Definition {
 			{ID: "draft_1", Type: workflowregistry.NodeTypePrepareTicketDraft, Name: "Draft", Inputs: map[string]dsl.VariableSelector{
 				"issue": {NodeID: "start_1", Field: "userMessage"},
 			}},
+			{ID: "draft_route_1", Type: workflowregistry.NodeTypeCondition, Name: "Draft Route", Config: mustMarshalWorkflowTestConfig(dsl.ConditionConfig{Branches: []dsl.ConditionBranch{
+				{ID: "ready", Name: "Ready", TargetNodeID: "ready_end", Condition: &dsl.Condition{
+					Left:     &dsl.VariableSelector{NodeID: "draft_1", Field: "ticketDraft"},
+					Operator: "exists",
+				}},
+				{ID: "default", Name: "Default", TargetNodeID: "default_end", Default: true},
+			}})},
 			{ID: "ready_end", Type: workflowregistry.NodeTypeEnd, Name: "Ready"},
 			{ID: "default_end", Type: workflowregistry.NodeTypeEnd, Name: "Default"},
 		},
 		Edges: []dsl.Edge{
 			{ID: "edge_start_draft", Source: "start_1", Target: "draft_1"},
-			{
-				ID:     "edge_draft_ready",
-				Source: "draft_1",
-				Target: "ready_end",
-				Condition: &dsl.Condition{
-					Left:     &dsl.VariableSelector{NodeID: "draft_1", Field: "ticketDraft"},
-					Operator: "exists",
-				},
-			},
-			{ID: "edge_draft_default", Source: "draft_1", Target: "default_end"},
+			{ID: "edge_draft_route", Source: "draft_1", Target: "draft_route_1"},
+			{ID: "edge_draft_ready", Source: "draft_route_1", Target: "ready_end"},
+			{ID: "edge_draft_default", Source: "draft_route_1", Target: "default_end"},
 		},
 	}
 }
@@ -541,21 +550,21 @@ func analyzeConversationWorkflowDefinition() dsl.Definition {
 			{ID: "analyze_1", Type: workflowregistry.NodeTypeAnalyzeConversation, Name: "Analyze", Inputs: map[string]dsl.VariableSelector{
 				"userMessage": {NodeID: "start_1", Field: "userMessage"},
 			}},
+			{ID: "analyze_route_1", Type: workflowregistry.NodeTypeCondition, Name: "Analyze Route", Config: mustMarshalWorkflowTestConfig(dsl.ConditionConfig{Branches: []dsl.ConditionBranch{
+				{ID: "handoff", Name: "Handoff", TargetNodeID: "handoff_end", Condition: &dsl.Condition{
+					Left:     &dsl.VariableSelector{NodeID: "analyze_1", Field: "needHumanHandoff"},
+					Operator: "is_true",
+				}},
+				{ID: "default", Name: "Default", TargetNodeID: "default_end", Default: true},
+			}})},
 			{ID: "handoff_end", Type: workflowregistry.NodeTypeEnd, Name: "Handoff"},
 			{ID: "default_end", Type: workflowregistry.NodeTypeEnd, Name: "Default"},
 		},
 		Edges: []dsl.Edge{
 			{ID: "edge_start_analyze", Source: "start_1", Target: "analyze_1"},
-			{
-				ID:     "edge_analyze_handoff",
-				Source: "analyze_1",
-				Target: "handoff_end",
-				Condition: &dsl.Condition{
-					Left:     &dsl.VariableSelector{NodeID: "analyze_1", Field: "needHumanHandoff"},
-					Operator: "is_true",
-				},
-			},
-			{ID: "edge_analyze_default", Source: "analyze_1", Target: "default_end"},
+			{ID: "edge_analyze_route", Source: "analyze_1", Target: "analyze_route_1"},
+			{ID: "edge_analyze_handoff", Source: "analyze_route_1", Target: "handoff_end"},
+			{ID: "edge_analyze_default", Source: "analyze_route_1", Target: "default_end"},
 		},
 	}
 }
@@ -569,22 +578,22 @@ func handoffWorkflowDefinition() dsl.Definition {
 			{ID: "handoff_1", Type: workflowregistry.NodeTypeHandoffToHuman, Name: "Handoff", Inputs: map[string]dsl.VariableSelector{
 				"reason": {NodeID: "start_1", Field: "userMessage"},
 			}},
+			{ID: "handoff_route_1", Type: workflowregistry.NodeTypeCondition, Name: "Handoff Route", Config: mustMarshalWorkflowTestConfig(dsl.ConditionConfig{Branches: []dsl.ConditionBranch{
+				{ID: "assigned", Name: "Assigned", TargetNodeID: "assigned_end", Condition: &dsl.Condition{
+					Left:     &dsl.VariableSelector{NodeID: "handoff_1", Field: "decision"},
+					Operator: "eq",
+					Right:    string(services.HandoffDecisionAssigned),
+				}},
+				{ID: "default", Name: "Default", TargetNodeID: "default_end", Default: true},
+			}})},
 			{ID: "assigned_end", Type: workflowregistry.NodeTypeEnd, Name: "Assigned"},
 			{ID: "default_end", Type: workflowregistry.NodeTypeEnd, Name: "Default"},
 		},
 		Edges: []dsl.Edge{
 			{ID: "edge_start_handoff", Source: "start_1", Target: "handoff_1"},
-			{
-				ID:     "edge_handoff_assigned",
-				Source: "handoff_1",
-				Target: "assigned_end",
-				Condition: &dsl.Condition{
-					Left:     &dsl.VariableSelector{NodeID: "handoff_1", Field: "decision"},
-					Operator: "eq",
-					Right:    string(services.HandoffDecisionAssigned),
-				},
-			},
-			{ID: "edge_handoff_default", Source: "handoff_1", Target: "default_end"},
+			{ID: "edge_handoff_route", Source: "handoff_1", Target: "handoff_route_1"},
+			{ID: "edge_handoff_assigned", Source: "handoff_route_1", Target: "assigned_end"},
+			{ID: "edge_handoff_default", Source: "handoff_route_1", Target: "default_end"},
 		},
 	}
 }

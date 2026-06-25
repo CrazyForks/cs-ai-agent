@@ -39,7 +39,7 @@ export type WorkflowEditorNode = {
     nodeType?: string
     name?: string
     label?: string
-    config?: Record<string, unknown>
+    config?: WorkflowNodeConfig
     inputs?: Record<string, WorkflowVariableSelector>
   }
 }
@@ -48,14 +48,25 @@ export type WorkflowEditorEdge = {
   id: string
   source: string
   target: string
-  data?: {
-    condition?: {
-      expression?: string
-      left?: WorkflowVariableSelector
-      operator?: string
-      right?: unknown
-    }
-  }
+}
+
+export type WorkflowCondition = {
+  expression?: string
+  left?: WorkflowVariableSelector
+  operator?: string
+  right?: unknown
+}
+
+export type WorkflowConditionBranch = {
+  id: string
+  name?: string
+  targetNodeId: string
+  condition?: WorkflowCondition
+  default?: boolean
+}
+
+export type WorkflowNodeConfig = Record<string, unknown> & {
+  branches?: WorkflowConditionBranch[]
 }
 
 export type WorkflowDraft = {
@@ -71,19 +82,13 @@ export type WorkflowDefinition = {
     type: string
     name: string
     position: WorkflowNodePosition
-    config: Record<string, unknown>
+    config: WorkflowNodeConfig
     inputs?: Record<string, WorkflowVariableSelector>
   }[]
   edges: {
     id: string
     source: string
     target: string
-    condition?: {
-      expression?: string
-      left?: WorkflowVariableSelector
-      operator?: string
-      right?: unknown
-    }
   }[]
 }
 
@@ -354,8 +359,7 @@ export function validateWorkflowDraft(
   }
 
   const edgeIds = new Set<string>()
-  const conditionalSources = new Set<string>()
-  const defaultSources = new Set<string>()
+  const outgoingTargets = new Map<string, Set<string>>()
   for (const edge of draft.edges) {
     const id = edge.id.trim()
     if (!id) {
@@ -370,22 +374,10 @@ export function validateWorkflowDraft(
     if (!nodeIds.has(edge.target)) {
       errors.push(`edge target node does not exist: ${edge.target}`)
     }
-    if (edge.data?.condition) {
-      conditionalSources.add(edge.source)
-      if (!edge.data.condition.left?.nodeId || !edge.data.condition.left.field) {
-        errors.push(`edge ${edge.id} condition left variable is required`)
-      }
-      if (!edge.data.condition.operator) {
-        errors.push(`edge ${edge.id} condition operator is required`)
-      }
-    } else {
-      defaultSources.add(edge.source)
+    if (!outgoingTargets.has(edge.source)) {
+      outgoingTargets.set(edge.source, new Set())
     }
-  }
-  for (const source of conditionalSources) {
-    if (!defaultSources.has(source)) {
-      errors.push(`node ${source} conditional branch must include a default edge`)
-    }
+    outgoingTargets.get(edge.source)?.add(edge.target)
   }
 
   for (const node of draft.nodes) {
@@ -399,6 +391,48 @@ export function validateWorkflowDraft(
       if (!selector?.nodeId || !selector.field) {
         const nodeName = node.data?.name ?? spec.title ?? node.id
         errors.push(`${nodeName} 缺少必填输入「${input.name}」，请选择上游节点的输出变量。`)
+      }
+    }
+    if (nodeType === "condition") {
+      const branches = node.data?.config?.branches ?? []
+      if (branches.length === 0) {
+        errors.push(`${node.data?.name ?? node.id} 至少需要一个分支。`)
+        continue
+      }
+      let defaultCount = 0
+      const branchIds = new Set<string>()
+      const targets = outgoingTargets.get(node.id) ?? new Set<string>()
+      for (const branch of branches) {
+        const branchName = branch.name || branch.id || "未命名分支"
+        if (!branch.id) {
+          errors.push(`${node.data?.name ?? node.id} 存在未填写 ID 的分支。`)
+        } else if (branchIds.has(branch.id)) {
+          errors.push(`${node.data?.name ?? node.id} 存在重复分支 ID「${branch.id}」。`)
+        }
+        branchIds.add(branch.id)
+        if (!branch.targetNodeId) {
+          errors.push(`${node.data?.name ?? node.id} 的分支「${branchName}」缺少目标节点。`)
+        } else if (!nodeIds.has(branch.targetNodeId)) {
+          errors.push(`${node.data?.name ?? node.id} 的分支「${branchName}」目标节点不存在。`)
+        } else if (!targets.has(branch.targetNodeId)) {
+          errors.push(`${node.data?.name ?? node.id} 的分支「${branchName}」需要连接到目标节点。`)
+        }
+        if (branch.default) {
+          defaultCount += 1
+          if (branch.condition) {
+            errors.push(`${node.data?.name ?? node.id} 的默认分支不能配置条件。`)
+          }
+          continue
+        }
+        if (!branch.condition?.left?.nodeId || !branch.condition.left.field) {
+          errors.push(`${node.data?.name ?? node.id} 的分支「${branchName}」缺少判断变量。`)
+        }
+        if (!branch.condition?.operator) {
+          errors.push(`${node.data?.name ?? node.id} 的分支「${branchName}」缺少判断方式。`)
+        }
+      }
+      if (defaultCount !== 1) {
+        errors.push(`${node.data?.name ?? node.id} 必须且只能有一个默认分支。`)
       }
     }
   }
@@ -429,16 +463,6 @@ export function toApiDefinition(draft: WorkflowDraft): WorkflowDefinition {
       id: edge.id,
       source: edge.source,
       target: edge.target,
-      ...(edge.data?.condition
-        ? {
-            condition: {
-              ...(edge.data.condition.expression ? { expression: edge.data.condition.expression } : {}),
-              ...(edge.data.condition.left ? { left: edge.data.condition.left } : {}),
-              ...(edge.data.condition.operator ? { operator: edge.data.condition.operator } : {}),
-              ...(edge.data.condition.right !== undefined ? { right: edge.data.condition.right } : {}),
-            },
-          }
-        : {}),
     })),
   }
 }
@@ -460,7 +484,6 @@ export function fromApiDefinition(definition: WorkflowDefinition): WorkflowDraft
       id: edge.id,
       source: edge.source,
       target: edge.target,
-      data: edge.condition ? { condition: edge.condition } : undefined,
     })),
   }
 }

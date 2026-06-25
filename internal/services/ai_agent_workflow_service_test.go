@@ -73,10 +73,10 @@ func TestAIAgentServiceCreatesDefaultWorkflow(t *testing.T) {
 			t.Fatalf("expected default workflow to include %s node: %#v", nodeType, stored.Nodes)
 		}
 	}
-	assertConditionEdgeToNodeType(t, stored, "route_intent_1", workflowregistry.NodeTypeHandoffToHuman, "contains", "人工")
-	assertConditionEdgeToNodeType(t, stored, "route_intent_1", workflowregistry.NodeTypePrepareTicketDraft, "contains", "工单")
-	assertConditionEdgeToNodeType(t, stored, "answerability_1", workflowregistry.NodeTypeLLMReply, "eq", "answerable")
-	assertDefaultEdgeToNodeType(t, stored, "answerability_1", workflowregistry.NodeTypeLLMReply)
+	assertConditionBranchToNodeType(t, stored, "route_intent_1", workflowregistry.NodeTypeHandoffToHuman, "contains", "人工")
+	assertConditionBranchToNodeType(t, stored, "route_intent_1", workflowregistry.NodeTypePrepareTicketDraft, "contains", "工单")
+	assertConditionBranchToNodeID(t, stored, "answerability_route_1", "reply_1", "eq", "answerable")
+	assertDefaultBranchToNodeID(t, stored, "answerability_route_1", "fallback_reply_1")
 	if !workflowEdgeExists(stored, "create_ticket_1", "ticket_result_reply_1") {
 		t.Fatalf("expected create_ticket to flow into a customer-visible result reply")
 	}
@@ -235,29 +235,57 @@ func nodeTypeByID(def dsl.Definition, nodeID string) string {
 	return ""
 }
 
-func assertConditionEdgeToNodeType(t *testing.T, def dsl.Definition, sourceID string, targetType string, operator string, right any) {
+func assertConditionBranchToNodeType(t *testing.T, def dsl.Definition, sourceID string, targetType string, operator string, right any) {
 	t.Helper()
 	nodeTypes := workflowNodeTypeMap(def)
-	for _, edge := range def.Edges {
-		if edge.Source != sourceID || nodeTypes[edge.Target] != targetType || edge.Condition == nil {
+	for _, branch := range conditionBranches(t, def, sourceID) {
+		if nodeTypes[branch.TargetNodeID] != targetType || branch.Condition == nil {
 			continue
 		}
-		if edge.Condition.Operator == operator && edge.Condition.Right == right {
+		if branch.Condition.Operator == operator && branch.Condition.Right == right {
 			return
 		}
 	}
-	t.Fatalf("expected %s conditional edge from %s to %s with right=%v, got %#v", operator, sourceID, targetType, right, def.Edges)
+	t.Fatalf("expected %s condition branch from %s to %s with right=%v", operator, sourceID, targetType, right)
 }
 
-func assertDefaultEdgeToNodeType(t *testing.T, def dsl.Definition, sourceID string, targetType string) {
+func assertConditionBranchToNodeID(t *testing.T, def dsl.Definition, sourceID string, targetID string, operator string, right any) {
 	t.Helper()
-	nodeTypes := workflowNodeTypeMap(def)
-	for _, edge := range def.Edges {
-		if edge.Source == sourceID && nodeTypes[edge.Target] == targetType && edge.Condition == nil {
+	for _, branch := range conditionBranches(t, def, sourceID) {
+		if branch.TargetNodeID != targetID || branch.Condition == nil {
+			continue
+		}
+		if branch.Condition.Operator == operator && branch.Condition.Right == right {
 			return
 		}
 	}
-	t.Fatalf("expected default edge from %s to %s, got %#v", sourceID, targetType, def.Edges)
+	t.Fatalf("expected %s condition branch from %s to %s with right=%v", operator, sourceID, targetID, right)
+}
+
+func assertDefaultBranchToNodeID(t *testing.T, def dsl.Definition, sourceID string, targetID string) {
+	t.Helper()
+	for _, branch := range conditionBranches(t, def, sourceID) {
+		if branch.TargetNodeID == targetID && branch.Default {
+			return
+		}
+	}
+	t.Fatalf("expected default branch from %s to %s", sourceID, targetID)
+}
+
+func conditionBranches(t *testing.T, def dsl.Definition, nodeID string) []dsl.ConditionBranch {
+	t.Helper()
+	for _, node := range def.Nodes {
+		if node.ID != nodeID {
+			continue
+		}
+		var config dsl.ConditionConfig
+		if err := json.Unmarshal(node.Config, &config); err != nil {
+			t.Fatalf("unmarshal condition config for %s: %v", nodeID, err)
+		}
+		return config.Branches
+	}
+	t.Fatalf("condition node not found: %s", nodeID)
+	return nil
 }
 
 func workflowEdgeExists(def dsl.Definition, sourceID string, targetID string) bool {
