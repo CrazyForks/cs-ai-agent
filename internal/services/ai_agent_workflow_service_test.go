@@ -82,6 +82,26 @@ func TestAIAgentServiceCreatesDefaultWorkflow(t *testing.T) {
 	}
 }
 
+func TestAIWorkflowServiceDefaultAgentWorkflowDefinitionIsValid(t *testing.T) {
+	definition := AIWorkflowService.DefaultAgentWorkflowDefinition()
+	if definition.EntryNodeID == "" {
+		t.Fatalf("expected default workflow definition")
+	}
+	validation := workflowvalidator.ValidateDefinition(definition, workflowregistry.DefaultRegistry())
+	if !validation.Valid {
+		t.Fatalf("expected default workflow definition to be valid, got %#v", validation.Errors)
+	}
+	if nodeTypeByID(definition, "route_intent_1") != workflowregistry.NodeTypeCondition {
+		t.Fatalf("expected default workflow to include intent router, got nodes: %#v", definition.Nodes)
+	}
+	if !workflowHasNodeType(definition, workflowregistry.NodeTypeHandoffToHuman) {
+		t.Fatalf("expected default workflow to include human handoff node")
+	}
+	if !workflowHasNodeType(definition, workflowregistry.NodeTypeCreateTicket) {
+		t.Fatalf("expected default workflow to include ticket creation node")
+	}
+}
+
 func TestAIWorkflowServicePublishAgentWorkflowBindsAgentVersion(t *testing.T) {
 	setupAIAgentWorkflowTestDB(t)
 	operator := aiAgentWorkflowTestOperator()

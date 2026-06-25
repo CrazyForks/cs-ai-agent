@@ -108,6 +108,14 @@ func AIWorkflowGetNodeSpecList(ctx *gin.Context) {
 	httpx.WriteJSON(ctx, builders.BuildAIWorkflowNodeSpecs(services.AIWorkflowService.ListNodeSpecs()))
 }
 
+func AIWorkflowGetDefaultDefinition(ctx *gin.Context) {
+	if _, err := services.AuthService.RequirePermission(ctx, constants.PermissionAIAgentView); err != nil {
+		httpx.WriteJSON(ctx, err)
+		return
+	}
+	httpx.WriteJSON(ctx, services.AIWorkflowService.DefaultAgentWorkflowDefinition())
+}
+
 func AIWorkflowPostValidate(ctx *gin.Context) {
 	if _, err := services.AuthService.RequirePermission(ctx, constants.PermissionAIAgentView); err != nil {
 		httpx.WriteJSON(ctx, err)

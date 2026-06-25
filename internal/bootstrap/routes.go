@@ -230,6 +230,7 @@ func registerDashboardAIAgentRoutes(group *gin.RouterGroup) {
 
 func registerDashboardAIWorkflowRoutes(group *gin.RouterGroup) {
 	group.GET("/node-spec/list", dashboard.AIWorkflowGetNodeSpecList)
+	group.GET("/default-definition", dashboard.AIWorkflowGetDefaultDefinition)
 	group.POST("/validate", dashboard.AIWorkflowPostValidate)
 	group.Any("/run/list", dashboard.AIWorkflowAnyRunList)
 	group.GET("/run/:id", dashboard.AIWorkflowGetRunBy)

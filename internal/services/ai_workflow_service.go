@@ -190,6 +190,10 @@ func (s *aiWorkflowService) ListNodeSpecs() []workflowregistry.NodeSpec {
 	return s.registry.List()
 }
 
+func (s *aiWorkflowService) DefaultAgentWorkflowDefinition() dsl.Definition {
+	return defaultAgentWorkflowDefinition()
+}
+
 func (s *aiWorkflowService) ValidateDefinition(def dsl.Definition) workflowvalidator.Result {
 	return workflowvalidator.ValidateDefinition(def, s.registry)
 }
