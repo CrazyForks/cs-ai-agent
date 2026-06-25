@@ -114,6 +114,11 @@ func TestAIWorkflowServiceDefaultAgentWorkflowDefinitionIsValid(t *testing.T) {
 	}
 }
 
+func TestAIWorkflowServiceDefaultAgentWorkflowLayoutDoesNotOverlap(t *testing.T) {
+	definition := AIWorkflowService.DefaultAgentWorkflowDefinition()
+	assertWorkflowLayoutDoesNotOverlap(t, definition)
+}
+
 func TestAIWorkflowServicePublishAgentWorkflowBindsAgentVersion(t *testing.T) {
 	setupAIAgentWorkflowTestDB(t)
 	operator := aiAgentWorkflowTestOperator()
@@ -307,6 +312,48 @@ func workflowEdgeExists(def dsl.Definition, sourceID string, targetID string) bo
 		}
 	}
 	return false
+}
+
+type workflowLayoutBox struct {
+	NodeID string
+	Left   float64
+	Top    float64
+	Right  float64
+	Bottom float64
+}
+
+func assertWorkflowLayoutDoesNotOverlap(t *testing.T, def dsl.Definition) {
+	t.Helper()
+	boxes := make([]workflowLayoutBox, 0, len(def.Nodes))
+	for _, node := range def.Nodes {
+		width, height := defaultWorkflowNodeRenderSize(node.Type)
+		boxes = append(boxes, workflowLayoutBox{
+			NodeID: node.ID,
+			Left:   node.Position.X,
+			Top:    node.Position.Y,
+			Right:  node.Position.X + width,
+			Bottom: node.Position.Y + height,
+		})
+	}
+	const minGap = 32.0
+	for i := range boxes {
+		for j := i + 1; j < len(boxes); j++ {
+			if workflowBoxesOverlapWithGap(boxes[i], boxes[j], minGap) {
+				t.Fatalf("default workflow nodes are too close or overlapping: %s=%+v %s=%+v", boxes[i].NodeID, boxes[i], boxes[j].NodeID, boxes[j])
+			}
+		}
+	}
+}
+
+func defaultWorkflowNodeRenderSize(nodeType string) (float64, float64) {
+	if nodeType == workflowregistry.NodeTypeCondition {
+		return 160, 160
+	}
+	return 220, 128
+}
+
+func workflowBoxesOverlapWithGap(a workflowLayoutBox, b workflowLayoutBox, gap float64) bool {
+	return a.Left < b.Right+gap && a.Right+gap > b.Left && a.Top < b.Bottom+gap && a.Bottom+gap > b.Top
 }
 
 func workflowNodeTypeMap(def dsl.Definition) map[string]string {
