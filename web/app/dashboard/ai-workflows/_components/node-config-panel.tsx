@@ -21,6 +21,7 @@ import type {
 type WorkflowNodeData = Record<string, unknown> & {
   nodeType?: string
   name?: string
+  title?: string
   config?: WorkflowNodeConfig
   inputs?: Record<string, WorkflowVariableSelector>
 }
@@ -98,11 +99,13 @@ function NodeConfigForm({
   const inputSchema = nodeSpec?.inputSchema ?? []
   const outputSchema = nodeSpec?.outputSchema ?? []
   const isConditionNode = node.data.nodeType === "condition"
+  const fallbackNodeName = nodeSpec?.title || node.data.title || node.data.nodeType || node.id
+  const panelTitle = name.trim() || node.data.name?.trim() || fallbackNodeName
 
   const commitChange = (next: Partial<WorkflowNodeData>) => {
     onChange(node.id, {
       ...node.data,
-      name: name.trim() || node.data.nodeType || node.id,
+      name: name.trim() || fallbackNodeName,
       config: node.data.config ?? {},
       inputs,
       ...next,
@@ -122,8 +125,12 @@ function NodeConfigForm({
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 p-4">
       <div>
-        <div className="text-sm font-medium">{node.data.nodeType ?? node.id}</div>
-        <div className="mt-1 text-xs text-muted-foreground">{node.id}</div>
+        <div className="text-sm font-medium">{panelTitle}</div>
+        <div className="mt-1 text-xs text-muted-foreground">
+          {node.data.nodeType && node.data.nodeType !== panelTitle
+            ? `${node.id} · ${node.data.nodeType}`
+            : node.id}
+        </div>
       </div>
       <div className="space-y-2">
         <Label htmlFor="workflow-node-name">节点名称</Label>
